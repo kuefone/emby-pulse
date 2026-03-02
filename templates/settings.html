@@ -1,195 +1,246 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="space-y-6 max-w-6xl mx-auto pb-10">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">⚙️ 系统核心设置</h1>
-            <p class="text-sm text-gray-500 mt-1 dark:text-gray-400">管理 EmbyPulse 的基础运行参数、自动化对接与机器人推送。</p>
-        </div>
-        <div class="mt-4 sm:mt-0">
-            <button onclick="saveSettings()" id="save-btn" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 dark:shadow-none flex items-center">
-                <i class="fa-solid fa-floppy-disk mr-2"></i> 保存所有配置
-            </button>
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <div class="flex items-center gap-3 mb-6">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">系统设置</h1>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-server text-indigo-500"></i> Emby 连接 (Docker 内部)
+        </h3>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Emby 地址 (内网/Docker IP)</label>
+                <input type="text" id="emby_host" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="http://172.17.0.1:8096">
+                <p class="text-xs text-gray-400 mt-1">这是 EmbyPulse 后端连接 Emby Server 用的地址。</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API Key</label>
+                <input type="password" id="emby_api_key" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <div class="flex justify-between mt-1">
+                    <p class="text-xs text-gray-400">在 Emby 后台 -> 高级 -> API 密钥 中生成。</p>
+                    <button onclick="toggleShow('emby_api_key')" class="text-xs text-indigo-500 hover:text-indigo-600">显示/隐藏</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <div class="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center text-lg mr-3">
-                    <i class="fa-solid fa-cloud-arrow-down"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">自动化与资源查刮</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">TMDB 搜片与 MoviePilot 自动下载引擎</p>
-                </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-globe text-emerald-500"></i> 对外服务设置
+        </h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Emby 公开访问地址</label>
+                <input type="text" id="emby_public_url" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="https://emby.yourdomain.com">
+                <p class="text-xs text-gray-400 mt-1">此地址将用于公网跳转以及显示在用户注册成功后的“入职卡片”上，方便用户复制登录。</p>
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">MoviePilot 地址 (URL)</label>
-                    <input type="text" id="moviepilot_url" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="例如: http://192.168.1.10:3000">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">MoviePilot 密钥 (API Token)</label>
-                    <input type="password" id="moviepilot_token" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="填入 MP 生成的 Token">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">TMDB API Key</label>
-                    <input type="text" id="tmdb_api_key" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="用于搜索电影、获取海报和简介">
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">注册后提示语 (可选)</label>
+                <textarea id="welcome_message" rows="3" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="例：推荐使用 Infuse 客户端登录，请勿分享账号。"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">自定义客户端下载链接 (可选)</label>
+                <input type="text" id="client_download_url" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="默认官方: https://emby.media/download.html">
+                <p class="text-xs text-gray-400 mt-1">此链接将显示在邀请注册页底部。可修改为您推荐的网盘分享或第三方播放器（如 Infuse/Fileball）链接。</p>
             </div>
         </div>
+    </div>
 
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <div class="w-10 h-10 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg flex items-center justify-center text-lg mr-3">
-                    <i class="fa-solid fa-server"></i>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-down text-purple-500"></i> 自动化下载 (MoviePilot)
+        </h3>
+        <div class="space-y-4">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">MoviePilot 地址 (URL)</label>
+                    <input type="text" id="moviepilot_url" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="例如: http://192.168.31.2:3000">
                 </div>
                 <div>
-                    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">Emby 媒体库</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">连接您的媒体中心与外部访问地址</p>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">MoviePilot 密钥 (API Token)</label>
+                    <input type="password" id="moviepilot_token" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="填入 MP 设置中生成的 API Token">
                 </div>
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Emby 内网地址 (Host)</label>
-                    <input type="text" id="emby_host" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="例如: http://127.0.0.1:8096">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Emby API Key</label>
-                    <input type="password" id="emby_api_key" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Emby 外网地址 (用于跳转链接)</label>
-                    <input type="text" id="emby_public_url" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="例如: https://emby.yourdomain.com">
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">面板公网访问地址 (Pulse URL)</label>
+                <input type="text" id="pulse_url" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="例如: https://yj.esa.cchmm.cn">
+                <p class="text-xs text-gray-400 mt-1">此地址将用于求片通知底部的“一键审批”按钮跳转。请确保填写外网可访问的地址（勿带尾部斜杠）。</p>
             </div>
         </div>
+    </div>
 
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <div class="w-10 h-10 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg flex items-center justify-center text-lg mr-3">
-                    <i class="fa-solid fa-globe"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">系统网络与面板</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">外网面板访问与科学代理设置</p>
-                </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-network-wired text-blue-500"></i> TMDB & 网络
+        </h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">TMDB API Key</label>
+                <input type="password" id="tmdb_api_key" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">面板外网地址 (Pulse URL) <span class="text-red-500">*新增</span></label>
-                    <input type="text" id="pulse_url" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="例如: http://pulse.yourdomain.com:8000">
-                    <p class="text-xs text-gray-400 mt-1">用于求片通知中，一键跳转到审核后台的按钮链接。</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">网络代理 (Proxy)</label>
-                    <input type="text" id="proxy_url" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition text-gray-800 dark:text-gray-200 font-medium" placeholder="例如: http://127.0.0.1:7890">
-                    <p class="text-xs text-gray-400 mt-1">留空则直连。如果 TMDB 搜索海报裂图或 TG 连不上，请填入代理。</p>
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">HTTP 代理 (Proxy)</label>
+                <input type="text" id="proxy_url" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="http://127.0.0.1:7890">
             </div>
         </div>
+    </div>
 
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <div class="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center text-lg mr-3">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">消息推送通道</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Telegram / 企业微信 参数配置</p>
-                </div>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-600">
-                    <h3 class="font-bold text-sm text-blue-500 mb-3"><i class="fa-brands fa-telegram mr-1"></i> Telegram 配置</h3>
-                    <div class="space-y-3">
-                        <input type="password" id="tg_bot_token" class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-gray-200" placeholder="Bot Token">
-                        <input type="text" id="tg_chat_id" class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-gray-200" placeholder="Admin Chat ID">
-                    </div>
-                </div>
-
-                <div class="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-600">
-                    <h3 class="font-bold text-sm text-green-600 mb-3"><i class="fa-solid fa-comment-dots mr-1"></i> 企业微信配置</h3>
-                    <div class="space-y-3">
-                        <input type="text" id="wecom_corpid" class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-gray-200" placeholder="Corp ID">
-                        <input type="password" id="wecom_corpsecret" class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-gray-200" placeholder="Corp Secret">
-                        <input type="text" id="wecom_agentid" class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-gray-200" placeholder="Agent ID">
-                        <input type="text" id="wecom_touser" class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition dark:text-gray-200" placeholder="To User (默认 @all)">
-                    </div>
-                </div>
-            </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-orange-500"></i> Webhook 安全
+        </h3>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">安全令牌 (Token)</label>
+            <input type="text" id="webhook_token" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 focus:ring-2 focus:ring-orange-500 outline-none">
+            <p class="text-xs text-gray-400 mt-2">
+                Webhook URL: <span class="font-mono bg-gray-100 dark:bg-gray-900 px-1 rounded select-all" id="webhook-url-preview">...</span>
+            </p>
         </div>
+    </div>
 
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-user-slash text-gray-500"></i> 忽略用户 (不统计)
+        </h3>
+        <div id="hidden-users-container" class="flex flex-wrap gap-2 mb-3">
+        </div>
+        <div class="flex gap-2">
+            <select id="user-selector" class="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 outline-none">
+                <option value="">选择用户...</option>
+            </select>
+            <button onclick="addHiddenUser()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition">添加</button>
+        </div>
+    </div>
+
+    <div class="flex justify-end pb-10">
+        <button onclick="saveSettings()" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition transform hover:scale-105">
+            保存全部设置
+        </button>
     </div>
 </div>
 
-<div id="toast" class="fixed bottom-10 right-10 transform translate-y-20 opacity-0 transition-all duration-300 px-6 py-3 rounded-xl shadow-2xl text-white font-bold text-sm z-50 flex items-center"></div>
-
 <script>
-    document.addEventListener('DOMContentLoaded', loadSettings);
+let allUsers = [];
+let hiddenUsers = [];
 
-    function showToast(msg, type='success') {
-        const toast = document.getElementById('toast');
-        toast.innerHTML = type === 'error' ? `<i class="fa-solid fa-circle-exclamation mr-2 text-lg"></i>${msg}` : `<i class="fa-solid fa-circle-check mr-2 text-lg"></i>${msg}`;
-        toast.className = `fixed bottom-10 right-10 transform translate-y-0 opacity-100 transition-all duration-300 px-6 py-3 rounded-xl shadow-2xl text-white font-bold text-sm z-50 flex items-center ${type === 'error' ? 'bg-red-500' : 'bg-gray-900 dark:bg-white dark:text-gray-900'}`;
-        setTimeout(() => { toast.classList.remove('translate-y-0', 'opacity-100'); toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
-    }
-
-    async function loadSettings() {
-        try {
-            const res = await fetch('/api/config');
-            const data = await res.json();
-            // 智能适配：不管后端返回的是 {data: {...}} 还是直接的 {...}
-            const configObj = data.data || data; 
-            
-            document.querySelectorAll('input').forEach(input => {
-                if (input.id && configObj[input.id] !== undefined) {
-                    input.value = configObj[input.id];
-                }
-            });
-        } catch (e) {
-            console.error(e);
-            showToast("拉取配置失败，请检查网络", "error");
-        }
-    }
-
-    async function saveSettings() {
-        const btn = document.getElementById('save-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 保存中...';
-        btn.disabled = true;
-
-        const payload = {};
-        document.querySelectorAll('input').forEach(input => {
-            if (input.id) {
-                payload[input.id] = input.value.trim();
-            }
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 加载所有用户用于下拉框
+    const uRes = await fetch('/api/users');
+    const uJson = await uRes.json();
+    if(uJson.status === 'success') {
+        allUsers = uJson.data;
+        const sel = document.getElementById('user-selector');
+        allUsers.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.UserId;
+            opt.textContent = u.UserName;
+            sel.appendChild(opt);
         });
-
-        try {
-            const res = await fetch('/api/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await res.json();
-            if (result.status === 'success' || res.status === 200) {
-                showToast("配置已成功保存并热重载！");
-            } else {
-                showToast(result.message || "保存失败", "error");
-            }
-        } catch (e) {
-            showToast("请求异常", "error");
-        }
-        
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }, 500);
     }
+
+    // 2. 加载设置
+    loadSettings();
+});
+
+async function loadSettings() {
+    const res = await fetch('/api/settings');
+    const json = await res.json();
+    if (json.status === 'success') {
+        const d = json.data;
+        document.getElementById('emby_host').value = d.emby_host || '';
+        document.getElementById('emby_api_key').value = d.emby_api_key || '';
+        document.getElementById('tmdb_api_key').value = d.tmdb_api_key || '';
+        document.getElementById('proxy_url').value = d.proxy_url || '';
+        document.getElementById('webhook_token').value = d.webhook_token || '';
+        
+        document.getElementById('emby_public_url').value = d.emby_public_url || '';
+        document.getElementById('welcome_message').value = d.welcome_message || '';
+        document.getElementById('client_download_url').value = d.client_download_url || '';
+
+        // 🔥 加载 MoviePilot 和面板新配置
+        document.getElementById('moviepilot_url').value = d.moviepilot_url || '';
+        document.getElementById('moviepilot_token').value = d.moviepilot_token || '';
+        document.getElementById('pulse_url').value = d.pulse_url || '';
+
+        hiddenUsers = d.hidden_users || [];
+        renderHiddenUsers();
+        updateWebhookPreview();
+    }
+}
+
+function renderHiddenUsers() {
+    const container = document.getElementById('hidden-users-container');
+    container.innerHTML = '';
+    hiddenUsers.forEach(uid => {
+        const user = allUsers.find(u => u.UserId === uid);
+        const name = user ? user.UserName : uid;
+        
+        const tag = document.createElement('div');
+        tag.className = 'flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300';
+        tag.innerHTML = `
+            <span>${name}</span>
+            <button onclick="removeHiddenUser('${uid}')" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+        `;
+        container.appendChild(tag);
+    });
+}
+
+function addHiddenUser() {
+    const sel = document.getElementById('user-selector');
+    const uid = sel.value;
+    if (uid && !hiddenUsers.includes(uid)) {
+        hiddenUsers.push(uid);
+        renderHiddenUsers();
+    }
+    sel.value = '';
+}
+
+function removeHiddenUser(uid) {
+    hiddenUsers = hiddenUsers.filter(id => id !== uid);
+    renderHiddenUsers();
+}
+
+function updateWebhookPreview() {
+    const token = document.getElementById('webhook_token').value;
+    const host = window.location.origin;
+    document.getElementById('webhook-url-preview').textContent = `${host}/api/v1/webhook?token=${token}`;
+}
+
+document.getElementById('webhook_token').addEventListener('input', updateWebhookPreview);
+
+async function saveSettings() {
+    const data = {
+        emby_host: document.getElementById('emby_host').value,
+        emby_api_key: document.getElementById('emby_api_key').value,
+        tmdb_api_key: document.getElementById('tmdb_api_key').value,
+        proxy_url: document.getElementById('proxy_url').value,
+        webhook_token: document.getElementById('webhook_token').value,
+        hidden_users: hiddenUsers,
+        emby_public_url: document.getElementById('emby_public_url').value,
+        welcome_message: document.getElementById('welcome_message').value,
+        client_download_url: document.getElementById('client_download_url').value,
+        
+        // 🔥 保存 MoviePilot 和面板新配置
+        moviepilot_url: document.getElementById('moviepilot_url').value,
+        moviepilot_token: document.getElementById('moviepilot_token').value,
+        pulse_url: document.getElementById('pulse_url').value
+    };
+
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    alert(json.message);
+}
+
+function toggleShow(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
 </script>
 {% endblock %}
