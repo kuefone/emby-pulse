@@ -52,9 +52,13 @@ DEFAULT_CONFIG = {
     "webhook_token": "embypulse",
     "calendar_cache_ttl": 86400,
     "scheduled_tasks": [],
-    # 🔥 新增配置项 (解决 system.py 读取报错)
     "emby_public_url": "", 
-    "welcome_message": ""
+    "welcome_message": "",
+    # 🔥 新增配置项注册 (解决保存后刷新为空的问题)
+    "client_download_url": "",
+    "moviepilot_url": "",
+    "moviepilot_token": "",
+    "pulse_url": ""
 }
 
 class ConfigManager:
