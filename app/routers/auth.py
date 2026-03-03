@@ -1,12 +1,39 @@
+import sqlite3
+import requests
+import datetime
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from app.core.config import cfg
-from app.core.database import query_db
+from app.core.database import DB_PATH, query_db
 from app.schemas.models import LoginModel, UserRegisterModel
-import requests
-import datetime
 
 router = APIRouter()
+
+# ==========================================
+# 🔥 数据库热升级：确保邀请码表字段完整
+# ==========================================
+def ensure_invitations_schema():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("PRAGMA table_info(invitations)")
+        cols = [col[1] for col in c.fetchall()]
+        if cols:
+            # 静默修补缺失的字段，兼容老用户的旧表
+            if 'used_count' not in cols: c.execute("ALTER TABLE invitations ADD COLUMN used_count INTEGER DEFAULT 0")
+            if 'max_uses' not in cols: c.execute("ALTER TABLE invitations ADD COLUMN max_uses INTEGER DEFAULT 1")
+            if 'used_by' not in cols: c.execute("ALTER TABLE invitations ADD COLUMN used_by TEXT")
+            if 'used_at' not in cols: c.execute("ALTER TABLE invitations ADD COLUMN used_at DATETIME")
+            if 'status' not in cols: c.execute("ALTER TABLE invitations ADD COLUMN status INTEGER DEFAULT 0")
+            if 'template_user_id' not in cols: c.execute("ALTER TABLE invitations ADD COLUMN template_user_id TEXT")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Upgrade invitations table error: {e}")
+
+# 启动时执行表结构自检
+ensure_invitations_schema()
+
 
 @router.post("/api/register")
 async def api_register(data: UserRegisterModel):
@@ -16,8 +43,12 @@ async def api_register(data: UserRegisterModel):
         if not invite:
             return JSONResponse(content={"status": "error", "message": "无效的邀请码"})
         
-        if invite['used_count'] >= invite['max_uses']:
-            return JSONResponse(content={"status": "error", "message": "邀请码已被使用"})
+        # 🔥 容错处理：防止旧数据为 NULL 导致类型报错
+        used_count = invite['used_count'] if invite['used_count'] is not None else 0
+        max_uses = invite['max_uses'] if invite['max_uses'] is not None else 1
+        
+        if used_count >= max_uses:
+            return JSONResponse(content={"status": "error", "message": "邀请码已被使用或超过最大次数"})
 
         # 2. 准备 Emby 连接
         host = cfg.get("emby_host"); key = cfg.get("emby_api_key")
@@ -37,14 +68,14 @@ async def api_register(data: UserRegisterModel):
             requests.delete(f"{host}/emby/Users/{new_id}?api_key={key}")
             return JSONResponse(content={"status": "error", "message": "密码设置失败"})
 
-        # 5. 🔥 初始化策略 (启用账户 + 静默继承权限模板)
+        # 5. 初始化策略 (启用账户 + 静默继承权限模板)
         p_res = requests.get(f"{host}/emby/Users/{new_id}?api_key={key}")
         policy = p_res.json().get('Policy', {}) if p_res.status_code == 200 else {}
         
         policy['IsDisabled'] = False
         policy['LoginAttemptsBeforeLockout'] = -1
         
-        # 读取绑定的模板ID
+        # 读取绑定的模板ID进行权限继承
         template_id = invite['template_user_id'] if 'template_user_id' in invite.keys() else None
         
         if template_id:
@@ -52,7 +83,6 @@ async def api_register(data: UserRegisterModel):
                 src_res = requests.get(f"{host}/emby/Users/{template_id}?api_key={key}", timeout=5)
                 if src_res.status_code == 200:
                     src_policy = src_res.json().get('Policy', {})
-                    # 将模板用户的媒体库白名单覆盖给新注册的用户
                     policy['EnableAllFolders'] = src_policy.get('EnableAllFolders', True)
                     policy['EnabledFolders'] = src_policy.get('EnabledFolders', [])
             except: pass
@@ -67,10 +97,11 @@ async def api_register(data: UserRegisterModel):
             query_db("INSERT INTO users_meta (user_id, expire_date, created_at) VALUES (?, ?, ?)", 
                      (new_id, expire_date, datetime.datetime.now().isoformat()))
 
-        # 7. 🔥 修复：完整更新邀请码的使用状态、使用者和时间
+        # 7. 🔥 致命修复：更新使用次数、使用者记录及状态
+        # 加入 COALESCE 防爆改设计，即使字段是 NULL 也能正确执行 0+1
         used_at = datetime.datetime.now().isoformat()
         query_db(
-            "UPDATE invitations SET used_count = used_count + 1, used_by = ?, used_at = ?, status = 1 WHERE code = ?", 
+            "UPDATE invitations SET used_count = COALESCE(used_count, 0) + 1, used_by = ?, used_at = ?, status = 1 WHERE code = ?", 
             (data.username, used_at, data.code)
         )
 
@@ -85,6 +116,7 @@ async def api_register(data: UserRegisterModel):
 
     except Exception as e:
         return JSONResponse(content={"status": "error", "message": str(e)})
+
 
 @router.post("/api/login")
 async def api_login(data: LoginModel, request: Request):
@@ -116,6 +148,7 @@ async def api_login(data: LoginModel, request: Request):
         else: return JSONResponse(content={"status": "error", "message": f"Emby 连接失败: {res.status_code}"})
             
     except Exception as e: return JSONResponse(content={"status": "error", "message": f"登录异常: {str(e)}"})
+
 
 @router.get("/logout")
 async def api_logout(request: Request):
