@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
 import requests
+import io
 from app.core.config import cfg
 
 router = APIRouter()
@@ -14,7 +16,27 @@ def get_emby_admin(host, key):
     except:
         return None
 
-# 🔥 新增：通用的媒体规格提取器 (电影和单集都能用)
+# ==========================================
+# 🌟 核心：图片代理器 (绕过内网与HTTPS限制)
+# ==========================================
+@router.get("/api/library/image/{item_id}")
+def proxy_emby_image(item_id: str, type: str = "Primary", width: int = 400):
+    host = cfg.get("emby_host")
+    key = cfg.get("emby_api_key")
+    if not host or not key:
+        return {"status": "error"}
+    
+    emby_img_url = f"{host}/emby/Items/{item_id}/Images/{type}?api_key={key}&MaxWidth={width}"
+    try:
+        res = requests.get(emby_img_url, stream=True, timeout=5)
+        if res.status_code == 200:
+            return StreamingResponse(io.BytesIO(res.content), media_type=res.headers.get("content-type", "image/jpeg"))
+    except:
+        pass
+    # 代理失败时，前端的 onerror 会接管兜底
+    return {"status": "error"}
+
+# 通用媒体规格提取器
 def extract_media_badges(item):
     badges = []
     if "MediaSources" in item and item["MediaSources"]:
@@ -65,7 +87,6 @@ def global_library_search(query: str, request: Request):
             "SearchTerm": query,
             "IncludeItemTypes": "Movie,Series",
             "Recursive": "true",
-            # 🔥 修复1与2：追加了 ImageTags (图片) 和 ProductionYear (年份)
             "Fields": "Overview,MediaSources,ProviderIds,ImageTags,ProductionYear", 
             "Limit": 8 
         }
@@ -76,27 +97,22 @@ def global_library_search(query: str, request: Request):
         for item in items:
             media_type = "movie" if item["Type"] == "Movie" else "tv"
             
-            # ================== 图片获取策略 ==================
+            # 🔥 走我们自己写的代理接口
             poster_url = ""
             if item.get("ImageTags", {}).get("Primary"):
-                poster_url = f"{host}/emby/Items/{item['Id']}/Images/Primary?api_key={key}&MaxWidth=400"
+                poster_url = f"/api/library/image/{item['Id']}?type=Primary&width=400"
+            elif item.get("ImageTags", {}).get("Backdrop"):
+                poster_url = f"/api/library/image/{item['Id']}?type=Backdrop&width=400"
             else:
-                if item.get("ImageTags", {}).get("Backdrop"):
-                    poster_url = f"{host}/emby/Items/{item['Id']}/Images/Backdrop?api_key={key}&MaxWidth=400"
+                tmdb_id = item.get("ProviderIds", {}).get("Tmdb")
+                if tmdb_id:
+                    poster_url = f"https://image.tmdb.org/t/p/w500/{tmdb_id}.jpg"
                 else:
-                    tmdb_id = item.get("ProviderIds", {}).get("Tmdb")
-                    if tmdb_id:
-                        poster_url = f"https://image.tmdb.org/t/p/w500/{tmdb_id}.jpg"
-                    else:
-                        poster_url = "/static/img/logo-dark.png" 
+                    poster_url = "/static/img/logo-dark.png" 
 
-            backdrop_url = ""
-            if item.get("ImageTags", {}).get("Backdrop"):
-                backdrop_url = f"{host}/emby/Items/{item['Id']}/Images/Backdrop?api_key={key}&MaxWidth=1280"
-            elif item.get("ImageTags", {}).get("Primary"):
-                backdrop_url = f"{host}/emby/Items/{item['Id']}/Images/Primary?api_key={key}&MaxWidth=1280"
-            # ========================================================
-            
+            # 🔥 构造直达 Emby 的跳转链接
+            emby_url = f"{host}/web/index.html#!/item/details.html?id={item['Id']}&serverId={item.get('ServerId', '')}"
+
             info = {
                 "id": item["Id"],
                 "name": item["Name"],
@@ -104,35 +120,42 @@ def global_library_search(query: str, request: Request):
                 "overview": item.get("Overview", "暂无简介"),
                 "type": media_type,
                 "poster": poster_url,
-                "backdrop": backdrop_url,
+                "emby_url": emby_url,  
                 "badges": [] 
             }
 
-            # 电影：直接提取本身自带的 MediaSources
             if media_type == "movie":
                 info["badges"].extend(extract_media_badges(item))
 
-            # 🔥 修复3：剧集穿透查询 (获取精确集数 + 第一集的画质特效)
             elif media_type == "tv":
                 try:
-                    # 查这棵树下的 Episodes，只要1条用来读画质，顺便拿总数 (TotalRecordCount)
-                    episodes_res = requests.get(
-                        f"{host}/emby/Shows/{item['Id']}/Episodes?UserId={admin_id}&api_key={key}&Limit=1&Fields=MediaSources", 
+                    # 1. 轻量级拉取所有集，只读所属季号，用于分组统计
+                    eps_res = requests.get(
+                        f"{host}/emby/Shows/{item['Id']}/Episodes?UserId={admin_id}&api_key={key}&Fields=ParentIndexNumber", 
                         timeout=5
                     ).json()
                     
-                    total_episodes = episodes_res.get("TotalRecordCount", 0)
-                    if total_episodes > 0:
+                    season_counts = {}
+                    for ep in eps_res.get("Items", []):
+                        s_idx = ep.get("ParentIndexNumber")
+                        if s_idx and s_idx > 0: # 排除第0季(特别篇)
+                            season_counts[s_idx] = season_counts.get(s_idx, 0) + 1
+                    
+                    # 生成精细化季数标签：如 "第1季 (30集)"
+                    for s_idx in sorted(season_counts.keys()):
                         info["badges"].append({
-                            "type": "season", 
-                            "text": f"已入库 {total_episodes} 集", 
+                            "type": "season",
+                            "text": f"第{s_idx}季: {season_counts[s_idx]}集",
                             "color": "bg-emerald-500 text-white border-emerald-400"
                         })
-                    
-                    # 借用第一集的 MediaSources 来展示画质
-                    episodes = episodes_res.get("Items", [])
-                    if episodes:
-                        info["badges"].extend(extract_media_badges(episodes[0]))
+
+                    # 2. 额外拉取一次第一集的详细流数据，用来上 4K/HDR 标签
+                    first_ep_res = requests.get(
+                        f"{host}/emby/Shows/{item['Id']}/Episodes?UserId={admin_id}&api_key={key}&Limit=1&Fields=MediaSources", 
+                        timeout=3
+                    ).json()
+                    if first_ep_res.get("Items"):
+                        info["badges"].extend(extract_media_badges(first_ep_res["Items"][0]))
                 except:
                     pass
             

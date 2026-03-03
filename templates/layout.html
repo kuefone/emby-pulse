@@ -310,7 +310,7 @@
             }, 500); // 500ms 防抖，防止压垮 Emby
         });
 
-        // 渲染酷炫的搜索结果卡片
+// 渲染酷炫的搜索结果卡片 (加入直跳 Emby 链接与图片兜底)
         function renderSearchResults(items) {
             if (items.length === 0) {
                 searchResults.innerHTML = '<div class="text-center py-12 text-gray-500 dark:text-gray-400 font-medium">未在库中找到相关媒体资源 🤷‍♂️</div>';
@@ -319,7 +319,6 @@
 
             let html = '';
             items.forEach(item => {
-                // 动态渲染特色徽章 (Badges)
                 let badgesHtml = item.badges.map(b => 
                     `<span class="px-2 py-0.5 text-[10px] font-bold rounded-md border shadow-sm ${b.color}">${b.text}</span>`
                 ).join('');
@@ -328,14 +327,20 @@
                     ? '<i class="fa-solid fa-film text-blue-500"></i>' 
                     : '<i class="fa-solid fa-tv text-purple-500"></i>';
 
+                // 🔥 整个卡片变成了 <a> 标签，点击新窗口打开 Emby 详情页
+                // 🔥 图片加入了 onerror 兜底逻辑，彻底告别碎图
                 html += `
-                    <div class="flex gap-4 p-3 mb-1 hover:bg-white dark:hover:bg-gray-700/60 rounded-xl cursor-default transition-all group border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm">
-                        <img src="${item.poster || '/static/img/logo-light.png'}" class="w-16 h-24 object-cover rounded-lg shadow-sm bg-gray-200 dark:bg-gray-800 shrink-0 border border-gray-100 dark:border-gray-700 group-hover:scale-105 transition-transform duration-300">
+                    <a href="${item.emby_url}" target="_blank" title="点击跳转至 Emby 详情页" 
+                       class="block flex gap-4 p-3 mb-1 hover:bg-white dark:hover:bg-gray-700/60 rounded-xl cursor-pointer transition-all group border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-sm w-full">
+                        
+                        <img src="${item.poster}" onerror="this.src='/static/img/logo-dark.png'; this.onerror=null;" 
+                             class="w-16 h-24 object-cover rounded-lg shadow-sm bg-gray-200 dark:bg-gray-800 shrink-0 border border-gray-100 dark:border-gray-700 group-hover:scale-105 transition-transform duration-300">
+                        
                         <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
                             <div>
                                 <div class="flex items-center gap-2 mb-1.5">
                                     ${typeIcon}
-                                    <h4 class="font-bold text-base text-gray-900 dark:text-white truncate">${item.name}</h4>
+                                    <h4 class="font-bold text-base text-gray-900 dark:text-white truncate group-hover:text-blue-500 transition-colors">${item.name}</h4>
                                     <span class="text-xs text-gray-400 dark:text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-1.5 rounded">${item.year}</span>
                                 </div>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed pr-2">${item.overview}</p>
@@ -344,7 +349,7 @@
                                 ${badgesHtml}
                             </div>
                         </div>
-                    </div>
+                    </a>
                 `;
             });
             searchResults.innerHTML = html;
