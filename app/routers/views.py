@@ -121,6 +121,17 @@ async def request_page(request: Request):
         "version": APP_VERSION
     })
 
+# 🔥 新增：求片大厅的专属独立登录页路由
+@router.get("/request_login", response_class=HTMLResponse)
+async def request_login_page(request: Request):
+    # 如果已经登录过求片大厅，直接跳回大厅，无需再登
+    if request.session.get("req_user"):
+        return RedirectResponse("/request")
+    return templates.TemplateResponse("request_login.html", {
+        "request": request, 
+        "version": APP_VERSION
+    })
+
 # ================= 独立求片门户 (服主审核后台) =================
 @router.get("/requests_admin", response_class=HTMLResponse)
 async def requests_admin_page(request: Request):
