@@ -33,7 +33,6 @@ def proxy_emby_image(item_id: str, type: str = "Primary", width: int = 400):
             return StreamingResponse(io.BytesIO(res.content), media_type=res.headers.get("content-type", "image/jpeg"))
     except:
         pass
-    # 代理失败时，前端的 onerror 会接管兜底
     return {"status": "error"}
 
 # 通用媒体规格提取器
@@ -71,13 +70,11 @@ def global_library_search(query: str, request: Request):
     if not request.session.get("user"):
         return {"status": "error", "message": "未登录"}
 
-    # 这是用于后端极速通信的内网 host
     host = cfg.get("emby_host")
     key = cfg.get("emby_api_key")
     if not host or not key:
         return {"status": "error", "message": "未配置 Emby 服务器"}
 
-    # 🔥 获取公网链接：如果配置了公网URL就用公网的，如果没配置则自动回退到内网 host
     public_host = cfg.get("emby_public_url") or cfg.get("emby_external_url") or cfg.get("emby_public_host") or host
     public_host = public_host.rstrip('/')
 
@@ -86,7 +83,6 @@ def global_library_search(query: str, request: Request):
         return {"status": "error", "message": "找不到管理员账号"}
 
     try:
-        # API 穿透查询依然使用内网 host
         search_url = f"{host}/emby/Users/{admin_id}/Items"
         params = {
             "api_key": key,
@@ -103,7 +99,6 @@ def global_library_search(query: str, request: Request):
         for item in items:
             media_type = "movie" if item["Type"] == "Movie" else "tv"
             
-            # 图片代理依然走映迹的后端路由
             poster_url = ""
             if item.get("ImageTags", {}).get("Primary"):
                 poster_url = f"/api/library/image/{item['Id']}?type=Primary&width=400"
@@ -116,8 +111,8 @@ def global_library_search(query: str, request: Request):
                 else:
                     poster_url = "/static/img/logo-dark.png" 
 
-            # 🔥 构造直达 Emby 的跳转链接 (使用刚刚获取的 public_host)
-            emby_url = f"{public_host}/web/index.html#!/item/details.html?id={item['Id']}&serverId={item.get('ServerId', '')}"
+            # 🔥 修复：去掉 details.html，适配最新版 Emby 前端路由
+            emby_url = f"{public_host}/web/index.html#!/item?id={item['Id']}&serverId={item.get('ServerId', '')}"
 
             info = {
                 "id": item["Id"],
