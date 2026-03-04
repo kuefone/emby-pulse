@@ -94,8 +94,11 @@ async def test_moviepilot(request: Request):
         # 请求 MoviePilot 的基础接口来验证 Token 有效性
         res = requests.get(
             f"{mp_url}/api/v1/site/", 
-            headers={"X-API-KEY": mp_token}, 
-            timeout=5
+            headers={
+                "X-API-KEY": mp_token,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+}, 
+            timeout=8
         )
         
         if res.status_code == 200:
