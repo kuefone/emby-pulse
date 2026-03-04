@@ -15,7 +15,6 @@ class SettingsModel(BaseModel):
     emby_public_url: Optional[str] = ""  
     welcome_message: Optional[str] = ""  
     client_download_url: Optional[str] = ""
-    # 🔥 新增：MoviePilot 和面板地址设置项
     moviepilot_url: Optional[str] = ""
     moviepilot_token: Optional[str] = ""
     pulse_url: Optional[str] = ""
@@ -45,6 +44,7 @@ class ScheduleRequestModel(BaseModel):
     period: str
     theme: str
 
+# 🔥 更新：为编辑用户增加高级权限字段
 class UserUpdateModel(BaseModel):
     user_id: str
     password: Optional[str] = None
@@ -53,12 +53,22 @@ class UserUpdateModel(BaseModel):
     enable_all_folders: Optional[bool] = None
     enabled_folders: Optional[List[str]] = None
     excluded_sub_folders: Optional[List[str]] = None
+    # 高级控制
+    enable_downloading: Optional[bool] = None
+    enable_video_transcoding: Optional[bool] = None
+    enable_audio_transcoding: Optional[bool] = None
+    max_parental_rating: Optional[int] = None
 
+# 🔥 更新：为新建/套用模板增加颗粒度控制选项
 class NewUserModel(BaseModel):
     name: str
     password: Optional[str] = None 
     expire_date: Optional[str] = None
     template_user_id: Optional[str] = None 
+    # 颗粒度复制选项
+    copy_library: Optional[bool] = True
+    copy_policy: Optional[bool] = True
+    copy_parental: Optional[bool] = True
 
 class InviteGenModel(BaseModel):
     days: int 
@@ -70,21 +80,18 @@ class UserRegisterModel(BaseModel):
     username: str
     password: str
 
-# 🔥 新增：批量操作模型
 class BatchActionModel(BaseModel):
     user_ids: List[str]
-    action: str  # 可选: 'enable', 'disable', 'delete', 'renew'
-    value: Optional[str] = None  # 用于 renew 时传递 '+30' 或 '2025-10-01'
-
-# ================= 资源求片系统 Models (V2.0 增强版) =================
+    action: str  
+    value: Optional[str] = None  
 
 class MediaRequestSubmitModel(BaseModel):
     tmdb_id: int
-    media_type: str  # 'movie' or 'tv'
+    media_type: str  
     title: str
     year: str = ""
     poster_path: str = ""
-    overview: str = "" # 🔥 新增：用于发送带简介的丰富通知
+    overview: str = ""
 
 class MediaRequestStatusUpdateModel(BaseModel):
     tmdb_id: int

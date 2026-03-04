@@ -172,7 +172,23 @@
             <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">用户名</label><input type="text" id="new-username" autocomplete="off" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"></div>
             <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">初始密码 (可选)</label><input type="password" id="new-password" autocomplete="new-password" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="留空则不设置密码"></div>
             <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">账号到期时间</label><input type="date" id="new-expire" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"></div>
-            <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">权限同步模板 <span class="text-[10px] text-gray-400 font-normal ml-1">(复制其黑白名单)</span></label><select id="new-template" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"></select></div>
+            
+            <div class="p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                <label class="block text-xs font-bold text-indigo-800 dark:text-indigo-300 mb-1.5 uppercase tracking-wide">权限同步模板 (可选)</label>
+                <select id="new-template" onchange="toggleNewTemplateOpts()" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer text-sm mb-2"></select>
+                <div id="new-template-opts" class="flex flex-wrap gap-x-4 gap-y-2 px-1 hidden">
+                    <label class="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer">
+                        <input type="checkbox" id="new-opt-lib" checked class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"> 媒体库权限
+                    </label>
+                    <label class="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer">
+                        <input type="checkbox" id="new-opt-pol" checked class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"> 下载/转码策略
+                    </label>
+                    <label class="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer">
+                        <input type="checkbox" id="new-opt-par" checked class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"> 年龄分级控制
+                    </label>
+                </div>
+            </div>
+
             <div class="flex justify-end gap-3 mt-8">
                 <button onclick="closeNewUserModal()" class="px-5 py-2 text-gray-500 hover:bg-gray-100 rounded-lg font-medium transition-colors">取消</button>
                 <button onclick="submitNewUser()" id="new-user-btn" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md active:scale-95 transition-all">立即创建</button>
@@ -184,14 +200,16 @@
 <div id="edit-user-modal" class="fixed inset-0 z-50 hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4 py-6">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[95vh] transform transition-all">
         <div class="p-6 pb-4 shrink-0 border-b border-gray-100 dark:border-gray-700">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-user-gear text-indigo-500"></i>编辑用户权限</h3>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-user-gear text-indigo-500"></i>编辑用户配置</h3>
             <div class="flex border-b border-gray-100 dark:border-gray-700 gap-6">
                 <button onclick="switchEditTab('basic')" id="tab-btn-basic" class="pb-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 transition-all">基础资料</button>
-                <button onclick="switchEditTab('library')" id="tab-btn-library" class="pb-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:text-gray-400 transition-all">库访问权限</button>
+                <button onclick="switchEditTab('library')" id="tab-btn-library" class="pb-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:text-gray-400 transition-all">库权限</button>
+                <button onclick="switchEditTab('policy')" id="tab-btn-policy" class="pb-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:text-gray-400 transition-all">高级策略</button>
             </div>
         </div>
         <input type="hidden" id="edit-userid">
         <div class="p-6 pt-5 overflow-y-auto custom-scrollbar flex-1">
+            
             <div id="edit-tab-basic" class="block space-y-6">
                 <div class="flex flex-col items-center pb-6 border-b border-gray-50 dark:border-gray-700">
                     <div class="relative group mb-4"><img id="edit-avatar-preview" src="" class="w-24 h-24 rounded-full border-4 border-white dark:border-gray-700 shadow-xl object-cover bg-indigo-50"><input type="file" id="edit-avatar-file" accept="image/*" class="hidden" onchange="previewFileAvatar()"></div>
@@ -212,23 +230,67 @@
                     </div>
                 </div>
             </div>
+
             <div id="edit-tab-library" class="hidden space-y-6">
                 <div class="bg-indigo-50/50 dark:bg-indigo-900/10 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
-                    <div class="flex items-center justify-between mb-3"><label class="block text-sm font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wide">镜像同步权限模板</label><i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i></div>
-                    <div class="flex gap-2"><select id="edit-template-select" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none text-sm cursor-pointer"></select><button onclick="applyEditTemplate()" id="apply-template-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition shadow-md active:scale-95 whitespace-nowrap">一键套用</button></div>
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="block text-sm font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wide">镜像其他用户权限</label>
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i>
+                    </div>
+                    <div class="flex gap-2 mb-3">
+                        <select id="edit-template-select" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none text-sm cursor-pointer"></select>
+                        <button onclick="applyEditTemplate()" id="apply-template-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition shadow-md active:scale-95 whitespace-nowrap">一键套用</button>
+                    </div>
+                    <div class="flex flex-wrap gap-x-4 gap-y-2 px-1">
+                        <label class="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer"><input type="checkbox" id="apply-opt-lib" checked class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"> 媒体库</label>
+                        <label class="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer"><input type="checkbox" id="apply-opt-pol" checked class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"> 下载/转码</label>
+                        <label class="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 cursor-pointer"><input type="checkbox" id="apply-opt-par" checked class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"> 年龄分级</label>
+                    </div>
                 </div>
+                
                 <label class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all shadow-sm">
                     <div><div class="text-sm font-bold text-gray-800 dark:text-gray-100">开通所有媒体库访问权</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">开启后，该账号将无视勾选，自动获得全部库权限</div></div>
                     <div class="relative"><input type="checkbox" id="edit-enable-all" class="sr-only peer" onchange="toggleLibraryCheckboxes()"><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></div>
                 </label>
                 <div>
-                    <div class="flex items-center justify-between mb-3"><label class="text-xs font-bold text-gray-400 uppercase tracking-wider">指定访问权限 (白名单)</label><button onclick="clearSubFolders()" id="clear-sub-btn" class="text-[10px] text-indigo-500 hover:text-indigo-700 border border-indigo-100 px-2 py-1 rounded bg-indigo-50/50 transition-all font-bold"><i class="fa-solid fa-broom mr-1"></i>重置子文件夹打勾</button></div>
+                    <div class="flex items-center justify-between mb-3"><label class="text-xs font-bold text-gray-400 uppercase tracking-wider">指定访问权限 (白名单)</label><button onclick="clearSubFolders()" id="clear-sub-btn" class="text-[10px] text-indigo-500 hover:text-indigo-700 border border-indigo-100 px-2 py-1 rounded bg-indigo-50/50 transition-all font-bold"><i class="fa-solid fa-broom mr-1"></i>重置子文件夹限制</button></div>
                     <div id="edit-library-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700 max-h-56 overflow-y-auto custom-scrollbar"></div>
                 </div>
             </div>
+
+            <div id="edit-tab-policy" class="hidden space-y-4">
+                <label class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all shadow-sm">
+                    <div><div class="text-sm font-bold text-gray-800 dark:text-gray-100">允许下载媒体</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">允许账号拉取原文件，可能消耗大量宽带</div></div>
+                    <div class="relative"><input type="checkbox" id="edit-enable-downloading" class="sr-only peer"><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></div>
+                </label>
+                
+                <label class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all shadow-sm">
+                    <div><div class="text-sm font-bold text-gray-800 dark:text-gray-100">允许视频转码</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">关闭后强制原画播放，防止服务器 CPU 爆炸</div></div>
+                    <div class="relative"><input type="checkbox" id="edit-enable-video-transcode" class="sr-only peer"><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></div>
+                </label>
+
+                <label class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all shadow-sm">
+                    <div><div class="text-sm font-bold text-gray-800 dark:text-gray-100">允许音频转码</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">设备不支持音频格式时的保底策略</div></div>
+                    <div class="relative"><input type="checkbox" id="edit-enable-audio-transcode" class="sr-only peer"><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div></div>
+                </label>
+
+                <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
+                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider"><i class="fa-solid fa-child-reaching mr-1 text-indigo-500"></i>家长控制 (最高年龄分级)</label>
+                    <select id="edit-max-parental-rating" class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer transition-all text-sm font-bold text-gray-800 dark:text-gray-100">
+                        <option value="-1">✅ 不限制 (允许观看所有分级)</option>
+                        <option value="0">0 岁以上 (G - 大众级 / 普遍级)</option>
+                        <option value="10">10 岁以上</option>
+                        <option value="13">13 岁以上 (PG-13 / 辅导级)</option>
+                        <option value="14">14 岁以上 (TV-14)</option>
+                        <option value="17">17 岁以上 (R / NC-17 限制级)</option>
+                        <option value="18">18 岁以上 (仅限成人)</option>
+                    </select>
+                </div>
+            </div>
+
         </div>
-        <div class="p-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0">
-            <button onclick="closeEditUserModal()" class="px-5 py-2 text-gray-500 hover:bg-gray-100 rounded-lg font-medium transition-colors">取消</button>
+        <div class="p-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 shrink-0 bg-white dark:bg-gray-800 rounded-b-xl">
+            <button onclick="closeEditUserModal()" class="px-5 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors">取消</button>
             <button onclick="submitEditUser()" id="save-user-btn" class="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-lg active:scale-95 transition-all"><span id="save-user-text">保存配置</span></button>
         </div>
     </div>
@@ -259,7 +321,7 @@
                 <input type="number" id="invite-count" value="1" min="1" max="50" class="w-full px-4 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none text-gray-800 dark:text-gray-100">
             </div>
             <div>
-                <label class="block text-sm mb-1 text-gray-700 dark:text-gray-300">模板继承</label>
+                <label class="block text-sm mb-1 text-gray-700 dark:text-gray-300">模板继承 (默认全权限)</label>
                 <select id="invite-template" class="w-full px-4 py-2 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none text-gray-800 dark:text-gray-100"></select>
             </div>
             <div class="flex justify-end gap-3 mt-8">
@@ -286,7 +348,6 @@ let currentExcludedSubFolders = [];
 let selectedUsers = new Set();
 let currentFilter = 'all';
 
-// 🔥 邀请码管理参数
 let invitesList = [];
 let selectedInvites = new Set();
 
@@ -295,21 +356,18 @@ document.addEventListener('DOMContentLoaded', function() {
     loadUsers();
 });
 
-// 🔥 新增：打开邀请码管理界面
 async function openInviteManageModal() {
     document.getElementById('invite-manage-modal').classList.remove('hidden');
     document.getElementById('invite-manage-modal').classList.add('flex');
     await loadInvites();
 }
 
-// 🔥 新增：关闭邀请码管理界面
 function closeInviteManageModal() {
     document.getElementById('invite-manage-modal').classList.add('hidden');
     document.getElementById('invite-manage-modal').classList.remove('flex');
     selectedInvites.clear();
 }
 
-// 🔥 新增：请求系统中所有的邀请码
 async function loadInvites() {
     try {
         const res = await fetch('/api/manage/invites');
@@ -318,12 +376,9 @@ async function loadInvites() {
             invitesList = json.data;
             renderInvites();
         }
-    } catch(err) {
-        console.error("加载邀请码失败", err);
-    }
+    } catch(err) { console.error("加载邀请码失败", err); }
 }
 
-// 🔥 新增：渲染邀请码列表 (修复了已使用状态判断并展示使用者)
 function renderInvites() {
     const container = document.getElementById('invite-list-tbody');
     if (invitesList.length === 0) {
@@ -335,20 +390,13 @@ function renderInvites() {
     let html = '';
     invitesList.forEach(inv => {
         const isChecked = selectedInvites.has(inv.code) ? 'checked' : '';
-        
-        // 兼容旧数据：只要 used_count > 0 或有 used_by 就是被使用过
         const isUsed = inv.used_count > 0 || inv.used_by || inv.is_used || inv.used_at;
-        
-        // 如果被使用了，顺便把是谁用的写上去
         const usedUserText = inv.used_by ? `已被: ${inv.used_by} 注册` : `已被使用`;
-        
         const statusBadge = isUsed 
             ? `<span class="px-2 py-1 text-xs font-bold rounded bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"><i class="fa-solid fa-check mr-1"></i>${usedUserText}</span>`
             : `<span class="px-2 py-1 text-xs font-bold rounded bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400">空闲可用</span>`;
-        
         const daysText = inv.days == -1 ? '永久权限' : `${inv.days} 天`;
         const dateStr = inv.created_at ? new Date(inv.created_at).toLocaleString() : '未知';
-        
         const fullLink = window.location.origin + '/invite/' + inv.code;
 
         html += `
@@ -401,30 +449,21 @@ function updateInviteBatchBtn() {
     }
 }
 
-// 🔥 新增：批量删除邀请码请求
 async function batchDeleteInvites() {
     if (selectedInvites.size === 0) return;
     if (!confirm(`确认物理删除选定的 ${selectedInvites.size} 个邀请码吗？该操作不可逆！`)) return;
-    
     const codes = Array.from(selectedInvites);
     try {
         const res = await fetch('/api/manage/invites/batch', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ codes: codes, action: 'delete' })
         });
         const json = await res.json();
         if (json.status === 'success') {
-            selectedInvites.clear();
-            loadInvites(); // 重新加载数据刷新列表
-        } else {
-            alert("删除失败: " + json.message);
-        }
-    } catch(e) {
-        alert("网络异常");
-    }
+            selectedInvites.clear(); loadInvites();
+        } else alert("删除失败: " + json.message);
+    } catch(e) { alert("网络异常"); }
 }
-
 
 async function loadLibraries() {
     try {
@@ -448,12 +487,10 @@ async function loadUsers() {
                     const exp = new Date(u.ExpireDate);
                     diffDays = (exp - today) / (1000 * 3600 * 24);
                 }
-                
                 if (u.IsDisabled) u.StatusCat = 'disabled';
                 else if (diffDays < 0) u.StatusCat = 'expired';
                 else if (diffDays <= 7) u.StatusCat = 'expiring';
                 else u.StatusCat = 'normal';
-                
                 u.DiffDays = diffDays;
             });
             renderUsers();
@@ -641,7 +678,7 @@ async function submitBatchRenew(val) {
 
 function populateTemplates(selectId, excludeUserId = null) {
     const sel = document.getElementById(selectId);
-    sel.innerHTML = '<option value="">默认模板 (全库权限)</option>';
+    sel.innerHTML = '<option value="">默认模板 (全库访问权限)</option>';
     for (let i = 0; i < users.length; i++) {
         let user = users[i];
         if (excludeUserId && user.Id === excludeUserId) continue;
@@ -649,6 +686,15 @@ function populateTemplates(selectId, excludeUserId = null) {
         option.value = user.Id; option.textContent = "👤 " + user.Name;
         sel.appendChild(option);
     }
+    if (selectId === 'new-template') toggleNewTemplateOpts();
+}
+
+// 🔥 动态显示/隐藏模板细粒度选项
+function toggleNewTemplateOpts() {
+    const val = document.getElementById('new-template').value;
+    const opts = document.getElementById('new-template-opts');
+    if (val) opts.classList.remove('hidden');
+    else opts.classList.add('hidden');
 }
 
 function selectDuration(days) {
@@ -709,21 +755,21 @@ function copyAllInvites() {
 
 function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => alert('✅ 已复制到剪贴板')); }
 
+// 🔥 编辑界面的三级 Tab 切换
 function switchEditTab(tabName) {
-    const isBasic = (tabName === 'basic');
-    document.getElementById('edit-tab-basic').style.display = isBasic ? 'block' : 'none';
-    document.getElementById('edit-tab-library').style.display = isBasic ? 'none' : 'block';
-    const btnB = document.getElementById('tab-btn-basic');
-    const btnL = document.getElementById('tab-btn-library');
-    if (isBasic) {
-        btnB.className = "pb-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 transition-all";
-        btnL.className = "pb-2 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-all";
-    } else {
-        btnL.className = "pb-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 transition-all";
-        btnB.className = "pb-2 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-all";
-    }
+    const tabs = ['basic', 'library', 'policy'];
+    tabs.forEach(t => {
+        document.getElementById(`edit-tab-${t}`).style.display = (t === tabName) ? 'block' : 'none';
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+            btn.className = "pb-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 transition-all";
+        } else {
+            btn.className = "pb-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 dark:text-gray-400 transition-all";
+        }
+    });
 }
 
+// 打开编辑用户弹窗并拉取高级 Policy 字段
 async function openEditUserModal(uid) {
     const user = users.find(u => u.Id === uid);
     if (!user) return;
@@ -746,6 +792,14 @@ async function openEditUserModal(uid) {
             user.EnableAllFolders = json.data.EnableAllFolders;
             user.EnabledFolders = json.data.EnabledFolders;
             currentExcludedSubFolders = json.data.ExcludedSubFolders || [];
+            
+            // 渲染高级策略开关
+            document.getElementById('edit-enable-downloading').checked = json.data.EnableDownloading !== false;
+            document.getElementById('edit-enable-video-transcode').checked = json.data.EnableVideoTranscoding !== false;
+            document.getElementById('edit-enable-audio-transcode').checked = json.data.EnableAudioTranscoding !== false;
+            
+            // 渲染年龄分级 (若为 null，则默认 -1)
+            document.getElementById('edit-max-parental-rating').value = (json.data.MaxParentalRating !== null && json.data.MaxParentalRating !== undefined) ? json.data.MaxParentalRating : "-1";
         }
     } catch(err) {}
     renderLibraryCheckboxes(user); populateTemplates('edit-template-select', uid);
@@ -754,7 +808,7 @@ async function openEditUserModal(uid) {
 function renderLibraryCheckboxes(user) {
     const container = document.getElementById('edit-library-list');
     container.innerHTML = "";
-    if (allLibraries.length === 0) container.innerHTML = '<div class="p-4 text-center text-gray-400 text-xs italic col-span-2">未获取到数据</div>';
+    if (allLibraries.length === 0) container.innerHTML = '<div class="p-4 text-center text-gray-400 text-xs italic col-span-2">未获取到媒体库数据</div>';
     else {
         for (let i = 0; i < allLibraries.length; i++) {
             const lib = allLibraries[i];
@@ -778,9 +832,10 @@ function toggleLibraryCheckboxes() {
 }
 
 function clearSubFolders() {
-    if (confirm('确认清空所有子文件夹隐藏限制？')) { currentExcludedSubFolders = []; alert("已重置，保存后生效"); }
+    if (confirm('确认重置该用户对所有子文件夹的访问限制？')) { currentExcludedSubFolders = []; alert("已重置，保存后生效"); }
 }
 
+// 🔥 支持颗粒度下发的模板套用逻辑
 async function applyEditTemplate() {
     const tid = document.getElementById('edit-template-select').value;
     if (!tid) return;
@@ -789,45 +844,83 @@ async function applyEditTemplate() {
         const json = await response.json();
         if (json.status === 'success') {
             const tData = json.data;
-            document.getElementById('edit-enable-all').checked = tData.EnableAllFolders;
-            const boxes = document.querySelectorAll('.lib-checkbox');
-            for (let i = 0; i < boxes.length; i++) boxes[i].checked = tData.EnabledFolders.includes(boxes[i].value);
-            currentExcludedSubFolders = tData.ExcludedSubFolders || [];
-            toggleLibraryCheckboxes(); alert("同步成功");
+            
+            // 1. 媒体库同步
+            if (document.getElementById('apply-opt-lib').checked) {
+                document.getElementById('edit-enable-all').checked = tData.EnableAllFolders;
+                const boxes = document.querySelectorAll('.lib-checkbox');
+                for (let i = 0; i < boxes.length; i++) boxes[i].checked = tData.EnabledFolders.includes(boxes[i].value);
+                currentExcludedSubFolders = tData.ExcludedSubFolders || [];
+                toggleLibraryCheckboxes();
+            }
+            
+            // 2. 策略同步
+            if (document.getElementById('apply-opt-pol').checked) {
+                document.getElementById('edit-enable-downloading').checked = tData.EnableDownloading !== false;
+                document.getElementById('edit-enable-video-transcode').checked = tData.EnableVideoTranscoding !== false;
+                document.getElementById('edit-enable-audio-transcode').checked = tData.EnableAudioTranscoding !== false;
+            }
+            
+            // 3. 家长分级同步
+            if (document.getElementById('apply-opt-par').checked) {
+                document.getElementById('edit-max-parental-rating').value = (tData.MaxParentalRating !== null && tData.MaxParentalRating !== undefined) ? tData.MaxParentalRating : "-1";
+            }
+            
+            alert("✅ 选定的权限模块已成功同步！(请点击下方保存使配置生效)");
         }
-    } catch(err) {}
+    } catch(err) { alert("同步失败！"); }
 }
 
 async function submitEditUser() {
     const saveBtn = document.getElementById('save-user-btn');
     const labelSpan = document.getElementById('save-user-text');
     const uid = document.getElementById('edit-userid').value;
+    
     const isEnableAll = document.getElementById('edit-enable-all').checked;
     const boxes = document.querySelectorAll('.lib-checkbox:checked');
     let guids = [];
     if (!isEnableAll) { for (let i = 0; i < boxes.length; i++) guids.push(boxes[i].value); }
     
-    saveBtn.disabled = true; labelSpan.textContent = "正在同步...";
+    saveBtn.disabled = true; labelSpan.textContent = "正在保存...";
+    
     if (currentAvatarUrl || currentAvatarFile) {
         const formData = new FormData();
         formData.append('user_id', uid);
         if (currentAvatarFile) formData.append('file', currentAvatarFile); else formData.append('url', currentAvatarUrl);
         try { await fetch('/api/manage/user/image', { method: 'POST', body: formData }); } catch (e) {}
     }
+    
     try {
+        const payload = { 
+            user_id: uid, 
+            is_disabled: (document.getElementById('edit-disabled').value === "true"), 
+            expire_date: document.getElementById('edit-expire').value || "", 
+            password: document.getElementById('edit-password').value || null, 
+            enable_all_folders: isEnableAll, 
+            enabled_folders: guids, 
+            excluded_sub_folders: currentExcludedSubFolders,
+            // 🔥 高级策略数据打包
+            enable_downloading: document.getElementById('edit-enable-downloading').checked,
+            enable_video_transcoding: document.getElementById('edit-enable-video-transcode').checked,
+            enable_audio_transcoding: document.getElementById('edit-enable-audio-transcode').checked,
+            max_parental_rating: parseInt(document.getElementById('edit-max-parental-rating').value)
+        };
+        
         const response = await fetch('/api/manage/user/update', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ user_id: uid, is_disabled: (document.getElementById('edit-disabled').value === "true"), expire_date: document.getElementById('edit-expire').value || "", password: document.getElementById('edit-password').value || null, enable_all_folders: isEnableAll, enabled_folders: guids, excluded_sub_folders: currentExcludedSubFolders })
+            body: JSON.stringify(payload)
         });
         const json = await response.json();
-        if (json.status === 'success') { closeEditUserModal(); loadUsers(); } else { alert("保存失败"); }
+        if (json.status === 'success') { closeEditUserModal(); loadUsers(); } else { alert("保存失败: " + json.message); }
     } catch (err) {} finally { saveBtn.disabled = false; labelSpan.textContent = "保存配置"; }
 }
 
 function openNewUserModal() {
     const modal = document.getElementById('new-user-modal');
     modal.classList.remove('hidden');
-    document.getElementById('new-username').value = ""; document.getElementById('new-password').value = ""; document.getElementById('new-expire').value = "";
+    document.getElementById('new-username').value = ""; 
+    document.getElementById('new-password').value = ""; 
+    document.getElementById('new-expire').value = "";
     populateTemplates('new-template'); setTimeout(() => { modal.classList.add('flex'); }, 10);
 }
 
@@ -837,11 +930,23 @@ async function submitNewUser() {
     const btn = document.getElementById('new-user-btn');
     const name = document.getElementById('new-username').value;
     if (!name) return alert("必须填写用户名");
+    
     btn.disabled = true; btn.textContent = "处理中...";
     try {
+        const payload = { 
+            name: name, 
+            password: document.getElementById('new-password').value, 
+            expire_date: document.getElementById('new-expire').value || null, 
+            template_user_id: document.getElementById('new-template').value || null,
+            // 🔥 颗粒度创建控制
+            copy_library: document.getElementById('new-opt-lib').checked,
+            copy_policy: document.getElementById('new-opt-pol').checked,
+            copy_parental: document.getElementById('new-opt-par').checked
+        };
+        
         const response = await fetch('/api/manage/user/new', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name: name, password: document.getElementById('new-password').value, expire_date: document.getElementById('new-expire').value || null, template_user_id: document.getElementById('new-template').value || null })
+            body: JSON.stringify(payload)
         });
         if ((await response.json()).status === 'success') { closeNewUserModal(); loadUsers(); }
     } catch(e) {}

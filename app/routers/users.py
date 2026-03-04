@@ -10,23 +10,17 @@ import base64
 
 router = APIRouter()
 
-# 🔥 新增：用于处理邀请码批量操作的数据模型
 class InviteBatchModel(BaseModel):
     codes: list[str]
     action: str
 
 def check_expired_users():
-    """ 扫描过期用户并自动在 Emby 端禁用 """
     try:
         key = cfg.get("emby_api_key")
         host = cfg.get("emby_host")
-        if not key or not host:
-            return
-        
+        if not key or not host: return
         rows = query_db("SELECT user_id, expire_date FROM users_meta WHERE expire_date IS NOT NULL")
-        if not rows:
-            return
-        
+        if not rows: return
         now_str = datetime.datetime.now().strftime("%Y-%m-%d")
         
         for row in rows:
@@ -41,15 +35,12 @@ def check_expired_users():
                             print(f"🚫 账号已过期: {user.get('Name')} (到期日: {row['expire_date']})")
                             policy['IsDisabled'] = True
                             requests.post(f"{host}/emby/Users/{uid}/Policy?api_key={key}", json=policy)
-                except Exception as e:
-                    print(f"处理过期用户错误: {e}")
-    except Exception as e:
-        print(f"Check Expire Error: {e}")
+                except Exception as e: pass
+    except Exception as e: pass
 
 @router.get("/api/manage/libraries")
 def api_get_libraries(request: Request):
-    if not request.session.get("user"):
-        return {"status": "error"}
+    if not request.session.get("user"): return {"status": "error"}
     key = cfg.get("emby_api_key")
     host = cfg.get("emby_host")
     try:
@@ -58,13 +49,11 @@ def api_get_libraries(request: Request):
             libs = [{"Id": item["Guid"], "Name": item["Name"]} for item in res.json() if "Guid" in item]
             return {"status": "success", "data": libs}
         return {"status": "error", "message": "Emby API 返回异常"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.get("/api/manage/users")
 def api_manage_users(request: Request):
-    if not request.session.get("user"):
-        return {"status": "error"}
+    if not request.session.get("user"): return {"status": "error"}
     
     check_expired_users()
     key = cfg.get("emby_api_key")
@@ -74,8 +63,7 @@ def api_manage_users(request: Request):
     
     try:
         res = requests.get(f"{host}/emby/Users?api_key={key}", timeout=5)
-        if res.status_code != 200:
-            return {"status": "error", "message": "Emby 无法连接"}
+        if res.status_code != 200: return {"status": "error", "message": "Emby 无法连接"}
         
         emby_users = res.json()
         meta_rows = query_db("SELECT * FROM users_meta")
@@ -87,6 +75,7 @@ def api_manage_users(request: Request):
             meta = meta_map.get(uid, {})
             policy = u.get('Policy', {})
             
+            # 🔥 返回列表时加上高级权限状态，供前端显示图标用
             final_list.append({
                 "Id": uid, 
                 "Name": u['Name'], 
@@ -98,17 +87,19 @@ def api_manage_users(request: Request):
                 "PrimaryImageTag": u.get('PrimaryImageTag'),
                 "EnableAllFolders": policy.get('EnableAllFolders', True),
                 "EnabledFolders": policy.get('EnabledFolders', []),
-                "ExcludedSubFolders": policy.get('ExcludedSubFolders', [])
+                "ExcludedSubFolders": policy.get('ExcludedSubFolders', []),
+                "EnableDownloading": policy.get('EnableContentDownloading', True),
+                "EnableVideoTranscoding": policy.get('EnableVideoPlaybackTranscoding', True),
+                "EnableAudioTranscoding": policy.get('EnableAudioPlaybackTranscoding', True),
+                "MaxParentalRating": policy.get('MaxParentalRating')
             })
             
         return {"status": "success", "data": final_list, "emby_url": public_host}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.get("/api/manage/user/{user_id}")
 def api_get_single_user(user_id: str, request: Request):
-    if not request.session.get("user"):
-        return {"status": "error"}
+    if not request.session.get("user"): return {"status": "error"}
     key = cfg.get("emby_api_key")
     host = cfg.get("emby_host")
     try:
@@ -116,6 +107,7 @@ def api_get_single_user(user_id: str, request: Request):
         if res.status_code == 200:
             user_data = res.json()
             policy = user_data.get('Policy', {})
+            # 🔥 单个用户信息查询，补充高级权限
             return {
                 "status": "success", 
                 "data": {
@@ -123,23 +115,24 @@ def api_get_single_user(user_id: str, request: Request):
                     "Name": user_data['Name'],
                     "EnableAllFolders": policy.get('EnableAllFolders', True),
                     "EnabledFolders": policy.get('EnabledFolders', []),
-                    "ExcludedSubFolders": policy.get('ExcludedSubFolders', [])
+                    "ExcludedSubFolders": policy.get('ExcludedSubFolders', []),
+                    "EnableDownloading": policy.get('EnableContentDownloading', True),
+                    "EnableVideoTranscoding": policy.get('EnableVideoPlaybackTranscoding', True),
+                    "EnableAudioTranscoding": policy.get('EnableAudioPlaybackTranscoding', True),
+                    "MaxParentalRating": policy.get('MaxParentalRating')
                 }
             }
         return {"status": "error"}
-    except:
-        return {"status": "error"}
+    except: return {"status": "error"}
 
 @router.get("/api/user/image/{user_id}")
 def get_user_avatar(user_id: str):
     key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
     try:
         res = requests.get(f"{host}/emby/Users/{user_id}/Images/Primary?api_key={key}&quality=90", timeout=5)
-        if res.status_code == 200:
-            return Response(content=res.content, media_type="image/jpeg", headers={"Cache-Control": "no-cache"})
+        if res.status_code == 200: return Response(content=res.content, media_type="image/jpeg", headers={"Cache-Control": "no-cache"})
         return Response(status_code=404)
-    except:
-        return Response(status_code=404)
+    except: return Response(status_code=404)
 
 @router.post("/api/manage/user/image")
 async def api_update_user_image(request: Request, user_id: str = Form(...), url: str = Form(None), file: UploadFile = File(None)):
@@ -172,15 +165,11 @@ def api_gen_invite(data: InviteGenModel, request: Request):
         created_at = datetime.datetime.now().isoformat()
         for _ in range(count):
             code = secrets.token_hex(3)
-            query_db(
-                "INSERT INTO invitations (code, days, created_at, template_user_id) VALUES (?, ?, ?, ?)", 
-                (code, data.days, created_at, data.template_user_id)
-            )
+            query_db("INSERT INTO invitations (code, days, created_at, template_user_id) VALUES (?, ?, ?, ?)", (code, data.days, created_at, data.template_user_id))
             codes.append(code)
         return {"status": "success", "codes": codes}
     except Exception as e: return {"status": "error", "message": str(e)}
 
-# 🔥 新增：获取系统中所有生成的邀请码列表
 @router.get("/api/manage/invites")
 def api_get_invites(request: Request):
     if not request.session.get("user"): return {"status": "error"}
@@ -188,20 +177,16 @@ def api_get_invites(request: Request):
         rows = query_db("SELECT * FROM invitations ORDER BY created_at DESC")
         data = [dict(r) for r in rows] if rows else []
         return {"status": "success", "data": data}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception as e: return {"status": "error", "message": str(e)}
 
-# 🔥 新增：批量删除闲置邀请码
 @router.post("/api/manage/invites/batch")
 def api_manage_invites_batch(data: InviteBatchModel, request: Request):
     if not request.session.get("user"): return {"status": "error"}
     try:
         if data.action == "delete":
-            for code in data.codes:
-                query_db("DELETE FROM invitations WHERE code = ?", (code,))
+            for code in data.codes: query_db("DELETE FROM invitations WHERE code = ?", (code,))
         return {"status": "success", "message": "删除成功"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.post("/api/manage/user/update")
 def api_manage_user_update(data: UserUpdateModel, request: Request):
@@ -220,17 +205,27 @@ def api_manage_user_update(data: UserUpdateModel, request: Request):
         p_res = requests.get(f"{host}/emby/Users/{data.user_id}?api_key={key}")
         if p_res.status_code == 200:
             p = p_res.json().get('Policy', {})
+            
+            # 更新状态
             if data.is_disabled is not None:
                 p['IsDisabled'] = data.is_disabled
                 if not data.is_disabled: p['LoginAttemptsBeforeLockout'] = -1
             
+            # 更新库权限
             if data.enable_all_folders is not None:
                 p['EnableAllFolders'] = bool(data.enable_all_folders)
                 p['EnabledFolders'] = [str(x) for x in data.enabled_folders] if not p['EnableAllFolders'] and data.enabled_folders is not None else []
-            
             if data.excluded_sub_folders is not None:
                 p['ExcludedSubFolders'] = data.excluded_sub_folders
-            
+                
+            # 🔥 更新高级策略 (下载、转码、年龄分级)
+            if data.enable_downloading is not None: p['EnableContentDownloading'] = data.enable_downloading
+            if data.enable_video_transcoding is not None: p['EnableVideoPlaybackTranscoding'] = data.enable_video_transcoding
+            if data.enable_audio_transcoding is not None: p['EnableAudioPlaybackTranscoding'] = data.enable_audio_transcoding
+            if data.max_parental_rating is not None:
+                if data.max_parental_rating == -1: p.pop('MaxParentalRating', None)
+                else: p['MaxParentalRating'] = data.max_parental_rating
+
             for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
             requests.post(f"{host}/emby/Users/{data.user_id}/Policy?api_key={key}", json=p, headers={"Content-Type": "application/json", "X-Emby-Token": key})
             
@@ -250,11 +245,27 @@ def api_manage_user_new(data: NewUserModel, request: Request):
             requests.post(f"{host}/emby/Users/{new_id}/Password?api_key={key}", json={"Id": new_id, "NewPw": data.password})
         
         p = requests.get(f"{host}/emby/Users/{new_id}?api_key={key}").json().get('Policy', {})
+        
+        # 🔥 如果选择了套用模板，根据前端传来的颗粒度选项进行复制
         if data.template_user_id:
             src = requests.get(f"{host}/emby/Users/{data.template_user_id}?api_key={key}").json().get('Policy', {})
-            p['EnableAllFolders'] = src.get('EnableAllFolders', True)
-            p['EnabledFolders'] = src.get('EnabledFolders', [])
-            p['ExcludedSubFolders'] = src.get('ExcludedSubFolders', [])
+            
+            # 1. 复制媒体库权限
+            if data.copy_library:
+                p['EnableAllFolders'] = src.get('EnableAllFolders', True)
+                p['EnabledFolders'] = src.get('EnabledFolders', [])
+                p['ExcludedSubFolders'] = src.get('ExcludedSubFolders', [])
+            
+            # 2. 复制基础策略 (下载、转码)
+            if data.copy_policy:
+                p['EnableContentDownloading'] = src.get('EnableContentDownloading', True)
+                p['EnableVideoPlaybackTranscoding'] = src.get('EnableVideoPlaybackTranscoding', True)
+                p['EnableAudioPlaybackTranscoding'] = src.get('EnableAudioPlaybackTranscoding', True)
+                
+            # 3. 复制家长控制分级
+            if data.copy_parental:
+                if 'MaxParentalRating' in src: p['MaxParentalRating'] = src['MaxParentalRating']
+                else: p.pop('MaxParentalRating', None)
             
         for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels']: p.pop(k, None)
         requests.post(f"{host}/emby/Users/{new_id}/Policy?api_key={key}", json=p, headers={"X-Emby-Token": key})
@@ -276,8 +287,7 @@ def api_manage_user_delete(user_id: str, request: Request):
 @router.post("/api/manage/users/batch")
 def api_manage_users_batch(data: BatchActionModel, request: Request):
     if not request.session.get("user"): return {"status": "error"}
-    key = cfg.get("emby_api_key")
-    host = cfg.get("emby_host")
+    key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
     
     try:
         for uid in data.user_ids:
@@ -290,10 +300,8 @@ def api_manage_users_batch(data: BatchActionModel, request: Request):
                 if p_res.status_code == 200:
                     p = p_res.json().get('Policy', {})
                     p['IsDisabled'] = (data.action == "disable")
-                    if data.action == "enable":
-                        p['LoginAttemptsBeforeLockout'] = -1
-                    for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: 
-                        p.pop(k, None)
+                    if data.action == "enable": p['LoginAttemptsBeforeLockout'] = -1
+                    for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
                     requests.post(f"{host}/emby/Users/{uid}/Policy?api_key={key}", json=p, headers={"Content-Type": "application/json", "X-Emby-Token": key})
             
             elif data.action == "renew":
@@ -302,30 +310,21 @@ def api_manage_users_batch(data: BatchActionModel, request: Request):
                     days_to_add = int(data.value[1:])
                     row = query_db("SELECT expire_date FROM users_meta WHERE user_id = ?", (uid,), one=True)
                     current_expire = row['expire_date'] if row and row['expire_date'] else None
-                    
                     if current_expire:
                         try:
                             base_date = datetime.datetime.strptime(current_expire, "%Y-%m-%d")
-                            if base_date < datetime.datetime.now():
-                                base_date = datetime.datetime.now()
-                        except:
-                            base_date = datetime.datetime.now()
-                    else:
-                        base_date = datetime.datetime.now()
-                    
+                            if base_date < datetime.datetime.now(): base_date = datetime.datetime.now()
+                        except: base_date = datetime.datetime.now()
+                    else: base_date = datetime.datetime.now()
                     new_date = (base_date + datetime.timedelta(days=days_to_add)).strftime("%Y-%m-%d")
-                else:
-                    new_date = data.value if data.value else None
+                else: new_date = data.value if data.value else None
                 
                 exist = query_db("SELECT 1 FROM users_meta WHERE user_id = ?", (uid,), one=True)
-                if exist:
-                    query_db("UPDATE users_meta SET expire_date = ? WHERE user_id = ?", (new_date, uid))
-                else:
-                    query_db("INSERT INTO users_meta (user_id, expire_date, created_at) VALUES (?, ?, ?)", (uid, new_date, datetime.datetime.now().isoformat()))
+                if exist: query_db("UPDATE users_meta SET expire_date = ? WHERE user_id = ?", (new_date, uid))
+                else: query_db("INSERT INTO users_meta (user_id, expire_date, created_at) VALUES (?, ?, ?)", (uid, new_date, datetime.datetime.now().isoformat()))
                     
         return {"status": "success", "message": f"成功操作了 {len(data.user_ids)} 个用户"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.get("/api/users")
 def api_get_users():
