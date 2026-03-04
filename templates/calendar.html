@@ -162,11 +162,10 @@ async function fetchCalendar(forceRefresh = false) {
         loadingEl.classList.add('hidden');
         gridEl.classList.remove('hidden');
 
-        // 初始化加载时如果是本周，自动跳到今天
         if (currentOffset === 0 && window.innerWidth < 768) {
             const todayIndex = data.days.findIndex(d => d.is_today);
             if (todayIndex !== -1) {
-                setTimeout(() => scrollToDay(todayIndex), 500); // 稍微延迟等图片加载
+                setTimeout(() => scrollToDay(todayIndex), 500); 
             }
         }
 
@@ -177,16 +176,26 @@ async function fetchCalendar(forceRefresh = false) {
     }
 }
 
+// 🔥 核心升级：为“今天”加入实心药丸背景、红点脉冲动画，极致醒目！
 function renderMobileNav(days) {
     const navContainer = document.getElementById('mobile-day-nav');
-    navContainer.innerHTML = days.map((day, index) => `
-        <button id="nav-btn-${index}" onclick="scrollToDay(${index})" 
-                class="flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[52px] border-b-[3px] border-transparent transition-all shrink-0
-                ${day.is_today && currentOffset === 0 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}">
-            <span id="nav-text-${index}" class="text-xs font-bold ${day.is_today && currentOffset === 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}">${day.weekday_cn}</span>
-            <span id="nav-date-${index}" class="text-[10px] font-mono ${day.is_today && currentOffset === 0 ? 'text-indigo-500 dark:text-indigo-300' : 'text-gray-400'}">${day.date.slice(5)}</span>
+    navContainer.innerHTML = days.map((day, index) => {
+        const isToday = day.is_today && currentOffset === 0;
+        
+        const badgeHTML = isToday ? '<span class="absolute top-1.5 right-2 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_4px_rgba(239,68,68,0.8)] animate-pulse"></span>' : '';
+        const textHTML = isToday ? '今天' : day.weekday_cn;
+        const textClass = isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400';
+        const dateClass = isToday ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-400';
+
+        return `
+        <button id="nav-btn-${index}" onclick="scrollToDay(${index})"
+                class="relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[56px] border-b-[3px] border-transparent transition-all shrink-0 hover:bg-gray-50 dark:hover:bg-gray-800">
+            ${badgeHTML}
+            <span class="nav-text text-xs font-bold transition-transform ${textClass}">${textHTML}</span>
+            <span class="nav-date text-[10px] font-mono mt-0.5 px-1.5 py-[1px] rounded-full transition-colors ${dateClass}">${day.date.slice(5)}</span>
         </button>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function renderCalendar(days) {
@@ -205,14 +214,14 @@ function renderCalendar(days) {
             <div id="day-section-${index}" class="day-section flex flex-col gap-3 md:gap-4 relative" style="scroll-margin-top: 135px;">
                 
                 <div class="hidden md:flex justify-between items-end pb-2 pt-3 mb-1 border-b-2 ${isToday ? 'border-indigo-500' : 'border-gray-100 dark:border-gray-800'} sticky top-[72px] z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
-                    <span class="font-black text-base ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-gray-200'}">${day.weekday_cn}</span>
+                    <span class="font-black text-base ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-gray-200'}">${isToday ? '今天' : day.weekday_cn}</span>
                     <span class="text-[10px] font-mono font-bold text-gray-400">${day.date.slice(5)}</span>
                 </div>
                 
                 <div class="md:hidden flex items-center gap-3 pt-4 pb-1 sticky top-[108px] z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md">
-                    <span class="font-black text-lg ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-white'}">${day.weekday_cn}</span>
+                    <span class="font-black text-lg ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-800 dark:text-white'}">${isToday ? '今天' : day.weekday_cn}</span>
                     <span class="text-xs font-mono font-bold text-gray-400">${day.date.slice(5)}</span>
-                    ${isToday ? '<span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 rounded text-[10px] font-bold">今天</span>' : ''}
+                    ${isToday ? '<span class="px-2 py-0.5 bg-indigo-500 text-white rounded-full text-[10px] font-bold shadow-md shadow-indigo-500/30">今 日 更新</span>' : ''}
                     <div class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></div>
                 </div>
 
@@ -275,7 +284,7 @@ function setupScrollSpy() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const dayIndex = entry.target.id.split('-')[2];
-                highlightNavBtn(dayIndex, true); // 滑动屏幕时，允许顶栏跟着滚动居中
+                highlightNavBtn(dayIndex, true); 
             }
         });
     }, { 
@@ -285,47 +294,64 @@ function setupScrollSpy() {
     sections.forEach(sec => scrollObserver.observe(sec));
 }
 
-// 🔥 终极修复：增加 isAutoScroll 参数，阻止动画打架
+// 🔥 配合专属样式的全新高亮控制逻辑
 function highlightNavBtn(activeIndex, isAutoScroll = false) {
+    
+    // 1. 全部重置
     document.querySelectorAll('[id^="nav-btn-"]').forEach(btn => {
         btn.classList.remove('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
         btn.classList.add('border-transparent');
-    });
-    document.querySelectorAll('[id^="nav-text-"]').forEach(txt => {
-        txt.classList.remove('text-indigo-600', 'dark:text-indigo-400');
-        txt.classList.add('text-gray-500', 'dark:text-gray-400');
-    });
-    document.querySelectorAll('[id^="nav-date-"]').forEach(date => {
-        date.classList.remove('text-indigo-500', 'dark:text-indigo-300');
-        date.classList.add('text-gray-400');
+        
+        const txt = btn.querySelector('.nav-text');
+        const date = btn.querySelector('.nav-date');
+        txt.classList.remove('scale-110');
+        
+        // 只有非“今天”的标签，才恢复灰色 (今天是蓝字+实心紫底，绝不修改)
+        if (!date.classList.contains('bg-indigo-500')) {
+            txt.classList.remove('text-indigo-600', 'dark:text-indigo-400');
+            txt.classList.add('text-gray-500', 'dark:text-gray-400');
+            date.classList.remove('text-indigo-600', 'dark:text-indigo-400');
+            date.classList.add('text-gray-400');
+        }
     });
 
+    // 2. 为当前选中项添加状态
     const activeBtn = document.getElementById(`nav-btn-${activeIndex}`);
-    const activeTxt = document.getElementById(`nav-text-${activeIndex}`);
-    const activeDate = document.getElementById(`nav-date-${activeIndex}`);
-    
     if (activeBtn) {
         activeBtn.classList.remove('border-transparent');
         activeBtn.classList.add('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
-        activeTxt.classList.remove('text-gray-500', 'dark:text-gray-400');
-        activeTxt.classList.add('text-indigo-600', 'dark:text-indigo-400');
-        activeDate.classList.remove('text-gray-400');
-        activeDate.classList.add('text-indigo-500', 'dark:text-indigo-300');
         
-        // 只有在自然滚动时，才触发顶部导航的居中动画，防止点击时出现双重滚动动画冲突！
+        const txt = activeBtn.querySelector('.nav-text');
+        const date = activeBtn.querySelector('.nav-date');
+        
+        txt.classList.remove('text-gray-500', 'dark:text-gray-400');
+        txt.classList.add('text-indigo-600', 'dark:text-indigo-400', 'scale-110');
+
+        if (!date.classList.contains('bg-indigo-500')) {
+            date.classList.remove('text-gray-400');
+            date.classList.add('text-indigo-600', 'dark:text-indigo-400');
+        }
+
         if (isAutoScroll) {
             activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
     }
 }
 
+// 绝对坐标滚动跳转
 function scrollToDay(index) {
     const section = document.getElementById(`day-section-${index}`);
-    if (section) {
-        // 使用最原生的 API，无视一切花里胡哨的兼容问题
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const headerContainer = document.getElementById('sticky-header-container');
+    
+    if (section && headerContainer) {
+        const headerHeight = headerContainer.offsetHeight;
+        const targetY = section.getBoundingClientRect().top + window.scrollY - headerHeight - 15;
         
-        // 手动点击时，只高亮颜色，不触发居中动画，完美避开浏览器动画冲突 Bug
+        window.scrollTo({
+            top: targetY,
+            behavior: "smooth"
+        });
+        
         if (window.innerWidth < 768) { 
             highlightNavBtn(index, false); 
         }
