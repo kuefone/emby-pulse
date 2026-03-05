@@ -96,6 +96,15 @@ def init_db():
                 UNIQUE(tmdb_id, user_id, season)
             )
         ''')
+        
+        # 6. 🔥 新增：质量盘点忽略名单 (insight_ignores)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS insight_ignores (
+                item_id TEXT PRIMARY KEY,
+                item_name TEXT,
+                ignored_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
 
         conn.commit()
         conn.close()

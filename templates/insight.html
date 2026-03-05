@@ -1,219 +1,364 @@
 {% extends "layout.html" %}
-{% block title %}媒体库质量盘点 - EmbyPulse{% endblock %}
+{% block title %}全景画质盘点 - EmbyPulse{% endblock %}
+
+{% block head %}
+<style>
+    /* Bento 卡片呼吸交互 */
+    .bento-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+    .bento-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+    .bento-card:active { transform: scale(0.97); }
+    .bento-active { border-color: #6366f1 !important; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important; background-color: rgba(99, 102, 241, 0.05) !important; }
+    .dark .bento-active { border-color: #818cf8 !important; background-color: rgba(99, 102, 241, 0.1) !important; }
+
+    /* 迷你能量进度条 */
+    .energy-bar { height: 4px; border-radius: 2px; transition: width 1s ease-out; }
+    
+    /* 抽屉浮窗动画 */
+    #ignore-drawer { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .drawer-open { transform: translateX(0); }
+    .drawer-closed { transform: translateX(100%); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto w-full px-4 py-6 pb-24">
-    
-    <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-medal text-yellow-500"></i> 媒体库质量盘点
-            </h1>
-            <p class="text-xs text-gray-500 mt-1">深度扫描电影库，分析画质与编码分布（仅统计 Movie 类型）</p>
-        </div>
-        
+<div class="max-w-7xl mx-auto w-full px-4 md:px-8 py-6 pb-24 relative">
+
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div class="flex items-center gap-3">
-            <span class="text-[10px] text-gray-400" id="update-time-label">等待数据...</span>
-            <button onclick="loadData(true)" id="refresh-btn" class="group flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition active:scale-95">
-                <i class="fa-solid fa-rotate-right text-blue-500 transition-transform duration-700 group-hover:rotate-180" id="refresh-icon"></i>
-                <span class="text-xs font-bold text-gray-700 dark:text-gray-200">刷新数据</span>
+            <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center border border-indigo-100 dark:border-indigo-800">
+                <i class="fa-solid fa-microchip text-indigo-500 text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black text-gray-900 dark:text-white">全景画质盘点</h1>
+                <p class="text-xs text-gray-500 mt-0.5" id="scan-time">点击卡片切换视图，探索媒体库质量</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleIgnoreDrawer()" class="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-trash-can-arrow-up"></i> <span class="hidden sm:inline">回收站</span>
+            </button>
+            <button onclick="loadQualityData(true)" id="refresh-btn" class="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition active:scale-95 flex items-center gap-2">
+                <i class="fa-solid fa-rotate"></i> 深度扫描
             </button>
         </div>
     </div>
 
-    <div id="loading" class="text-center py-32">
-        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
-        <p class="text-gray-500">正在分析媒体指纹，可能需要几十秒...</p>
+    <div id="loading" class="text-center py-20 text-gray-400">
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-indigo-500"></i>
+        <p class="text-sm font-bold">正在提取并解析媒体流元数据...</p>
     </div>
 
-    <div id="stats-panel" class="hidden animate-fade-in space-y-6">
+    <div id="dashboard" class="hidden animate-fade-in grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
         
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="glass-card bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div class="text-xs text-gray-400 mb-1 font-bold">电影总数</div>
-                <div class="text-2xl font-black text-gray-800 dark:text-white" id="val-total">-</div>
-            </div>
-            <div class="glass-card bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div class="text-xs text-gray-400 mb-1 font-bold">4K 原盘/Remux</div>
-                <div class="text-2xl font-black text-purple-600" id="val-4k">-</div>
-            </div>
-            <div class="glass-card bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div class="text-xs text-gray-400 mb-1 font-bold">杜比/HDR</div>
-                <div class="text-2xl font-black text-amber-500" id="val-hdr">-</div>
-            </div>
-            <div class="glass-card bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div class="text-xs text-gray-400 mb-1 font-bold">HEVC 编码率</div>
-                <div class="text-2xl font-black text-green-500" id="val-hevc">-</div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass-card bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">📺 分辨率分布</h3>
-                <div id="chart-res" style="height: 300px; width: 100%;"></div>
-            </div>
+        <div class="bg-white dark:bg-gray-800 rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 class="text-sm font-black text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2 uppercase tracking-wide">
+                <i class="fa-solid fa-expand text-blue-500"></i> 分辨率矩阵
+            </h3>
             
-            <div class="glass-card bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">🌈 动态范围 (HDR)</h3>
-                <div id="chart-hdr" style="height: 300px; width: 100%;"></div>
-            </div>
-        </div>
-
-        <div class="glass-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-red-50 dark:bg-red-900/20 flex justify-between items-center">
-                <h3 class="font-bold text-red-600 dark:text-red-400 text-sm">
-                    <i class="fa-solid fa-trash-can mr-2"></i> 低画质清洗建议 (SD/480P)
-                </h3>
-                <span class="text-xs text-red-400 font-bold">建议洗版</span>
-            </div>
-            <div id="low-quality-list" class="divide-y divide-gray-50 dark:divide-gray-700/50 max-h-96 overflow-y-auto custom-scrollbar">
+            <div class="grid grid-cols-2 gap-3 md:gap-4">
+                <div class="bento-card bento-active border border-gray-200 dark:border-gray-700 rounded-2xl p-4 relative overflow-hidden" onclick="switchView('4k', this)">
+                    <div class="absolute -right-4 -top-4 opacity-[0.03] dark:opacity-10 pointer-events-none"><i class="fa-solid fa-tv text-8xl"></i></div>
+                    <div class="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">Ultra HD</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white flex items-end gap-1" id="stat-4k">0 <span class="text-xs text-gray-400 font-normal pb-1.5">部</span></div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-700 mt-3 rounded-full overflow-hidden"><div class="energy-bar bg-blue-500 w-0" id="bar-4k"></div></div>
                 </div>
+                
+                <div class="bento-card border border-gray-200 dark:border-gray-700 rounded-2xl p-4 relative overflow-hidden" onclick="switchView('1080p', this)">
+                    <div class="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">1080P Full HD</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white flex items-end gap-1" id="stat-1080p">0 <span class="text-xs text-gray-400 font-normal pb-1.5">部</span></div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-700 mt-3 rounded-full overflow-hidden"><div class="energy-bar bg-cyan-500 w-0" id="bar-1080p"></div></div>
+                </div>
+                
+                <div class="bento-card border border-gray-200 dark:border-gray-700 rounded-2xl p-4 relative overflow-hidden" onclick="switchView('720p', this)">
+                    <div class="text-gray-500 dark:text-gray-400 text-xs font-bold mb-1">720P HD</div>
+                    <div class="text-2xl font-black text-gray-900 dark:text-white flex items-end gap-1" id="stat-720p">0 <span class="text-xs text-gray-400 font-normal pb-1.5">部</span></div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-700 mt-3 rounded-full overflow-hidden"><div class="energy-bar bg-teal-500 w-0" id="bar-720p"></div></div>
+                </div>
+                
+                <div class="bento-card border border-rose-200 dark:border-rose-900/50 bg-rose-50/30 dark:bg-rose-900/10 rounded-2xl p-4 relative overflow-hidden" onclick="switchView('sd', this)">
+                    <div class="text-rose-500 dark:text-rose-400 text-xs font-bold mb-1 flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> 标清/远古画质</div>
+                    <div class="text-2xl font-black text-rose-600 dark:text-rose-400 flex items-end gap-1" id="stat-sd">0 <span class="text-xs text-rose-400/60 font-normal pb-1.5">建议洗版</span></div>
+                    <div class="w-full bg-rose-100 dark:bg-rose-900 mt-3 rounded-full overflow-hidden"><div class="energy-bar bg-rose-500 w-0" id="bar-sd"></div></div>
+                </div>
+            </div>
         </div>
 
+        <div class="bg-white dark:bg-gray-800 rounded-3xl p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 class="text-sm font-black text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2 uppercase tracking-wide">
+                <i class="fa-solid fa-eye text-purple-500"></i> 光影与动态范围
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 h-[calc(100%-2rem)] pb-1.5">
+                <div class="bento-card border border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50/50 to-fuchsia-50/50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between" onclick="switchView('dolby_vision', this)">
+                    <div class="absolute -right-2 top-2 opacity-10 pointer-events-none"><i class="fa-solid fa-certificate text-6xl text-purple-500"></i></div>
+                    <div class="text-purple-600 dark:text-purple-400 text-sm font-black tracking-widest mb-1">DOLBY VISION</div>
+                    <div>
+                        <div class="text-3xl font-black text-gray-900 dark:text-white mt-2" id="stat-dv">0</div>
+                        <p class="text-[10px] text-gray-500 mt-1 font-mono">顶级HDR体验</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col gap-3 md:gap-4">
+                    <div class="bento-card flex-1 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex justify-between items-center" onclick="switchView('hdr10', this)">
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 text-xs font-bold mb-0.5">普通 HDR / HDR10</div>
+                            <div class="text-xl font-black text-gray-900 dark:text-white" id="stat-hdr">0</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400"><i class="fa-solid fa-sun"></i></div>
+                    </div>
+                    
+                    <div class="bento-card flex-1 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex justify-between items-center" onclick="switchView('sdr', this)">
+                        <div>
+                            <div class="text-gray-500 dark:text-gray-400 text-xs font-bold mb-0.5">SDR 标准范围</div>
+                            <div class="text-xl font-black text-gray-900 dark:text-white" id="stat-sdr">0</div>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400"><i class="fa-solid fa-tv"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="list-container" class="hidden animate-fade-in bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700/50 bg-gray-50/80 dark:bg-gray-800/80 flex justify-between items-center">
+            <h3 class="font-bold text-indigo-600 dark:text-indigo-400 text-sm flex items-center gap-2" id="list-title">
+                <i class="fa-solid fa-list-ul"></i> 当前视图: 4K Ultra HD
+            </h3>
+            <span class="text-xs font-mono font-bold text-gray-500 bg-white dark:bg-gray-900 px-3 py-1 rounded-md shadow-sm border border-gray-200 dark:border-gray-700" id="list-count">0 部</span>
+        </div>
+        <div id="movie-list" class="divide-y divide-gray-100 dark:divide-gray-700/50 max-h-[600px] overflow-y-auto custom-scrollbar p-2">
+            </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<div id="ignore-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden transition-opacity" onclick="toggleIgnoreDrawer()"></div>
+<div id="ignore-drawer" class="fixed top-0 right-0 h-full w-full sm:w-96 bg-white dark:bg-gray-900 shadow-2xl z-[60] drawer-closed flex flex-col border-l border-gray-200 dark:border-gray-800">
+    <div class="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 shrink-0">
+        <h3 class="font-black text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-trash-can-arrow-up text-gray-400"></i> 回收站 (已忽略)</h3>
+        <button onclick="toggleIgnoreDrawer()" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    
+    <div class="p-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shrink-0">
+        <label class="flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-gray-300 cursor-pointer pl-2">
+            <input type="checkbox" id="select-all-ignores" onchange="toggleAllIgnores(this)" class="w-4 h-4 text-indigo-600 rounded cursor-pointer"> 全选
+        </label>
+        <button onclick="batchRestore()" id="btn-restore" disabled class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
+            批量移出回收站
+        </button>
+    </div>
+    
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1" id="ignore-list-content">
+        <div class="text-center py-20 text-gray-400 text-sm">回收站是空的</div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => loadData(false));
+    let globalMoviesData = {};
+    let currentView = '4k';
+    let selectedIgnores = new Set();
+    
+    const viewNames = {
+        '4k': 'Ultra HD (4K)', '1080p': 'Full HD (1080P)', '720p': 'HD (720P)', 'sd': '标清/远古画质 (需洗版)',
+        'dolby_vision': 'Dolby Vision (杜比视界)', 'hdr10': 'HDR10', 'sdr': 'SDR 标准范围'
+    };
 
-    async function loadData(forceRefresh = false) {
+    document.addEventListener('DOMContentLoaded', () => { loadQualityData(false); });
+
+    async function loadQualityData(force) {
         const loading = document.getElementById('loading');
-        const panel = document.getElementById('stats-panel');
-        const icon = document.getElementById('refresh-icon');
+        const dash = document.getElementById('dashboard');
+        const listC = document.getElementById('list-container');
         const btn = document.getElementById('refresh-btn');
-
-        // 刷新时的 UI 状态
-        if (forceRefresh) {
-            panel.classList.add('hidden');
-            loading.classList.remove('hidden');
-            icon.classList.add('fa-spin');
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-        }
+        
+        loading.classList.remove('hidden'); dash.classList.add('hidden'); listC.classList.add('hidden');
+        if(force) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 扫描中...'; }
 
         try {
-            // 🔥 根据是否强制刷新，决定 URL
-            const url = forceRefresh ? '/api/insight/quality?force_refresh=true' : '/api/insight/quality';
-            const res = await fetch(url);
+            const res = await fetch(`/api/insight/quality${force ? '?force_refresh=true' : ''}`);
             const json = await res.json();
             
             if (json.status === 'success') {
-                loading.classList.add('hidden');
-                panel.classList.remove('hidden');
+                const d = json.data;
+                globalMoviesData = d.movies;
                 
                 // 渲染数据
-                renderDashboard(json.data);
+                document.getElementById('stat-4k').innerHTML = `${d.movies['4k'].length} <span class="text-xs text-gray-400 font-normal pb-1.5">部</span>`;
+                document.getElementById('stat-1080p').innerHTML = `${d.movies['1080p'].length} <span class="text-xs text-gray-400 font-normal pb-1.5">部</span>`;
+                document.getElementById('stat-720p').innerHTML = `${d.movies['720p'].length} <span class="text-xs text-gray-400 font-normal pb-1.5">部</span>`;
+                document.getElementById('stat-sd').innerHTML = `${d.movies['sd'].length} <span class="text-xs text-rose-400/60 font-normal pb-1.5">建议洗版</span>`;
                 
-                // 更新时间提示
-                if(json.data.scan_time_str) {
-                    document.getElementById('update-time-label').innerHTML = `数据更新于: ${json.data.scan_time_str}`;
-                }
+                document.getElementById('stat-dv').innerText = d.movies['dolby_vision'].length;
+                document.getElementById('stat-hdr').innerText = d.movies['hdr10'].length;
+                document.getElementById('stat-sdr').innerText = d.movies['sdr'].length;
+
+                // 计算横条比例
+                const totalRes = Math.max(d.movies['4k'].length + d.movies['1080p'].length + d.movies['720p'].length + d.movies['sd'].length, 1);
+                setTimeout(() => {
+                    document.getElementById('bar-4k').style.width = `${(d.movies['4k'].length/totalRes)*100}%`;
+                    document.getElementById('bar-1080p').style.width = `${(d.movies['1080p'].length/totalRes)*100}%`;
+                    document.getElementById('bar-720p').style.width = `${(d.movies['720p'].length/totalRes)*100}%`;
+                    document.getElementById('bar-sd').style.width = `${(d.movies['sd'].length/totalRes)*100}%`;
+                }, 100);
+
+                if(d.scan_time_str) document.getElementById('scan-time').innerText = `最后快照: ${d.scan_time_str}`;
+
+                loading.classList.add('hidden'); dash.classList.remove('hidden'); listC.classList.remove('hidden');
+                
+                // 默认渲染 4K 视图
+                renderListView('4k');
             } else {
-                alert("加载失败: " + (json.message || "未知错误"));
-                loading.innerHTML = `<p class="text-red-500">❌ ${json.message}</p>`;
+                loading.innerHTML = `<div class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl"></i><br>扫描失败: ${json.message}</div>`;
             }
-        } catch (e) {
-            console.error(e);
-            loading.innerHTML = `<p class="text-red-500">❌ 请求异常，请检查控制台</p>`;
+        } catch(e) {
+            loading.innerHTML = `<div class="text-red-500 font-bold">网络异常，请重试</div>`;
         } finally {
-            // 恢复按钮状态
-            icon.classList.remove('fa-spin');
-            btn.disabled = false;
-            btn.classList.remove('opacity-50');
+            if(force) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate"></i> 深度扫描'; }
         }
     }
 
-    function renderDashboard(data) {
-        // 1. 填充核心数字
-        const total = data.total_count || 0;
-        document.getElementById('val-total').innerText = total;
-        
-        // 分辨率
-        const resData = data.resolution || {};
-        document.getElementById('val-4k').innerText = resData['4k'] || 0;
-        
-        // HDR
-        const hdrData = data.hdr_type || {};
-        const hdrCount = (hdrData['dolby_vision'] || 0) + (hdrData['hdr10'] || 0);
-        document.getElementById('val-hdr').innerText = hdrCount;
-        
-        // 编码率
-        const codecData = data.video_codec || {};
-        const hevcCount = codecData['hevc'] || 0;
-        const hevcRate = total > 0 ? ((hevcCount / total) * 100).toFixed(0) : 0;
-        document.getElementById('val-hevc').innerText = hevcRate + '%';
+    function switchView(viewKey, cardElement) {
+        // 清除所有卡片的高亮状态
+        document.querySelectorAll('.bento-card').forEach(el => el.classList.remove('bento-active'));
+        // 为当前卡片加上高亮框
+        cardElement.classList.add('bento-active');
+        renderListView(viewKey);
+    }
 
-        // 2. 绘制分辨率饼图
-        const resDom = document.getElementById('chart-res');
-        const chartRes = echarts.init(resDom);
-        chartRes.setOption({
-            tooltip: { trigger: 'item' },
-            legend: { bottom: '0%', left: 'center' },
-            series: [{
-                name: '分辨率',
-                type: 'pie',
-                radius: ['40%', '70%'],
-                itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-                data: [
-                    { value: resData['4k'], name: '4K', itemStyle: { color: '#8b5cf6' } },
-                    { value: resData['1080p'], name: '1080P', itemStyle: { color: '#3b82f6' } },
-                    { value: resData['720p'], name: '720P', itemStyle: { color: '#10b981' } },
-                    { value: resData['sd'], name: 'SD (低画质)', itemStyle: { color: '#ef4444' } }
-                ]
-            }]
-        });
-
-        // 3. 绘制 HDR 环形图
-        const hdrDom = document.getElementById('chart-hdr');
-        const chartHdr = echarts.init(hdrDom);
-        chartHdr.setOption({
-            tooltip: { trigger: 'item' },
-            legend: { bottom: '0%', left: 'center' },
-            series: [{
-                name: 'HDR 类型',
-                type: 'pie',
-                radius: ['40%', '70%'],
-                itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-                data: [
-                    { value: hdrData['dolby_vision'], name: 'Dolby Vision', itemStyle: { color: '#f59e0b' } },
-                    { value: hdrData['hdr10'], name: 'HDR10', itemStyle: { color: '#ec4899' } },
-                    { value: hdrData['sdr'], name: 'SDR', itemStyle: { color: '#94a3b8' } }
-                ]
-            }]
-        });
-
-        // 4. 填充低画质列表
-        const listContainer = document.getElementById('low-quality-list');
-        const badList = data.bad_quality_list || [];
+    function renderListView(viewKey) {
+        currentView = viewKey;
+        document.getElementById('list-title').innerHTML = `<i class="fa-solid fa-list-ul"></i> 当前视图: ${viewNames[viewKey]}`;
         
-        if (badList.length === 0) {
-            listContainer.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm flex flex-col items-center"><i class="fa-solid fa-check-circle text-green-500 text-3xl mb-2"></i><p>完美！没有发现低画质影片</p></div>';
-        } else {
-            let html = '';
-            badList.forEach(item => {
-                html += `
-                <div class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition group">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xl shrink-0">🎬</div>
-                        <div class="min-w-0">
-                            <div class="font-bold text-gray-800 dark:text-gray-200 text-sm truncate pr-4">${item.Name}</div>
-                            <div class="text-xs text-gray-500 truncate">${item.Year || '未知年份'} ${item.SeriesName ? '- ' + item.SeriesName : ''}</div>
-                        </div>
-                    </div>
-                    <div class="text-xs font-mono bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-1 rounded shrink-0 font-bold">
-                        ${item.Resolution}
-                    </div>
-                </div>`;
-            });
-            listContainer.innerHTML = html;
+        const movies = globalMoviesData[viewKey] || [];
+        document.getElementById('list-count').innerText = `${movies.length} 部`;
+        
+        const container = document.getElementById('movie-list');
+        if (movies.length === 0) {
+            container.innerHTML = '<div class="py-12 text-center text-gray-400 font-medium">当前分类下暂无数据 ☕</div>';
+            return;
         }
-        
-        // 窗口缩放自适应
-        window.addEventListener('resize', () => {
-            chartRes.resize();
-            chartHdr.resize();
+
+        let html = '';
+        movies.forEach(m => {
+            const imgUrl = `/api/proxy/smart_image?item_id=${m.Id}&name=${encodeURIComponent(m.Name)}&type=Primary`;
+            // 如果是在 SD (建议洗版) 视图，显示垃圾桶忽略按钮
+            const actionBtn = viewKey === 'sd' 
+                ? `<button onclick="ignoreItem('${m.Id}', '${m.Name.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-gray-100 hover:bg-rose-100 dark:bg-gray-700 dark:hover:bg-rose-900/30 text-gray-500 hover:text-rose-500 rounded-lg text-xs font-bold transition shadow-sm border border-transparent hover:border-rose-200 dark:hover:border-rose-800"><i class="fa-solid fa-eye-slash mr-1"></i>忽略此片</button>`
+                : `<a href="${imgUrl}" target="_blank" class="text-xs text-indigo-500 hover:text-indigo-600 font-bold">查看封面</a>`;
+
+            html += `
+            <div class="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition rounded-xl group">
+                <img src="${imgUrl}" class="w-10 h-14 rounded shadow-sm object-cover bg-gray-200 dark:bg-gray-800 mr-4" loading="lazy">
+                <div class="flex-1 min-w-0 pr-4">
+                    <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">${m.Name}</h4>
+                    <div class="flex items-center gap-3 text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">
+                        <span class="bg-gray-200/50 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-sm">${m.Resolution}</span>
+                        <span class="truncate opacity-60"><i class="fa-solid fa-folder-open mr-1"></i>${m.Path}</span>
+                    </div>
+                </div>
+                <div class="shrink-0 pl-2">
+                    ${actionBtn}
+                </div>
+            </div>`;
         });
+        container.innerHTML = html;
+    }
+
+    // --- 忽略与回收站逻辑 ---
+    async function ignoreItem(id, name) {
+        try {
+            await fetch('/api/insight/ignore', {
+                method: 'POST', headers:{'Content-Type': 'application/json'},
+                body: JSON.stringify({item_id: id, item_name: name})
+            });
+            // 重新请求并拉取数据 (剔除已忽略的)
+            loadQualityData(true);
+        } catch(e){}
+    }
+
+    function toggleIgnoreDrawer() {
+        const drawer = document.getElementById('ignore-drawer');
+        const overlay = document.getElementById('ignore-overlay');
+        const isClosed = drawer.classList.contains('drawer-closed');
+        
+        if(isClosed) {
+            drawer.classList.remove('drawer-closed'); drawer.classList.add('drawer-open');
+            overlay.classList.remove('hidden');
+            loadIgnoreList(); // 每次打开加载最新回收站数据
+        } else {
+            drawer.classList.add('drawer-closed'); drawer.classList.remove('drawer-open');
+            overlay.classList.add('hidden');
+            selectedIgnores.clear();
+        }
+    }
+
+    async function loadIgnoreList() {
+        const c = document.getElementById('ignore-list-content');
+        c.innerHTML = '<div class="py-10 text-center"><i class="fa-solid fa-spinner fa-spin text-gray-400 text-2xl"></i></div>';
+        try {
+            const res = await fetch('/api/insight/ignores');
+            const json = await res.json();
+            if(json.data && json.data.length > 0) {
+                let html = '';
+                json.data.forEach(item => {
+                    const isChecked = selectedIgnores.has(item.item_id) ? 'checked' : '';
+                    const dStr = new Date(item.ignored_at).toLocaleDateString();
+                    html += `
+                    <label class="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800/80 rounded-xl transition cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
+                        <input type="checkbox" value="${item.item_id}" class="ignore-checkbox w-4 h-4 text-indigo-600 rounded mr-3" onchange="toggleSelectIgnore('${item.item_id}', this.checked)" ${isChecked}>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold text-gray-700 dark:text-gray-300 truncate">${item.item_name}</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">忽略于: ${dStr}</div>
+                        </div>
+                    </label>`;
+                });
+                c.innerHTML = html;
+            } else {
+                c.innerHTML = '<div class="text-center py-20 text-gray-400 text-sm"><i class="fa-solid fa-box-open text-3xl opacity-50 mb-3 block"></i>回收站是空的</div>';
+            }
+            updateRestoreBtn();
+        } catch(e){}
+    }
+
+    function toggleSelectIgnore(id, checked) {
+        if(checked) selectedIgnores.add(id); else selectedIgnores.delete(id);
+        updateRestoreBtn();
+    }
+
+    function toggleAllIgnores(checkbox) {
+        document.querySelectorAll('.ignore-checkbox').forEach(box => {
+            box.checked = checkbox.checked;
+            if(checkbox.checked) selectedIgnores.add(box.value); else selectedIgnores.delete(box.value);
+        });
+        updateRestoreBtn();
+    }
+
+    function updateRestoreBtn() {
+        const btn = document.getElementById('btn-restore');
+        if(selectedIgnores.size > 0) {
+            btn.disabled = false; btn.innerText = `移出回收站 (${selectedIgnores.size})`;
+        } else {
+            btn.disabled = true; btn.innerText = `批量移出回收站`;
+        }
+    }
+
+    async function batchRestore() {
+        if(selectedIgnores.size === 0) return;
+        const btn = document.getElementById('btn-restore');
+        btn.disabled = true; btn.innerText = '恢复中...';
+        try {
+            await fetch('/api/insight/unignore_batch', {
+                method: 'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({item_ids: Array.from(selectedIgnores)})
+            });
+            selectedIgnores.clear();
+            document.getElementById('select-all-ignores').checked = false;
+            loadIgnoreList();
+            loadQualityData(true); // 恢复后触发扫描，把它们接回来
+        } catch(e){}
     }
 </script>
 {% endblock %}
