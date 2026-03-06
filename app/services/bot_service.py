@@ -26,7 +26,7 @@ class TelegramBot:
         
         self.offset = 0
         self.last_check_min = -1
-        self.last_sync_min = -1 # 用于记录同步状态的时间
+        self.last_sync_min = -1
         self.user_cache = {}
         self.ip_cache = {} 
         
@@ -240,14 +240,18 @@ class TelegramBot:
     def send_photo(self, chat_id, photo_io, caption, parse_mode="HTML", reply_markup=None, platform="all", wecom_photo_io=None):
         photo_bytes = None
         if isinstance(photo_io, str):
-            try: photo_bytes = requests.get(photo_io, proxies=self._get_proxies() if "tmdb" in photo_io.lower() else None, headers={"User-Agent": "Mozilla/5.0"}, timeout=10).content
+            try: 
+                res = requests.get(photo_io, proxies=self._get_proxies() if "tmdb" in photo_io.lower() else None, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+                if res.status_code == 200: photo_bytes = res.content
             except: pass
         else: photo_bytes = photo_io.read()
 
         wecom_photo_bytes = photo_bytes
         if wecom_photo_io is not None and wecom_photo_io != photo_io:
             if isinstance(wecom_photo_io, str):
-                try: wecom_photo_bytes = requests.get(wecom_photo_io, proxies=self._get_proxies() if "tmdb" in wecom_photo_io.lower() else None, headers={"User-Agent": "Mozilla/5.0"}, timeout=10).content
+                try: 
+                    res = requests.get(wecom_photo_io, proxies=self._get_proxies() if "tmdb" in wecom_photo_io.lower() else None, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+                    if res.status_code == 200: wecom_photo_bytes = res.content
                 except: pass
             else: wecom_photo_bytes = wecom_photo_io.read()
 
@@ -260,9 +264,15 @@ class TelegramBot:
                 try:
                     data = {"chat_id": tg_cid, "caption": caption, "parse_mode": parse_mode}
                     if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
-                    if photo_bytes: requests.post(f"https://api.telegram.org/bot{cfg.get('tg_bot_token')}/sendPhoto", data=data, files={"photo": ("image.jpg", io.BytesIO(photo_bytes), "image/jpeg")}, proxies=self._get_proxies(), timeout=20)
-                    else: self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
-                except: self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
+                    
+                    if photo_bytes: 
+                        r = requests.post(f"https://api.telegram.org/bot{cfg.get('tg_bot_token')}/sendPhoto", data=data, files={"photo": ("image.jpg", io.BytesIO(photo_bytes), "image/jpeg")}, proxies=self._get_proxies(), timeout=20)
+                        if r.status_code != 200:
+                            self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
+                    else: 
+                        self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
+                except: 
+                    self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
 
     def send_message(self, chat_id, text, parse_mode="HTML", reply_markup=None, platform="all"):
         if platform in ["all", "wecom"] and cfg.get("wecom_corpid"):
@@ -277,7 +287,7 @@ class TelegramBot:
                     requests.post(f"https://api.telegram.org/bot{cfg.get('tg_bot_token')}/sendMessage", json=data, proxies=self._get_proxies(), timeout=10)
                 except: pass
 
-    # ================= 🚀 交互式回调与轮询引擎 =================
+    # ================= 🚀 交互式回调引擎 =================
     
     def _polling_loop(self):
         token = cfg.get("tg_bot_token"); admin_id = str(cfg.get("tg_chat_id"))
@@ -307,7 +317,7 @@ class TelegramBot:
         try: requests.post(f"https://api.telegram.org/bot{token}/answerCallbackQuery", json={"callback_query_id": cq_id}, proxies=proxies, timeout=5)
         except: pass
 
-        # 🔥 处理反馈工单 (Feedbacks)
+        # 🔥 完美修复：Telegram 报错工单状态更新 (同时兼容纯文本与图文结构)
         if data.startswith("feed_"):
             parts = data.split("_")
             action = parts[1]
@@ -318,15 +328,23 @@ class TelegramBot:
             if action in status_map:
                 query_db("UPDATE media_feedback SET status = ? WHERE id = ?", (status_map[action], feed_id))
                 
-                orig_text = cq["message"].get("text", "资源报错工单")
+                msg_obj = cq["message"]
                 operator = cq.get('from', {}).get('first_name', 'Admin')
-                new_text = f"{orig_text}\n\n━━━━━━━━━━━━━━\n{status_text[action]}\n(操作人: {operator})"
                 
-                try: requests.post(f"https://api.telegram.org/bot{token}/editMessageText", json={"chat_id": cid, "message_id": mid, "text": new_text, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
-                except: pass
+                if "caption" in msg_obj:
+                    # 图片消息必须用 editMessageCaption
+                    orig_text = msg_obj.get("caption", "资源报错工单")
+                    new_text = f"{orig_text}\n\n━━━━━━━━━━━━━━\n{status_text[action]}\n(操作人: {operator})"
+                    try: requests.post(f"https://api.telegram.org/bot{token}/editMessageCaption", json={"chat_id": cid, "message_id": mid, "caption": new_text, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
+                    except: pass
+                else:
+                    # 纯文本降级消息必须用 editMessageText
+                    orig_text = msg_obj.get("text", "资源报错工单")
+                    new_text = f"{orig_text}\n\n━━━━━━━━━━━━━━\n{status_text[action]}\n(操作人: {operator})"
+                    try: requests.post(f"https://api.telegram.org/bot{token}/editMessageText", json={"chat_id": cid, "message_id": mid, "text": new_text, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
+                    except: pass
             return
 
-        # 🎬 处理求片工单 (Requests)
         if data.startswith("req_"):
             parts = data.split("_")
             action = parts[1] 
@@ -384,11 +402,18 @@ class TelegramBot:
                 for r in rows: query_db("UPDATE media_requests SET status = 3, reject_reason = ? WHERE tmdb_id = ? AND season = ?", (reject_reason, tid, r['season']))
                 action_text = f"❌ 已拒绝 ({reject_reason})"
                 
-            orig_caption = cq["message"].get("caption", "求片请求")
+            msg_obj = cq["message"]
             operator = cq.get('from', {}).get('first_name', 'Admin')
-            new_caption = f"{orig_caption}\n\n━━━━━━━━━━━━━━\n{action_text}\n(操作人: {operator})"
-            try: requests.post(f"https://api.telegram.org/bot{token}/editMessageCaption", json={"chat_id": cid, "message_id": mid, "caption": new_caption, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
-            except: pass
+            if "caption" in msg_obj:
+                orig_caption = msg_obj.get("caption", "求片请求")
+                new_caption = f"{orig_caption}\n\n━━━━━━━━━━━━━━\n{action_text}\n(操作人: {operator})"
+                try: requests.post(f"https://api.telegram.org/bot{token}/editMessageCaption", json={"chat_id": cid, "message_id": mid, "caption": new_caption, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
+                except: pass
+            else:
+                orig_text = msg_obj.get("text", "求片请求")
+                new_text = f"{orig_text}\n\n━━━━━━━━━━━━━━\n{action_text}\n(操作人: {operator})"
+                try: requests.post(f"https://api.telegram.org/bot{token}/editMessageText", json={"chat_id": cid, "message_id": mid, "text": new_text, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
+                except: pass
 
     def _set_commands(self):
         token = cfg.get("tg_bot_token")
@@ -670,7 +695,6 @@ class TelegramBot:
         )
         self.send_message(cid, msg.strip(), platform=platform)
 
-    # 🔥 核心修复：后台调度器加入对“手动接单”的自动入库核实引擎
     def _scheduler_loop(self):
         while self.running:
             try:
@@ -682,7 +706,6 @@ class TelegramBot:
                         if cfg.get("tg_chat_id") or cfg.get("wecom_corpid"): 
                             self._daily_report_task()
                             
-                # 每 10 分钟自动核实一次是否有“接单中/下载中”的剧集已经成功入库
                 if now.minute % 10 == 0 and now.minute != self.last_sync_min:
                     self.last_sync_min = now.minute
                     self._sync_pending_requests()
@@ -692,7 +715,6 @@ class TelegramBot:
             
     def _sync_pending_requests(self):
         try:
-            # 找到所有状态是 1 (自动下载中) 或 4 (手动接单中) 的请求
             rows = query_db("SELECT tmdb_id, media_type, season FROM media_requests WHERE status IN (1, 4)")
             if not rows: return
             
@@ -703,7 +725,6 @@ class TelegramBot:
             for r in rows:
                 tid = r['tmdb_id']; mtype = r['media_type']; sn = r['season']
                 type_filter = "Movie" if mtype == "movie" else "Series"
-                # 利用 Emby API 透穿查询
                 url = f"{host}/emby/Users/{admin_id}/Items?AnyProviderIdEquals=tmdb.{tid}&IncludeItemTypes={type_filter}&Recursive=true&api_key={key}"
                 res = requests.get(url, timeout=5).json()
                 
@@ -716,7 +737,7 @@ class TelegramBot:
                         local_seasons = [s.get("IndexNumber") for s in s_res.get("Items", [])]
                         if sn in local_seasons:
                             query_db("UPDATE media_requests SET status = 2, updated_at = CURRENT_TIMESTAMP WHERE tmdb_id = ? AND season = ?", (tid, sn))
-                time.sleep(0.5) # 防止把 Emby QPS 刷爆
+                time.sleep(0.5) 
         except Exception as e: pass
 
     def _check_user_expiration(self):
