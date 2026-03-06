@@ -3,6 +3,7 @@ import requests
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import PlainTextResponse
 from app.core.config import cfg
 from app.core.database import query_db
 import logging
@@ -62,6 +63,59 @@ async def get_manifest():
             }
         ]
     })
+
+# ==========================================================
+# 🚀 求片大厅专属 PWA 路由
+# ==========================================================
+@router.get("/request_manifest.json")
+async def get_request_manifest():
+    """ 为求片大厅专门提供的 PWA 描述文件，确保用户保存到桌面时，直达求片页 """
+    return JSONResponse({
+        "name": "求片中心 - EmbyPulse",
+        "short_name": "求片中心",
+        "start_url": "/request",
+        "display": "standalone",
+        "background_color": "#f8fafc",
+        "theme_color": "#4f46e5",
+        "icons": [
+            {
+                "src": "/static/img/logo-app.png",
+                "sizes": "192x192",
+                "type": "image/png"
+            },
+            {
+                "src": "/static/img/logo-app.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }
+        ]
+    })
+
+@router.get("/sw.js")
+async def get_service_worker():
+    """ 
+    PWA 必须的 Service Worker。
+    必须放在根路由下，这样它才能接管 /request 的缓存和安装逻辑。
+    """
+    sw_content = """
+    const CACHE_NAME = 'pulse-request-v1';
+    
+    // 安装并立即生效
+    self.addEventListener('install', (event) => {
+        self.skipWaiting();
+    });
+    
+    // 激活时清理旧缓存
+    self.addEventListener('activate', (event) => {
+        event.waitUntil(clients.claim());
+    });
+    
+    // 简单的网络透传，保证在线使用
+    self.addEventListener('fetch', (event) => {
+        event.respondWith(fetch(event.request));
+    });
+    """
+    return PlainTextResponse(content=sw_content, media_type="application/javascript")
 
 # ==========================================================
 # 🏠 基础页面路由

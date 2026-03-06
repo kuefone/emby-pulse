@@ -2,8 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>求片中心 - EmbyPulse</title>
+    
+    <link rel="manifest" href="/request_manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="求片中心">
+    <link rel="apple-touch-icon" href="/static/img/logo-app.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
@@ -13,6 +21,21 @@
         }
     </script>
     <style>
+        /* 🔥 核心修改 3/4: 增加移动端 App 级防误触与沉浸感 CSS */
+        html, body {
+            overscroll-behavior-y: none; /* 防止页面拉出浏览器白边 */
+            padding-top: env(safe-area-inset-top); /* 适配安全区域 */
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-user-select: none; /* 禁止长按选中文字 */
+            user-select: none;
+            -webkit-tap-highlight-color: transparent; /* 去除安卓点击半透明灰框 */
+        }
+        /* 让输入框恢复可输入和选中的状态 */
+        input, textarea {
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', system-ui, sans-serif; }
         .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
@@ -213,7 +236,7 @@
                                     <div class="text-sm font-medium text-slate-500 dark:text-zinc-400 mt-1 mb-3" x-text="item.media_type === 'tv' ? `${item.year} · 第 ${item.season} 季` : item.year"></div>
                                     
                                     <span x-show="item.status === 0" class="px-3 py-1.5 bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 rounded-full text-xs font-bold border border-slate-300 dark:border-zinc-700">审核中</span>
-                                    <span x-show="item.status === 1" class="px-3 py-1.5 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-500/30 inline-flex items-center gap-1.5"><span class="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></span> 下载中</span>
+                                    <span x-show="item.status === 1 || item.status === 4" class="px-3 py-1.5 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-200 dark:border-blue-500/30 inline-flex items-center gap-1.5"><span class="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></span> 下载中</span>
                                     <span x-show="item.status === 2" class="px-3 py-1.5 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-full text-xs font-bold border border-green-300 dark:border-green-500/30">✅ 已入库</span>
                                     
                                     <div x-show="item.status === 3" class="flex flex-col items-start gap-1.5 mt-1">
@@ -294,9 +317,24 @@
     </div>
 
     <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Fail:', err));
+            });
+        }
+        if (window.navigator.standalone) {
+            document.addEventListener('click', function (e) {
+                var a = e.target.closest('a');
+                if (a && a.href && !a.target) {
+                    e.preventDefault();
+                    window.location = a.href;
+                }
+            }, false);
+        }
+    </script>
+    <script>
         document.addEventListener('alpine:init', () => {
             
-            // 🔥 全新加入：支持 PC 端鼠标拖拽滑动的黑科技插件
             Alpine.data('dragScroll', () => ({
                 isDown: false, isDragging: false, startX: 0, scrollLeft: 0,
                 start(e) {
@@ -309,7 +347,7 @@
                     if (!this.isDown) return;
                     this.isDragging = true; e.preventDefault();
                     const x = e.pageX - this.$el.offsetLeft;
-                    const walk = (x - this.startX) * 1.5; // 阻力系数
+                    const walk = (x - this.startX) * 1.5; 
                     this.$el.scrollLeft = this.scrollLeft - walk;
                 }
             }));
@@ -319,7 +357,7 @@
                 loginForm: { username: '', password: '' }, isLoggingIn: false,
                 searchQuery: '', isSearching: false, currentTab: 'explore', 
                 searchResults: [], 
-                trendingMovies: [], trendingTv: [], topMovies: [], topTv: [], // 🔥 扩充榜单数据
+                trendingMovies: [], trendingTv: [], topMovies: [], topTv: [], 
                 myQueue: [],
                 isModalOpen: false, activeItem: null, tvSeasons: [],
                 isLoadingSeasons: false, isCheckingLocal: false, selectedSeasons: [], isSubmitting: false,
