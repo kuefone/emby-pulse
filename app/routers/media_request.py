@@ -61,7 +61,6 @@ def ensure_db_schema():
         )
     """)
     
-    # 🔥 自动升级数据库：为报错表增加封面存储字段
     c.execute("PRAGMA table_info(media_feedback)")
     feed_cols = [col[1] for col in c.fetchall()]
     if 'poster_path' not in feed_cols:
@@ -129,7 +128,6 @@ class BulkAdminActionModel(BaseModel):
 class RequestLoginModel(BaseModel):
     username: str; password: str
 
-# 🔥 报错接口接收模型增加封面字段
 class FeedbackSubmitModel(BaseModel):
     item_name: str
     issue_type: str
@@ -345,7 +343,7 @@ def manage_request_action(data: AdminActionModel, request: Request):
     return batch_manage_action(BulkAdminActionModel(items=[{"tmdb_id": data.tmdb_id, "season": data.season}], action=data.action, reject_reason=data.reject_reason), request)
 
 
-# ================= 🔥 铃铛通知引擎 =================
+# ================= 🔥 完美修复：后台铃铛与悬浮通知核心引擎 =================
 @router.get("/api/requests/pending_notify")
 def get_pending_notify(request: Request):
     if not request.session.get("user"): return {"status": "error"}
@@ -360,8 +358,13 @@ def get_pending_notify(request: Request):
         c.execute("SELECT COUNT(*) as cnt FROM media_feedback WHERE status = 0")
         feed_count = (c.fetchone() or {'cnt': 0})['cnt']
         
-        # 🔥 现在直接取反馈表里的 poster_path
-        c.execute("SELECT id, item_name, username, issue_type, created_at, poster_path FROM media_feedback WHERE status = 0 ORDER BY created_at DESC LIMIT 5")
+        # 🔥 完美覆盖：优先取表里自带的海报，没有的话去求片库里智能反查同名影视海报！
+        c.execute("""
+            SELECT f.id, f.item_name, f.username, f.issue_type, f.created_at,
+                   COALESCE(f.poster_path, (SELECT poster_path FROM media_requests m WHERE m.title = f.item_name LIMIT 1)) as poster
+            FROM media_feedback f 
+            WHERE f.status = 0 ORDER BY f.created_at DESC LIMIT 5
+        """)
         feed_rows = c.fetchall()
         
         conn.close()
@@ -381,7 +384,7 @@ def get_pending_notify(request: Request):
             items.append({
                 "id": f"feed_{f['id']}",
                 "title": f"⚠️ 报错: {f['item_name']}",
-                "poster": f['poster_path'] or "", # 带有图片
+                "poster": f['poster'] or "", 
                 "users": f"{f['username']} - {f['issue_type']}",
                 "time": f['created_at'],
                 "type": "feedback"
@@ -400,7 +403,6 @@ def submit_feedback(data: FeedbackSubmitModel, request: Request):
     uid = str(user.get("Id", "")); uname = user.get("Name") or "未知用户"
     
     conn = sqlite3.connect(DB_PATH); c = conn.cursor()
-    # 🔥 保存海报到数据库
     c.execute("INSERT INTO media_feedback (item_name, user_id, username, issue_type, description, poster_path) VALUES (?, ?, ?, ?, ?, ?)",
               (data.item_name, uid, uname, data.issue_type, data.description, data.poster_path))
     feed_id = c.lastrowid
@@ -420,7 +422,6 @@ def submit_feedback(data: FeedbackSubmitModel, request: Request):
          {"text": "💻 网页处理", "url": f"{admin_url}/requests_admin"}]
     ]}
     
-    # 用机器人推送反馈时顺带带上图
     img_url = data.poster_path or REPORT_COVER_URL
     bot.send_photo("sys_notify", img_url, msg, reply_markup=keyboard, platform="all")
     return {"status": "success", "message": "反馈已提交，感谢您的协助！"}

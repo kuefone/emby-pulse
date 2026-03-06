@@ -43,14 +43,6 @@
         
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* 通知中心动画 */
-        #notify-panel {
-            transform-origin: top right;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .notify-open { opacity: 1; transform: scale(1); pointer-events: auto; }
-        .notify-closed { opacity: 0; transform: scale(0.95); pointer-events: none; }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -136,13 +128,12 @@
                         <span id="notify-badge-desktop" class="hidden absolute top-[2px] right-[2px] h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm animate-pulse"></span>
                     </button>
 
-                    <div id="notify-panel" class="notify-closed absolute bottom-full left-full md:bottom-12 md:left-full mb-2 ml-2 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-gray-100 dark:border-gray-700 overflow-hidden z-[100]">
+                    <div id="notify-panel" class="absolute bottom-full left-full md:bottom-12 md:left-full mb-2 ml-2 w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-gray-100 dark:border-gray-700 overflow-hidden z-[100] transform scale-95 opacity-0 hidden transition-all duration-200 origin-bottom-left">
                         <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
                             <h3 class="font-bold text-sm text-gray-800 dark:text-gray-200">待处理工单</h3>
                             <span id="notify-count-text" class="text-[10px] font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-0.5 rounded-full">0 条</span>
                         </div>
-                        <div id="notify-list" class="max-h-[50vh] overflow-y-auto hide-scrollbar p-2 flex flex-col gap-1">
-                            </div>
+                        <div id="notify-list" class="max-h-[50vh] overflow-y-auto hide-scrollbar p-2 flex flex-col gap-1"></div>
                         <a href="/requests_admin" class="block w-full px-4 py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 transition-colors border-t border-gray-100 dark:border-gray-700">
                             前往工单大厅处理全部 <i class="fa-solid fa-arrow-right ml-1"></i>
                         </a>
@@ -213,13 +204,13 @@
             </div>
         </header>
 
-        <div id="notify-panel-mobile" class="fixed top-14 left-0 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-xl z-[100] md:hidden hidden opacity-0 transition-opacity duration-200">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+        <div id="notify-panel-mobile" class="fixed top-16 right-4 left-4 sm:hidden bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xl rounded-2xl z-[100] transform scale-95 opacity-0 hidden transition-all duration-200 origin-top-right">
+            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50 rounded-t-2xl">
                 <h3 class="font-bold text-sm text-gray-800 dark:text-gray-200">待处理工单</h3>
                 <span id="notify-count-text-mobile" class="text-[10px] font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-0.5 rounded-full">0 条</span>
             </div>
             <div id="notify-list-mobile" class="max-h-[60vh] overflow-y-auto hide-scrollbar p-2 flex flex-col gap-1"></div>
-            <a href="/requests_admin" class="block w-full px-4 py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 transition-colors border-t border-gray-100 dark:border-gray-700">
+            <a href="/requests_admin" class="block w-full px-4 py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 transition-colors border-t border-gray-100 dark:border-gray-700 rounded-b-2xl">
                 前往工单大厅处理全部 <i class="fa-solid fa-arrow-right ml-1"></i>
             </a>
         </div>
@@ -285,39 +276,39 @@
             window.dispatchEvent(new Event('theme-change'));
         }
 
-        // ==========================================
-        // 🌟 通知铃铛引擎 (完美修复版)
-        // ==========================================
         let lastNotifyIds = [];
         let isNotifyPanelOpen = false;
 
         function toggleNotifyDropdown() {
             const panel = document.getElementById('notify-panel');
             if (isNotifyPanelOpen) {
-                panel.classList.remove('notify-open');
-                panel.classList.add('notify-closed');
-                isNotifyPanelOpen = false;
-            } else {
-                panel.classList.remove('notify-closed');
-                panel.classList.add('notify-open');
-                isNotifyPanelOpen = true;
-                fetchPendingNotify(); 
-            }
-        }
-        
-        // 修复手机端点击无反应的问题 (用 opacity 搭配 hidden 彻底解决)
-        function toggleNotifyDropdownMobile() {
-            const panel = document.getElementById('notify-panel-mobile');
-            if (isNotifyPanelOpen) {
-                panel.classList.remove('opacity-100');
-                panel.classList.add('opacity-0');
+                panel.classList.remove('opacity-100', 'scale-100');
+                panel.classList.add('opacity-0', 'scale-95');
                 setTimeout(() => panel.classList.add('hidden'), 200);
                 isNotifyPanelOpen = false;
             } else {
                 panel.classList.remove('hidden');
                 void panel.offsetWidth; // trigger reflow
-                panel.classList.remove('opacity-0');
-                panel.classList.add('opacity-100');
+                panel.classList.remove('opacity-0', 'scale-95');
+                panel.classList.add('opacity-100', 'scale-100');
+                isNotifyPanelOpen = true;
+                fetchPendingNotify(); 
+            }
+        }
+        
+        // 🔥 修复手机端悬浮点击事件
+        function toggleNotifyDropdownMobile() {
+            const panel = document.getElementById('notify-panel-mobile');
+            if (isNotifyPanelOpen) {
+                panel.classList.remove('opacity-100', 'scale-100');
+                panel.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => panel.classList.add('hidden'), 200);
+                isNotifyPanelOpen = false;
+            } else {
+                panel.classList.remove('hidden');
+                void panel.offsetWidth; 
+                panel.classList.remove('opacity-0', 'scale-95');
+                panel.classList.add('opacity-100', 'scale-100');
                 isNotifyPanelOpen = true;
                 fetchPendingNotify(); 
             }
@@ -332,11 +323,12 @@
                 let clickedBell = false;
                 bells.forEach(b => { if (b.contains(e.target)) clickedBell = true; });
                 if (!clickedBell) {
-                    panelDesk.classList.add('notify-closed'); 
-                    panelDesk.classList.remove('notify-open');
+                    panelDesk.classList.remove('opacity-100', 'scale-100');
+                    panelDesk.classList.add('opacity-0', 'scale-95');
+                    setTimeout(() => panelDesk.classList.add('hidden'), 200);
                     
-                    panelMob.classList.remove('opacity-100');
-                    panelMob.classList.add('opacity-0');
+                    panelMob.classList.remove('opacity-100', 'scale-100');
+                    panelMob.classList.add('opacity-0', 'scale-95');
                     setTimeout(() => panelMob.classList.add('hidden'), 200);
                     
                     isNotifyPanelOpen = false;
@@ -437,9 +429,7 @@
             setInterval(fetchPendingNotify, 30000);
         });
 
-        // ==========================================
-        // 🌟 全局搜索逻辑
-        // ==========================================
+        // 全局搜索逻辑保持不变
         const searchModal = document.getElementById('ep-global-search');
         const searchContainer = document.getElementById('ep-search-container');
         const searchInput = document.getElementById('ep-search-input');
