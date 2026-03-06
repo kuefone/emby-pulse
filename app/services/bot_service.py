@@ -58,7 +58,6 @@ class TelegramBot:
         proxy = cfg.get("proxy_url")
         return {"http": proxy, "https": proxy} if proxy else None
 
-    # 🔥 核心修复：这个就是被我误删的入库队列函数，现在补回来了！
     def add_library_task(self, item):
         with self.library_lock:
             if not any(x.get('Id') == item.get('Id') for x in self.library_queue):
@@ -350,8 +349,6 @@ class TelegramBot:
                 except: pass
                 return
                 
-            title = rows[0]["title"]
-            
             if action_db == "approve":
                 mp_url = cfg.get("moviepilot_url"); mp_token = cfg.get("moviepilot_token")
                 for r in rows:
@@ -369,14 +366,7 @@ class TelegramBot:
                 for r in rows: query_db("UPDATE media_requests SET status = 3, reject_reason = ? WHERE tmdb_id = ? AND season = ?", (reject_reason, tid, r['season']))
                 action_text = f"❌ 已拒绝 ({reject_reason})"
                 
-            # 向系统或求片人发起闭环通知
-            users_rows = query_db("SELECT GROUP_CONCAT(DISTINCT username) as users FROM request_users WHERE tmdb_id = ?", (tid,))
-            users_str = users_rows[0]['users'] if users_rows and users_rows[0]['users'] else "用户"
-            
-            if action_db in ["approve", "manual"]: notify_msg = f"🎉 <b>求片成功</b>\n\n{users_str} 求片的《{title}》已被管理员批准，正在安排入库，请耐心等待！"
-            else: notify_msg = f"❌ <b>求片被拒</b>\n\n抱歉，{users_str} 求片的《{title}》未通过审批。\n原因: {reject_reason}"
-            self.send_message("sys_notify", notify_msg, platform="all")
-            
+            # 🔥 删除了冗余的 sys_notify 通知逻辑，只在当前卡片上留下操作记录
             orig_caption = cq["message"].get("caption", "求片请求")
             operator = cq.get('from', {}).get('first_name', 'Admin')
             new_caption = f"{orig_caption}\n\n━━━━━━━━━━━━━━\n{action_text}\n(操作人: {operator})"

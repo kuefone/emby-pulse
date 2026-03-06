@@ -231,7 +231,6 @@ def submit_media_request(data: MediaRequestSubmitModel, request: Request):
                f"🏷️ <b>类型</b>：{type_name}{season_info}\n\n📝 <b>简介：</b>\n{overview_text}")
     admin_url = cfg.get("pulse_url") or str(request.base_url).rstrip('/')
     
-    # 🔥 全新内联操作菜单
     keyboard = {"inline_keyboard": [
         [{"text": "🚀 推送 MP", "callback_data": f"req_approve_{data.tmdb_id}"},
          {"text": "✋ 手动接单", "callback_data": f"req_manual_{data.tmdb_id}"}],
@@ -303,30 +302,7 @@ def batch_manage_action(data: BulkAdminActionModel, request: Request):
             execute_sql("DELETE FROM media_requests WHERE tmdb_id = ? AND season = ?", (tid, sn))
             execute_sql("DELETE FROM request_users WHERE tmdb_id = ? AND season = ?", (tid, sn))
 
-    # 🔥 群发审批反馈给用户 (大群通知流)
-    if data.action in ["approve", "manual", "reject"]:
-        titles = []
-        users_set = set()
-        for item in data.items:
-            tid = item['tmdb_id']
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute("SELECT title FROM media_requests WHERE tmdb_id = ? LIMIT 1", (tid,))
-            r1 = c.fetchone()
-            if r1: titles.append(f"《{r1[0]}》")
-            c.execute("SELECT username FROM request_users WHERE tmdb_id = ?", (tid,))
-            for u in c.fetchall():
-                if u[0]: users_set.add(u[0])
-            conn.close()
-        
-        if titles:
-            users_str = ", ".join(list(users_set)) if users_set else "用户"
-            titles_str = "、".join(list(set(titles)))
-            if data.action in ["approve", "manual"]:
-                notify_msg = f"🎉 <b>求片成功</b>\n\n{users_str} 求片的 {titles_str} 已被管理员批准，正在安排入库，请耐心等待！"
-            else:
-                notify_msg = f"❌ <b>求片被拒</b>\n\n抱歉，{users_str} 求片的 {titles_str} 未通过审批。\n原因: {data.reject_reason}"
-            bot.send_message("sys_notify", notify_msg, platform="all")
+    # 🔥 在这里，也把原本“推给 MP”、“手动接单”、“拒绝”的群发通知给删掉了，保持清静
             
     return {"status": "success", "message": f"操作已执行"}
 
