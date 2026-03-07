@@ -5,9 +5,8 @@ import concurrent.futures
 from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
-import time
-import urllib.parse
 import json
+import urllib.parse
 
 from app.core.config import cfg
 from app.core.database import query_db
@@ -22,14 +21,15 @@ state_lock = threading.Lock()
 def update_progress(item_name=None):
     with state_lock:
         scan_state["progress"] += 1
-        if item_name: scan_state["current_item"] = f"比对基因: {item_name[:20] + '...' if len(item_name) > 20 else item_name}"
+        if item_name: scan_state["current_item"] = f"分析剧集: {item_name[:20]}"
 
 def _get_proxies():
     proxy = cfg.get("proxy_url")
     return {"http": proxy, "https": proxy} if proxy else None
 
 def get_admin_user_id():
-    host = cfg.get("emby_host"); key = cfg.get("emby_api_key")
+    host = cfg.get("emby_host")
+    key = cfg.get("emby_api_key")
     if not host or not key: return None
     try:
         users = requests.get(f"{host}/emby/Users?api_key={key}", timeout=5).json()
@@ -39,8 +39,11 @@ def get_admin_user_id():
     except: return None
 
 def process_single_series(series, lock_map, host, key, tmdb_key, proxies, today, global_inventory, server_id, use_new_route):
-    series_id = series.get("Id"); series_name = series.get("Name", "未知剧集")
+    series_id = series.get("Id")
+    series_name = series.get("Name", "未知剧集")
     tmdb_id = series.get("ProviderIds", {}).get("Tmdb")
+    
+    # 过滤未匹配 TMDB 的和已忽略的剧集
     if not tmdb_id or lock_map.get(f"{series_id}_-1_-1", 0) == 1:
         update_progress(series_name)
         return None
@@ -48,7 +51,8 @@ def process_single_series(series, lock_map, host, key, tmdb_key, proxies, today,
     local_inventory = global_inventory.get(series_id, {})
     try:
         tmdb_series_data = requests.get(f"https://api.themoviedb.org/3/tv/{tmdb_id}?language=zh-CN&api_key={tmdb_key}", proxies=proxies, timeout=10).json()
-        tmdb_seasons = tmdb_series_data.get("seasons", []); tmdb_status = tmdb_series_data.get("status", "") 
+        tmdb_seasons = tmdb_series_data.get("seasons", [])
+        tmdb_status = tmdb_series_data.get("status", "") 
     except: 
         update_progress(series_name)
         return None
@@ -65,7 +69,8 @@ def process_single_series(series, lock_map, host, key, tmdb_key, proxies, today,
         except: continue
         
         for tmdb_ep in tmdb_episodes:
-            e_num = tmdb_ep.get("episode_number"); air_date = tmdb_ep.get("air_date")
+            e_num = tmdb_ep.get("episode_number")
+            air_date = tmdb_ep.get("air_date")
             if not air_date or air_date > today: continue
             if e_num not in local_season_inventory and lock_map.get(f"{series_id}_{s_num}_{e_num}", 0) != 1:
                 series_gaps.append({"season": s_num, "episode": e_num, "title": tmdb_ep.get("name", f"第 {e_num} 集"), "status": lock_map.get(f"{series_id}_{s_num}_{e_num}", 0)})
@@ -75,7 +80,14 @@ def process_single_series(series, lock_map, host, key, tmdb_key, proxies, today,
     if series_gaps:
         public_host = (cfg.get("emby_public_url") or cfg.get("emby_external_url") or cfg.get("emby_public_host") or host).rstrip('/')
         emby_url = f"{public_host}/web/index.html#!/item?id={series_id}&serverId={server_id}" if use_new_route else f"{public_host}/web/index.html#!/item/details.html?id={series_id}&serverId={server_id}"
-        return {"series_id": series_id, "series_name": series_name, "tmdb_id": tmdb_id, "poster": f"/api/library/image/{series_id}?type=Primary&width=300", "emby_url": emby_url, "gaps": series_gaps}
+        return {
+            "series_id": series_id, 
+            "series_name": series_name, 
+            "tmdb_id": tmdb_id, 
+            "poster": f"/api/library/image/{series_id}?type=Primary&width=300", 
+            "emby_url": emby_url, 
+            "gaps": series_gaps
+        }
     else:
         if tmdb_status in ["Ended", "Canceled"]:
             try: query_db("INSERT OR IGNORE INTO gap_perfect_series (series_id, tmdb_id, series_name) VALUES (?, ?, ?)", (series_id, tmdb_id, series_name))
@@ -84,14 +96,20 @@ def process_single_series(series, lock_map, host, key, tmdb_key, proxies, today,
 
 def run_scan_task():
     try:
-        host = cfg.get("emby_host"); key = cfg.get("emby_api_key"); tmdb_key = cfg.get("tmdb_api_key"); admin_id = get_admin_user_id()
-        proxies = _get_proxies(); today = datetime.now().strftime("%Y-%m-%d")
+        host = cfg.get("emby_host")
+        key = cfg.get("emby_api_key")
+        tmdb_key = cfg.get("tmdb_api_key")
+        admin_id = get_admin_user_id()
+        proxies = _get_proxies()
+        today = datetime.now().strftime("%Y-%m-%d")
         
         try:
             sys_info = requests.get(f"{host}/emby/System/Info/Public", timeout=5).json()
             server_id = sys_info.get("Id", "")
             use_new_route = is_new_emby_router(sys_info)
-        except: server_id = ""; use_new_route = True
+        except: 
+            server_id = ""
+            use_new_route = True
 
         query_db("CREATE TABLE IF NOT EXISTS gap_perfect_series (series_id TEXT PRIMARY KEY, tmdb_id TEXT, series_name TEXT, marked_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
         query_db("CREATE TABLE IF NOT EXISTS gap_scan_cache (id INTEGER PRIMARY KEY, result_json TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
@@ -106,7 +124,7 @@ def run_scan_task():
 
         with state_lock:
             scan_state["total"] = len(pending_series)
-            scan_state["current_item"] = "正在汇聚全库单集到内存..."
+            scan_state["current_item"] = "正在拉取全库单集缓存..."
 
         if not pending_series:
             with state_lock: scan_state["results"] = []
@@ -115,7 +133,10 @@ def run_scan_task():
         all_eps_data = requests.get(f"{host}/emby/Users/{admin_id}/Items?IncludeItemTypes=Episode&Recursive=true&Fields=IndexNumberEnd&api_key={key}", timeout=45).json().get("Items", [])
         global_inventory = {}
         for ep in all_eps_data:
-            ser_id = ep.get("SeriesId"); s_num = ep.get("ParentIndexNumber"); e_num = ep.get("IndexNumber"); e_end = ep.get("IndexNumberEnd")
+            ser_id = ep.get("SeriesId")
+            s_num = ep.get("ParentIndexNumber")
+            e_num = ep.get("IndexNumber")
+            e_end = ep.get("IndexNumberEnd")
             if not ser_id or s_num is None or e_num is None: continue
             if ser_id not in global_inventory: global_inventory[ser_id] = {}
             if s_num not in global_inventory[ser_id]: global_inventory[ser_id][s_num] = set()
@@ -124,19 +145,19 @@ def run_scan_task():
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(process_single_series, s, lock_map, host, key, tmdb_key, proxies, today, global_inventory, server_id, use_new_route) for s in pending_series]
-            for future in concurrent.futures.as_completed(futures):
-                res = future.result()
+            for f in concurrent.futures.as_completed(futures):
+                res = f.result()
                 if res: results.append(res)
         
         with state_lock: scan_state["results"] = results
-        if results:
-            try: query_db("INSERT OR REPLACE INTO gap_scan_cache (id, result_json, updated_at) VALUES (1, ?, datetime('now', 'localtime'))", (json.dumps(results),))
-            except: pass
-
+        try: query_db("INSERT OR REPLACE INTO gap_scan_cache (id, result_json, updated_at) VALUES (1, ?, datetime('now', 'localtime'))", (json.dumps(results),))
+        except: pass
     except Exception as e:
         with state_lock: scan_state["error"] = str(e)
     finally:
-        with state_lock: scan_state["is_scanning"] = False; scan_state["current_item"] = "扫描完成！"
+        with state_lock: 
+            scan_state["is_scanning"] = False
+            scan_state["current_item"] = "扫描完成"
 
 def daily_scan_scheduler():
     while True:
@@ -144,7 +165,8 @@ def daily_scan_scheduler():
             now = datetime.now()
             if now.hour == 3 and now.minute == 0:
                 res = query_db("SELECT status FROM gap_records WHERE series_id='SYSTEM' AND season_number=-99")
-                if res and res[0]['status'] == 1 and not scan_state["is_scanning"]: run_scan_task()
+                if res and res[0]['status'] == 1 and not scan_state["is_scanning"]: 
+                    run_scan_task()
             time.sleep(60)
         except: time.sleep(60)
 
@@ -154,7 +176,7 @@ threading.Thread(target=daily_scan_scheduler, daemon=True).start()
 def start_scan(bg_tasks: BackgroundTasks):
     with state_lock:
         if scan_state["is_scanning"]: return {"status": "error"}
-        scan_state.update({"is_scanning": True, "progress": 0, "total": 0, "current_item": "正在校准雷达阵列...", "results": [], "error": None})
+        scan_state.update({"is_scanning": True, "progress": 0, "total": 0, "results": [], "error": None, "current_item": "系统准备中..."})
     bg_tasks.add_task(run_scan_task)
     return {"status": "success"}
 
@@ -164,7 +186,12 @@ def get_progress():
         if not scan_state["is_scanning"] and not scan_state["results"]:
             try:
                 row = query_db("SELECT result_json FROM gap_scan_cache WHERE id = 1")
-                if row: scan_state["results"] = json.loads(row[0]['result_json'])
+                if row:
+                    raw_results = json.loads(row[0]['result_json'])
+                    # 🔥 核心修复：每次读取快照时，实时剥离已忽略剧集，刷新绝对不会再现！
+                    ignores = query_db("SELECT series_id FROM gap_records WHERE status=1 AND season_number=-1")
+                    ignore_ids = set([r['series_id'] for r in ignores]) if ignores else set()
+                    scan_state["results"] = [s for s in raw_results if s['series_id'] not in ignore_ids]
             except: pass
         return {"status": "success", "data": scan_state}
 
@@ -217,7 +244,6 @@ def unignore_item(payload: dict):
         return {"status": "success"}
     except Exception as e: return {"status": "error"}
 
-# 🔥 Pydantic 请求模型强化：新增 tmdbid 参数支持
 class GapSearchReq(BaseModel): 
     series_id: str
     series_name: str
@@ -227,17 +253,22 @@ class GapSearchReq(BaseModel):
 class GapDownloadReq(BaseModel): 
     series_id: str
     series_name: str
-    tmdbid: Optional[Any] = None # 🔥 接收前端传来的精准识别码
+    tmdbid: Optional[Any] = None
     season: Any
     episodes: Optional[List[Any]] = []
     torrent_info: Dict[str, Any]
 
 @router.post("/search_mp")
 def search_mp_for_gap(req: GapSearchReq):
-    host = cfg.get("emby_host"); key = cfg.get("emby_api_key"); mp_url = cfg.get("moviepilot_url"); mp_token = cfg.get("moviepilot_token")
+    host = cfg.get("emby_host")
+    key = cfg.get("emby_api_key")
+    mp_url = cfg.get("moviepilot_url")
+    mp_token = cfg.get("moviepilot_token")
+    
     if not mp_url or not mp_token: return {"status": "error", "message": "未配置 MP"}
     
-    admin_id = get_admin_user_id(); genes = []
+    admin_id = get_admin_user_id()
+    genes = []
     if admin_id:
         try:
             items = requests.get(f"{host}/emby/Users/{admin_id}/Items?ParentId={req.series_id}&IncludeItemTypes=Episode&Recursive=true&Limit=1&Fields=MediaSources&api_key={key}", timeout=5).json().get("Items", [])
@@ -268,6 +299,7 @@ def search_mp_for_gap(req: GapSearchReq):
         results = []
         is_pack = False
         
+        # 精确搜索单集
         if req.episodes and len(req.episodes) == 1:
             keyword = f"{req.series_name} S{str(req.season).zfill(2)}E{str(req.episodes[0]).zfill(2)}"
             mp_res = requests.get(f"{mp_url.rstrip('/')}/api/v1/search/title?keyword={urllib.parse.quote(keyword)}", headers=headers, timeout=20)
@@ -275,6 +307,7 @@ def search_mp_for_gap(req: GapSearchReq):
             if isinstance(res_data, dict): res_data = res_data.get("data") or res_data.get("results") or []
             if isinstance(res_data, list): results = res_data
         
+        # 降级搜索季包
         if len(results) == 0:
             fallback_kw = f"{req.series_name} S{str(req.season).zfill(2)}"
             mp_res2 = requests.get(f"{mp_url.rstrip('/')}/api/v1/search/title?keyword={urllib.parse.quote(fallback_kw)}", headers=headers, timeout=20)
@@ -300,14 +333,21 @@ def search_mp_for_gap(req: GapSearchReq):
             if "HDR" in genes and "HDR" in combined_text: score += 20
             if "WEB" in combined_text: score += 10
             
+            # 🔥 MP 数据提纯机：丢弃私货，强制拼装 MP 官方所需的核心字段！
             org_payload = {k: v for k, v in r.items() if not k.startswith("ui_") and k not in ["match_score", "is_pack", "extracted_tags", "org_payload"]}
             org_payload["title"] = title_str
-            org_payload["size"] = size_val
+            try:
+                org_payload["size"] = int(size_val) # 强制转整数，防止 422
+            except:
+                org_payload["size"] = 0
             if enclosure_val: org_payload["enclosure"] = enclosure_val
             if site_val: org_payload["site"] = site_val
             
             r["ui_title"] = title_str  
-            r["ui_size"] = float(size_val) if size_val else 0 
+            try:
+                r["ui_size"] = float(size_val)
+            except:
+                r["ui_size"] = 0
             r["match_score"] = score
             r["is_pack"] = is_pack 
             r["org_payload"] = org_payload 
@@ -327,27 +367,29 @@ def search_mp_for_gap(req: GapSearchReq):
 
 @router.post("/download")
 def download_gap_item(req: GapDownloadReq):
-    mp_url = cfg.get("moviepilot_url"); mp_token = cfg.get("moviepilot_token")
-    clean_token = mp_token.strip().strip("'\""); headers = {"X-API-KEY": clean_token, "Content-Type": "application/json"}
+    mp_url = cfg.get("moviepilot_url")
+    mp_token = cfg.get("moviepilot_token")
+    clean_token = mp_token.strip().strip("'\"")
+    headers = {"X-API-KEY": clean_token, "Content-Type": "application/json"}
     
+    # 提取在 /search_mp 中提纯过的干净载荷
     pure_torrent_info = req.torrent_info.get("org_payload", req.torrent_info)
     
+    # 🔥 彻底对齐 MP 模型：传入 season 和 episode (单数名词，接收数组)
     if req.torrent_info.get("is_pack", False) or (req.episodes and len(req.episodes) > 1):
         pure_torrent_info["season"] = int(req.season)
         pure_torrent_info["episode"] = [int(e) for e in req.episodes] 
 
-    # 🔥 绝杀核心：根据 MP 源码要求，套上顶级 key `torrent_in` 解决 422 报错！
-    # 同时传入 tmdbid 实现 100% 精准刮削免填单入库
+    # 🔥 包装进 torrent_in 外壳
     mp_payload = {
         "torrent_in": pure_torrent_info
     }
-    
     if req.tmdbid:
         try: mp_payload["tmdbid"] = int(req.tmdbid)
         except: pass
 
     try:
-        # 🔥 改用 /api/v1/download/add 接口，不要求传入 media_in，最适合静默补齐！
+        # 发送给支持外壳解析的 /add 接口
         add_url = f"{mp_url.rstrip('/')}/api/v1/download/add"
         res = requests.post(add_url, headers=headers, json=mp_payload, timeout=10)
         
@@ -361,7 +403,7 @@ def download_gap_item(req: GapDownloadReq):
             for ep in req.episodes:
                 query_db("INSERT INTO gap_records (series_id, series_name, season_number, episode_number, status) VALUES (?, ?, ?, ?, 2) ON CONFLICT(series_id, season_number, episode_number) DO UPDATE SET status = 2", (req.series_id, req.series_name, int(req.season), int(ep)))
             
-            return {"status": "success", "message": f"已成功向 MP 下发 {len(req.episodes)} 集静默提取指令"}
+            return {"status": "success", "message": f"已成功向 MP 下发 {len(req.episodes)} 集提取指令"}
             
         return {"status": "error", "message": f"MP 接口拒绝 (HTTP {res.status_code})"}
     except Exception as e: return {"status": "error", "message": str(e)}

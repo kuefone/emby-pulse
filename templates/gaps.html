@@ -28,7 +28,7 @@
             </div>
             <div>
                 <h2 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white tracking-tight">媒体库光谱扫描</h2>
-                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">防卡顿分页引擎已激活</p>
+                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">防卡顿分页引擎与提纯脱水机制已激活</p>
             </div>
         </div>
 
@@ -203,7 +203,7 @@
                                     
                                     <template x-if="res.is_pack">
                                         <div class="mt-1 mb-0.5 inline-block text-[9px] px-1.5 py-0.5 rounded font-black border bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30">
-                                            📦 包含目标集的整季包 (将自动向 MP 注射手术刀提取指令)
+                                            📦 包含目标集的整季包 (将自动向 MP 注射提取指令)
                                         </div>
                                     </template>
 
@@ -224,7 +224,7 @@
                 <button x-show="resolver.targetType === 'single'" @click="ignoreGap()" class="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 transition shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-eye-slash"></i> <span class="hidden sm:inline">忽略单集</span></button>
                 <button @click="sendToMP()" :disabled="!resolver.selectedTorrent || resolver.isSubmitting" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" :class="resolver.selectedTorrent ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400 dark:bg-gray-600 shadow-none'">
                     <span x-show="resolver.isSubmitting" class="animate-spin w-4 h-4 border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black rounded-full"></span>
-                    <span x-show="!resolver.isSubmitting">提交 MP 免填单提取</span>
+                    <span x-show="!resolver.isSubmitting">提交 MP 免填单</span>
                 </button>
             </div>
         </div>
@@ -253,7 +253,6 @@ document.addEventListener('alpine:init', () => {
         pollInterval: null, gapData: [],
         displayLimit: 24, // 🔥 分页渲染，保护 DOM 拒绝卡死！
         ignoreModal: { open: false, items: [] },
-        // 🔥 新增 tmdbId 传递绑定
         resolver: { open: false, isLoading: false, isSubmitting: false, tmdbId: null, seriesId: '', seriesName: '', season: 0, episodes: [], targetDesc: '', targetType: 'single', genes: [], results: [], selectedTorrent: null, sourceEpObj: null, sourceEpsArray: [] },
 
         init() { this.checkStatus(); this.fetchAutoScan(); },
