@@ -166,7 +166,7 @@ def get_progress():
                     if row: scan_state["results"] = json.loads(row[0]['result_json'])
                 except: pass
             
-            # 🔥 强制动态剥离：过滤数据库里的忽略名单
+            # 过滤忽略名单
             try:
                 ignores = query_db("SELECT series_id FROM gap_records WHERE status=1 AND season_number=-1")
                 ignore_ids = set([r['series_id'] for r in ignores]) if ignores else set()
@@ -194,7 +194,6 @@ def ignore_gap(payload: dict):
         e_num = int(payload.get("episode_number", 0))
         query_db("INSERT INTO gap_records (series_id, series_name, season_number, episode_number, status) VALUES (?, ?, ?, ?, 1) ON CONFLICT(series_id, season_number, episode_number) DO UPDATE SET status = 1", (s_id, payload.get("series_name", ""), s_num, e_num))
         
-        # 内存同步：瞬间抹除被忽略的单集
         with state_lock:
             for s in scan_state["results"]:
                 if s.get("series_id") == s_id:
@@ -210,7 +209,6 @@ def ignore_entire_series(payload: dict):
         s_id = payload.get("series_id")
         query_db("INSERT INTO gap_records (series_id, series_name, season_number, episode_number, status) VALUES (?, ?, -1, -1, 1) ON CONFLICT(series_id, season_number, episode_number) DO UPDATE SET status = 1", (s_id, payload.get("series_name", "")))
         
-        # 内存同步：瞬间抹除整部剧
         with state_lock:
             scan_state["results"] = [s for s in scan_state["results"] if s.get("series_id") != s_id]
             
@@ -243,7 +241,7 @@ def unignore_item(payload: dict):
 
 
 # ==========================================
-# 🔥 万能字典接口，规避 422
+# 🔥 终极原味接口：无损透传所有 MP 鉴权字段
 # ==========================================
 
 @router.post("/search_mp")
@@ -315,8 +313,6 @@ def search_mp_for_gap(payload: dict):
             desc_str = str(deep_extract(r, ["description", "desc", "detail", "subtitle"]) or "")
             combined_text = title_str.upper() + " " + desc_str.upper()
             size_val = deep_extract(r, ["size", "enclosure_size", "torrent_size"]) or 0
-            enclosure_val = deep_extract(r, ["enclosure", "download_url", "url", "link"]) or ""
-            site_val = deep_extract(r, ["site", "site_name", "indexer"]) or "未知站点"
             
             if "4K" in genes: score += 50 if ("2160P" in combined_text or "4K" in combined_text) else -20
             if "1080P" in genes and "1080P" in combined_text: score += 50
@@ -324,19 +320,13 @@ def search_mp_for_gap(payload: dict):
             if "HDR" in genes and "HDR" in combined_text: score += 20
             if "WEB" in combined_text: score += 10
             
-            org_payload = {k: v for k, v in r.items() if not k.startswith("ui_") and k not in ["match_score", "is_pack", "extracted_tags", "org_payload"]}
-            org_payload["title"] = title_str
-            try: org_payload["size"] = int(size_val)
-            except: org_payload["size"] = 0
-            if enclosure_val: org_payload["enclosure"] = enclosure_val
-            if site_val: org_payload["site"] = site_val
-            
+            # 🔥 绝不自作主张提取，将 MP 发来的原始结果 r 作为完美对象原封不动藏在 org_payload 里
             r["ui_title"] = title_str  
             try: r["ui_size"] = float(size_val)
             except: r["ui_size"] = 0
             r["match_score"] = score
             r["is_pack"] = is_pack 
-            r["org_payload"] = org_payload 
+            r["org_payload"] = r.get("torrent_info", r) # 直接提取它里面的 torrent_info，带有全部 cookie 和 UA
             
             tags = []
             if "2160P" in combined_text or "4K" in combined_text: tags.append("4K")
@@ -360,16 +350,15 @@ def download_gap_item(payload: dict):
     episodes = payload.get("episodes", [])
     torrent_info = payload.get("torrent_info", {})
 
-    print(f"\n[缺集推送] 收到前端完好无损的原始请求: {json.dumps(payload, ensure_ascii=False)[:300]}...\n")
-
     mp_url = cfg.get("moviepilot_url")
     mp_token = cfg.get("moviepilot_token")
     clean_token = mp_token.strip().strip("'\"") if mp_token else ""
     headers = {"X-API-KEY": clean_token, "Content-Type": "application/json"}
     
-    # 这一刻 torrent_info 绝对是一个完美的字典，再也不会报 get 错误了
+    # 获取那个带完整鉴权信息的原味字典
     pure_torrent_in = torrent_info.get("org_payload", torrent_info)
     
+    # 强行注入手术刀参数
     if torrent_info.get("is_pack", False) or len(episodes) > 1:
         pure_torrent_in["season"] = int(season) if season else 1
         pure_torrent_in["episode"] = [int(e) for e in episodes] 
@@ -379,7 +368,7 @@ def download_gap_item(payload: dict):
         try: mp_payload["tmdbid"] = int(tmdbid)
         except: pass
 
-    print(f"[缺集推送] 发往 MP 的提纯字典: {json.dumps(mp_payload, ensure_ascii=False)}\n")
+    print(f"\n[缺集推送] 最终下发包含完整 Cookie 的指令: {json.dumps(mp_payload, ensure_ascii=False)[:500]}...\n")
 
     try:
         add_url = f"{mp_url.rstrip('/')}/api/v1/download/add"
@@ -389,7 +378,7 @@ def download_gap_item(payload: dict):
             try:
                 res_data = res.json()
                 if res_data.get("success") == False:
-                    return {"status": "error", "message": res_data.get("message") or "MP 拒绝下载，请检查官方日志"}
+                    return {"status": "error", "message": res_data.get("message") or "MP 拒绝下载，可能该站不支持"}
             except: pass
 
             for ep in episodes:
@@ -402,7 +391,7 @@ def download_gap_item(payload: dict):
                             if ep_obj["season"] == int(season) and ep_obj["episode"] in [int(e) for e in episodes]:
                                 ep_obj["status"] = 2
 
-            return {"status": "success", "message": f"已成功向 MP 下发 {len(episodes)} 集提取指令"}
+            return {"status": "success", "message": f"已向 MP 提交 {len(episodes)} 集下载指令！"}
             
         return {"status": "error", "message": f"MP 接口拒绝 (HTTP {res.status_code})"}
     except Exception as e: 
