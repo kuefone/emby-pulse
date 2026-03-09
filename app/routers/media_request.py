@@ -184,7 +184,7 @@ def request_system_logout(request: Request):
     request.session.pop("req_user", None)
     return {"status": "success"}
 
-# 🔥 新增接口：专为前端种草弹窗拉取剧集详细信息
+# 🔥 种草弹窗拉取详情专属 API
 @router.get("/api/requests/item_info")
 def get_item_info(item_id: str, request: Request):
     user = request.session.get("req_user")
@@ -206,6 +206,45 @@ def get_item_info(item_id: str, request: Request):
             }}
         return {"status": "error"}
     except: return {"status": "error"}
+
+# 🔥 新增：主页扩展枢纽 API (提供【镇站之宝】和【流派解析】)
+@router.get("/api/requests/hub_data")
+def get_hub_data(request: Request):
+    user = request.session.get("req_user")
+    if not user: return {"status": "error"}
+    key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
+    uid = user['Id']
+    
+    top_rated = []; genres_data = []
+    try:
+        # 1. 抓取高分神作 (Top Rated)
+        tr_url = f"{host}/emby/Users/{uid}/Items?IncludeItemTypes=Movie,Series&Recursive=true&SortBy=CommunityRating&SortOrder=Descending&Limit=15&Fields=CommunityRating&api_key={key}"
+        tr_res = requests.get(tr_url, timeout=5).json()
+        for i in tr_res.get("Items", []):
+            if i.get("CommunityRating", 0) >= 8.5:
+                top_rated.append({
+                    "Id": i.get("Id"), "Name": i.get("Name"), "Type": i.get("Type"),
+                    "CommunityRating": i.get("CommunityRating")
+                })
+                
+        # 2. 抓取流派分布 (取前200部最新影视剧的类型，反映近期建库趋势，速度快)
+        g_url = f"{host}/emby/Users/{uid}/Items?IncludeItemTypes=Movie,Series&Recursive=true&SortBy=DateCreated&SortOrder=Descending&Limit=200&Fields=Genres&api_key={key}"
+        g_res = requests.get(g_url, timeout=5).json()
+        genre_counts = {}
+        total_items = 0
+        for i in g_res.get("Items", []):
+            gs = i.get("Genres", [])
+            if gs:
+                total_items += 1
+                for g in gs: genre_counts[g] = genre_counts.get(g, 0) + 1
+        
+        if total_items > 0:
+            sorted_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:6] # 取前6个流派
+            for k, v in sorted_genres:
+                genres_data.append({"name": k, "count": v, "pct": round(v / total_items * 100)})
+    except: pass
+        
+    return {"status": "success", "data": {"top_rated": top_rated[:10], "genres": genres_data}}
 
 @router.get("/api/requests/search")
 def search_tmdb(query: str, request: Request):
