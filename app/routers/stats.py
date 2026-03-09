@@ -72,7 +72,6 @@ def resolve_poster_ids(items_list):
                     x['smart_poster'] = f"/api/proxy/smart_image?item_id={id_map[orig_id]}&type=Primary"
     except Exception: pass
 
-# --- 工具函数 ---
 def get_admin_user_id():
     key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
     if key and host:
@@ -200,25 +199,21 @@ def api_top_movies(user_id: Optional[str] = None, category: str = 'all', sort_by
         top_50 = res[:50]
         resolve_poster_ids(top_50) 
         return {"status": "success", "data": top_50}
-    except Exception as e: 
-        import logging
-        logging.getLogger("uvicorn").error(f"Top Movies Error: {e}")
-        return {"status": "error", "data": []}
+    except: return {"status": "error", "data": []}
 
 @router.get("/api/stats/user_details")
 def api_user_details(user_id: Optional[str] = None):
     try:
         where, params = get_base_filter(user_id)
         
-        # 🔥 时区装甲：用 localtime 把 UTC 转为当地时间，解决 24 小时活跃图表的偏移
-        time_expr = "datetime(substr(replace(DateCreated, 'T', ' '), 1, 19), 'localtime')"
+        # 🔥 去除了毒瘤 localtime，直接使用数据库原生的当地时间
+        time_expr = "substr(replace(DateCreated, 'T', ' '), 1, 19)"
         h_res = query_db(f"SELECT strftime('%H', {time_expr}) as Hour, COUNT(*) as Plays FROM PlaybackActivity {where} GROUP BY Hour", params)
         h_data = {str(i).zfill(2): 0 for i in range(24)}
         if h_res:
             for r in h_res: 
                 if r['Hour']: h_data[str(r['Hour']).zfill(2)] = r['Plays']
             
-        # 🔥 字段防坠机装甲：如果表里没有 ClientName，自动降级查 Client，彻底告别报错
         c_res = query_db(f"SELECT COALESCE(ClientName, 'Unknown') as Client, COUNT(*) as Plays FROM PlaybackActivity {where} GROUP BY ClientName ORDER BY Plays DESC LIMIT 10", params)
         if c_res is None:
             c_res = query_db(f"SELECT COALESCE(Client, 'Unknown') as Client, COUNT(*) as Plays FROM PlaybackActivity {where} GROUP BY Client ORDER BY Plays DESC LIMIT 10", params)
@@ -243,41 +238,33 @@ def api_user_details(user_id: Optional[str] = None):
         pref = {"movie_plays": 0, "episode_plays": 0}
         top_fav = None
 
-        ov_res = query_db(f"SELECT COUNT(*) as Plays, SUM(PlayDuration) as Dur, MIN(DateCreated) as FirstDate FROM PlaybackActivity {where}", params)
+        ov_res = query_db(f"SELECT COUNT(*) as Plays, SUM(PlayDuration) as Dur FROM PlaybackActivity {where}", params)
         if ov_res and ov_res[0]['Plays'] and ov_res[0]['Plays'] > 0:
             overview['total_plays'] = ov_res[0]['Plays']
             overview['total_duration'] = ov_res[0]['Dur'] or 0
             overview['avg_duration'] = round(overview['total_duration'] / overview['total_plays'])
             
-            # 1. 基础兜底（会被 90 天插件清理限制）
-            if ov_res[0]['FirstDate']:
-                try:
-                    m = re.search(r'(\d{4})-(\d{2})-(\d{2})', str(ov_res[0]['FirstDate']))
-                    if m:
-                        fd = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-                        overview['account_age_days'] = max(1, (datetime.datetime.now() - fd).days)
-                except: pass
+        # 🚀 终极首次登录溯源引擎 (优先读自有系统库，兜底读第一条播放记录)
+        first_date_str = None
+        if user_id and user_id != 'all':
+            try:
+                meta = query_db("SELECT created_at FROM users_meta WHERE user_id = ?", (user_id,))
+                if meta and meta[0]['created_at']: first_date_str = meta[0]['created_at']
+            except: pass
+            
+        if not first_date_str:
+            try:
+                first_play = query_db(f"SELECT MIN(DateCreated) as FirstDate FROM PlaybackActivity {where}", params)
+                if first_play and first_play[0]['FirstDate']: first_date_str = first_play[0]['FirstDate']
+            except: pass
 
-        # 🚀 2. 终极真理方案：直接拉取全库最早的一部影片入库时间，突破插件 90 天限制！
-        try:
-            host = cfg.get("emby_host")
-            key = cfg.get("emby_api_key")
-            if host and key:
-                if not user_id or user_id == 'all':
-                    # 取全服最老影片时间作为建站天数
-                    item_res = requests.get(f"{host}/emby/Items?SortBy=DateCreated&SortOrder=Ascending&Limit=1&Recursive=true&IncludeItemTypes=Movie,Series&api_key={key}", timeout=5)
-                    if item_res.status_code == 200:
-                        items = item_res.json().get("Items", [])
-                        if items:
-                            dc = items[0].get("DateCreated")
-                            if dc:
-                                m = re.search(r'(\d{4})-(\d{2})-(\d{2})', str(dc))
-                                if m:
-                                    fd = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-                                    overview['account_age_days'] = max(1, (datetime.datetime.now() - fd).days)
-        except Exception as e: 
-            import logging
-            logging.getLogger("uvicorn").error(f"获取建站天数失败: {e}")
+        if first_date_str:
+            try:
+                m = re.search(r'(\d{4})-(\d{2})-(\d{2})', str(first_date_str))
+                if m:
+                    fd = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+                    overview['account_age_days'] = max(1, (datetime.datetime.now() - fd).days)
+            except: pass
 
         try:
             m_res = query_db(f"SELECT ItemType, COUNT(*) as c FROM PlaybackActivity {where} GROUP BY ItemType", params)
@@ -301,13 +288,8 @@ def api_user_details(user_id: Optional[str] = None):
         except: pass
                 
         return {"status": "success", "data": {
-            "hourly": h_data, 
-            "devices": [dict(r) for r in d_res] if d_res else [], 
-            "clients": [dict(r) for r in c_res] if c_res else [], 
-            "logs": logs, 
-            "overview": overview, 
-            "preference": pref, 
-            "top_fav": top_fav
+            "hourly": h_data, "devices": [dict(r) for r in d_res] if d_res else [], "clients": [dict(r) for r in c_res] if c_res else [], 
+            "logs": logs, "overview": overview, "preference": pref, "top_fav": top_fav
         }}
     except: return {"status": "error", "data": {"hourly": {}, "devices": [], "clients": [], "logs": []}}
 
@@ -316,15 +298,10 @@ def api_user_details(user_id: Optional[str] = None):
 def api_chart_stats(user_id: Optional[str] = None, dimension: str = 'day'):
     try:
         where, params = get_base_filter(user_id)
-        # 🔥 时区装甲：保证每日/每周的分界点严格遵循你的当地时间，而不受 UTC 牵连
-        time_expr = "datetime(substr(replace(DateCreated, 'T', ' '), 1, 19), 'localtime')"
-        if dimension == 'week':
-            sql = f"SELECT strftime('%Y-%W', {time_expr}) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-120 days') GROUP BY Label ORDER BY Label"
-        elif dimension == 'month':
-            sql = f"SELECT strftime('%Y-%m', {time_expr}) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-365 days') GROUP BY Label ORDER BY Label"
-        else:
-            sql = f"SELECT date({time_expr}) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-30 days') GROUP BY Label ORDER BY Label"
-
+        time_expr = "substr(replace(DateCreated, 'T', ' '), 1, 19)"
+        if dimension == 'week': sql = f"SELECT strftime('%Y-%W', {time_expr}) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-120 days') GROUP BY Label ORDER BY Label"
+        elif dimension == 'month': sql = f"SELECT strftime('%Y-%m', {time_expr}) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-365 days') GROUP BY Label ORDER BY Label"
+        else: sql = f"SELECT date({time_expr}) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-30 days') GROUP BY Label ORDER BY Label"
         results = query_db(sql, params)
         data = {}
         if results:
@@ -389,32 +366,31 @@ def api_badges(user_id: Optional[str] = None):
         where, params = get_base_filter(user_id)
         badges = []
         
-        # 🔥 最强时区装甲：将 Emby 数据库里的 UTC 时间换算为本地时间后再提取小时数
-        time_expr = "datetime(substr(replace(DateCreated, 'T', ' '), 1, 19), 'localtime')"
+        # 🔥 去除了引发血案的 localtime，还原最干净的时间提取
+        time_expr = "substr(replace(DateCreated, 'T', ' '), 1, 19)"
         
+        # 🔥 全面下调门槛，让更多普通用户也能感受到成就解锁的快乐
         night_res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where} AND strftime('%H', {time_expr}) BETWEEN '02' AND '05'", params)
-        if night_res and night_res[0]['c'] > 5: badges.append({"id": "night", "name": "深夜修仙", "icon": "fa-moon", "color": "text-indigo-500", "bg": "bg-indigo-100", "desc": "深夜是灵魂最自由的时刻"})
+        if night_res and night_res[0]['c'] >= 2: badges.append({"id": "night", "name": "深夜修仙", "icon": "fa-moon", "color": "text-indigo-500", "bg": "bg-indigo-100", "desc": "深夜是灵魂最自由的时刻"})
         
         weekend_res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where} AND strftime('%w', {time_expr}) IN ('0', '6')", params)
-        if weekend_res and weekend_res[0]['c'] > 10: badges.append({"id": "weekend", "name": "周末狂欢", "icon": "fa-champagne-glasses", "color": "text-pink-500", "bg": "bg-pink-100", "desc": "工作日唯唯诺诺，周末重拳出击"})
+        if weekend_res and weekend_res[0]['c'] >= 5: badges.append({"id": "weekend", "name": "周末狂欢", "icon": "fa-champagne-glasses", "color": "text-pink-500", "bg": "bg-pink-100", "desc": "工作日唯唯诺诺，周末重拳出击"})
         
         dur_res = query_db(f"SELECT SUM(PlayDuration) as d FROM PlaybackActivity {where}", params)
-        if dur_res and dur_res[0]['d'] and dur_res[0]['d'] > 360000: badges.append({"id": "liver", "name": "Emby肝帝", "icon": "fa-fire", "color": "text-red-500", "bg": "bg-red-100", "desc": "阅片无数，肝度爆表"})
+        if dur_res and dur_res[0]['d'] and dur_res[0]['d'] > 180000: badges.append({"id": "liver", "name": "Emby肝帝", "icon": "fa-fire", "color": "text-red-500", "bg": "bg-red-100", "desc": "阅片无数，肝度爆表"})
         
-        fish_res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where} AND strftime('%w', {time_expr}) BETWEEN '1' AND '5' AND strftime('%H', {time_expr}) BETWEEN '09' AND '16'", params)
-        if fish_res and fish_res[0]['c'] > 10: badges.append({"id": "fish", "name": "带薪观影", "icon": "fa-fish", "color": "text-cyan-500", "bg": "bg-cyan-100", "desc": "工作是老板的，快乐是自己的"})
+        fish_res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where} AND strftime('%w', {time_expr}) BETWEEN '1' AND '5' AND strftime('%H', {time_expr}) BETWEEN '09' AND '17'", params)
+        if fish_res and fish_res[0]['c'] >= 5: badges.append({"id": "fish", "name": "带薪观影", "icon": "fa-fish", "color": "text-cyan-500", "bg": "bg-cyan-100", "desc": "工作是老板的，快乐是自己的"})
         
         morning_res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where} AND strftime('%H', {time_expr}) BETWEEN '05' AND '08'", params)
-        if morning_res and morning_res[0]['c'] > 5: badges.append({"id": "morning", "name": "晨练追剧", "icon": "fa-sun", "color": "text-amber-500", "bg": "bg-amber-100", "desc": "比你优秀的人，连看片都比你早"})
+        if morning_res and morning_res[0]['c'] >= 2: badges.append({"id": "morning", "name": "晨练追剧", "icon": "fa-sun", "color": "text-amber-500", "bg": "bg-amber-100", "desc": "比你优秀的人，连看片都比你早"})
         
-        # 🔥 防坠机机制：只查 DeviceName，防止部分旧版 Emby 库没有 ClientName 导致查询报错返回 None
         device_res = query_db(f"SELECT COUNT(DISTINCT COALESCE(DeviceName, ClientName)) as c FROM PlaybackActivity {where}", params)
-        if device_res is None:
-            device_res = query_db(f"SELECT COUNT(DISTINCT DeviceName) as c FROM PlaybackActivity {where}", params)
-        if device_res and device_res[0]['c'] >= 4: badges.append({"id": "device", "name": "全平台制霸", "icon": "fa-gamepad", "color": "text-emerald-500", "bg": "bg-emerald-100", "desc": "手机、平板、电视，哪里都能看"})
+        if device_res is None: device_res = query_db(f"SELECT COUNT(DISTINCT DeviceName) as c FROM PlaybackActivity {where}", params)
+        if device_res and device_res[0]['c'] >= 2: badges.append({"id": "device", "name": "全平台制霸", "icon": "fa-gamepad", "color": "text-emerald-500", "bg": "bg-emerald-100", "desc": "手机、平板、电视，哪里都能看"})
         
         loyal_res = query_db(f"SELECT ItemName, COUNT(*) as c FROM PlaybackActivity {where} GROUP BY ItemId ORDER BY c DESC LIMIT 1", params)
-        if loyal_res and loyal_res[0]['c'] >= 5: 
+        if loyal_res and loyal_res[0]['c'] >= 3: 
             safe_name = str(loyal_res[0].get('ItemName') or '未知').split(' - ')[0][:10]
             badges.append({"id": "loyal", "name": "N刷狂魔", "icon": "fa-repeat", "color": "text-teal-500", "bg": "bg-teal-100", "desc": f"对《{safe_name}》爱得深沉"})
             
@@ -426,15 +402,13 @@ def api_badges(user_id: Optional[str] = None):
                     if m['ItemType'] == 'Movie': movies = m['c']
                     elif m['ItemType'] == 'Episode': eps = m['c']
             total = movies + eps
-            if total > 20:
-                if movies / total > 0.7: badges.append({"id": "movie_lover", "name": "电影鉴赏家", "icon": "fa-film", "color": "text-blue-500", "bg": "bg-blue-100", "desc": "沉浸在两小时的艺术光影世界"})
-                elif eps / total > 0.7: badges.append({"id": "tv_lover", "name": "追剧狂魔", "icon": "fa-tv", "color": "text-purple-500", "bg": "bg-purple-100", "desc": "一集接一集，根本停不下来"})
+            if total > 10:
+                if movies / total > 0.6: badges.append({"id": "movie_lover", "name": "电影鉴赏家", "icon": "fa-film", "color": "text-blue-500", "bg": "bg-blue-100", "desc": "沉浸在两小时的艺术光影世界"})
+                elif eps / total > 0.6: badges.append({"id": "tv_lover", "name": "追剧狂魔", "icon": "fa-tv", "color": "text-purple-500", "bg": "bg-purple-100", "desc": "一集接一集，根本停不下来"})
         except: pass
         
         return {"status": "success", "data": badges}
     except Exception as e: 
-        import logging
-        logging.getLogger("uvicorn").error(f"Badges Error: {e}")
         return {"status": "success", "data": []}
 
 @router.get("/api/stats/monthly_stats")
@@ -442,7 +416,7 @@ def api_monthly_stats(user_id: Optional[str] = None):
     try:
         where_base, params = get_base_filter(user_id)
         where = where_base + " AND DateCreated > date('now', '-12 months')"
-        time_expr = "datetime(substr(replace(DateCreated, 'T', ' '), 1, 19), 'localtime')"
+        time_expr = "substr(replace(DateCreated, 'T', ' '), 1, 19)"
         sql = f"SELECT strftime('%Y-%m', {time_expr}) as Month, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} GROUP BY Month ORDER BY Month"
         results = query_db(sql, params); data = {}
         if results: 
