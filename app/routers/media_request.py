@@ -184,6 +184,29 @@ def request_system_logout(request: Request):
     request.session.pop("req_user", None)
     return {"status": "success"}
 
+# 🔥 新增接口：专为前端种草弹窗拉取剧集详细信息
+@router.get("/api/requests/item_info")
+def get_item_info(item_id: str, request: Request):
+    user = request.session.get("req_user")
+    if not user: return {"status": "error"}
+    key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
+    try:
+        url = f"{host}/emby/Users/{user['Id']}/Items/{item_id}?api_key={key}"
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200:
+            d = res.json()
+            return {"status": "success", "data": {
+                "Id": d.get("Id"),
+                "Name": d.get("Name", "未知"),
+                "Type": d.get("Type", ""),
+                "ProductionYear": d.get("ProductionYear", ""),
+                "CommunityRating": d.get("CommunityRating", "N/A"),
+                "Overview": d.get("Overview", "暂无剧情简介..."),
+                "Genres": d.get("Genres", [])
+            }}
+        return {"status": "error"}
+    except: return {"status": "error"}
+
 @router.get("/api/requests/search")
 def search_tmdb(query: str, request: Request):
     if not request.session.get("req_user"): return {"status": "error", "message": "未登录"}
