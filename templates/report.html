@@ -52,7 +52,6 @@
         .preview-area { align-items: flex-start; } 
     }
     
-    /* 🔥 全局变量定义：动态适配亮/暗主题 */
     :root { 
         --theme-bg: #1a1a1a; 
         --theme-card: rgba(255,255,255,0.08); 
@@ -62,6 +61,7 @@
         --theme-pill-text: white; 
     }
     
+    /* 强制抗锯齿，提升截图文字锐度 */
     .poster-canvas { 
         width: 400px; height: fit-content; min-height: auto; padding-bottom: 20px; 
         background: var(--theme-bg); color: var(--theme-text); position: relative; 
@@ -69,6 +69,8 @@
         box-shadow: 0 30px 60px rgba(0,0,0,0.5); line-height: 1.6; 
         font-family: "Microsoft YaHei", "Noto Sans SC", sans-serif !important; 
         transition: background 0.3s; transform-origin: top center; 
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     
     #poster-bg-img { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; transform: scale(1.2); opacity: 0; transition: opacity 0.5s; height: 100%; }
@@ -103,15 +105,20 @@
     .podium-item.rank-2, .podium-item.rank-3 { width: 95px; }
     .podium-item.rank-1 { width: 115px; z-index: 10; }
     
-    .podium-cover { width: 100%; aspect-ratio: 2/3; border-radius: 8px; background-color: #333; background-size: cover; background-position: center; box-shadow: 0 10px 20px rgba(0,0,0,0.3); position: relative; border: 2px solid transparent; }
+    /* 🔥 核心修复：完全废弃背景图，改用 <img> 实体渲染，画质瞬间起飞 */
+    .podium-cover { 
+        width: 100%; aspect-ratio: 2/3; border-radius: 8px; 
+        background-color: #333; box-shadow: 0 10px 20px rgba(0,0,0,0.3); 
+        position: relative; border: 2px solid transparent; 
+        object-fit: cover; display: block;
+    }
     .podium-item.rank-1 .podium-cover { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.4); }
     .podium-item.rank-2 .podium-cover { border-color: #94a3b8; }
     .podium-item.rank-3 .podium-cover { border-color: #b45309; }
     
-    /* 🔥 修复了皇冠截图中偏移的问题，严格控制 line-height 和 flex 对齐 */
     .medal { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3); line-height: 1; }
     .medal.rank-1 { background: linear-gradient(135deg, #fcd34d, #b45309); width: 32px; height: 32px; top: -16px; font-size: 14px; }
-    .medal i { display: block; margin-top: 1px; } /* 微调皇冠居中 */
+    .medal i { display: block; margin-top: 1px; }
     .medal.rank-2 { background: linear-gradient(135deg, #e2e8f0, #64748b); }
     .medal.rank-3 { background: linear-gradient(135deg, #fdba74, #9a3412); }
     
@@ -122,12 +129,18 @@
     .rank-list { display: flex; flex-direction: column; gap: 8px; }
     .rank-row { display: flex; align-items: center; padding: 10px 10px; background: var(--theme-card); border-radius: 10px; backdrop-filter: blur(5px); min-height: 50px; color: var(--theme-text); transition: background 0.3s, color 0.3s;}
     .rank-idx { font-size: 12px; font-weight: 900; opacity: 0.4; width: 25px; text-align: center; }
-    .rank-poster-sm { width: 32px; height: 48px; border-radius: 4px; background-color: #333; background-size: cover; background-position: center; margin-right: 12px; flex-shrink: 0; position: relative; overflow: hidden; }
+    
+    /* 🔥 核心修复：列表图也改为实体 <img> */
+    .rank-poster-sm { 
+        width: 32px; height: 48px; border-radius: 4px; 
+        background-color: #333; margin-right: 12px; flex-shrink: 0; 
+        object-fit: cover; display: block; border: none;
+    }
+    
     .rank-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
     .rank-name { font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-bottom: 4px; margin-bottom: -2px; }
     .rank-meta-row { font-size: 9px; opacity: 0.7; display: flex; gap: 8px; }
     
-    /* 情绪模块 */
     .mood-area { margin-top: 25px; display: flex; flex-direction: column; gap: 15px; }
     .mood-card { background: linear-gradient(135deg, var(--theme-card), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; position: relative; overflow: hidden; color: var(--theme-text); transition: color 0.3s, background 0.3s;}
     .mood-icon { position: absolute; right: -10px; bottom: -15px; font-size: 60px; opacity: 0.08; transform: rotate(-15deg); }
@@ -138,7 +151,6 @@
     .p-footer { margin-top: 30px; text-align: center; opacity: 0.4; font-size: 10px; letter-spacing: 2px; color: var(--theme-text); transition: color 0.3s;}
     .empty-box { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.4; min-height: 200px; text-align: center; color: var(--theme-text); transition: color 0.3s;}
     
-    /* 控件样式 */
     .ctrl-label { font-size: 12px; font-weight: bold; color: #666; margin-bottom: 8px; display: block; }
     .btn-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
     .btn { flex: 1; padding: 10px; border: 1px solid #ddd; background: #fff; font-weight: bold; border-radius: 8px; font-size: 12px; cursor: pointer; min-width: 60px; white-space: nowrap; color: #374151; transition: all 0.2s; }
@@ -166,17 +178,20 @@
 {% block content %}
 <script>
     window.tmdbCache = {};
-    window.fallbackReportPoster = async function(el, title) {
-        if(el.getAttribute('data-fallback-done')) return;
-        el.setAttribute('data-fallback-done', 'true');
+    
+    // 🔥 前置资源加载引擎：所有海报直接请求 Base64 实体
+    window.fallbackReportPoster = async function(imgEl, title, isTop1 = false) {
+        if(imgEl.getAttribute('data-fallback-done')) return;
+        imgEl.setAttribute('data-fallback-done', 'true');
         
-        el.style.backgroundImage = "url('/static/img/logo-app-2.png')";
-        el.style.backgroundSize = "contain";
-        el.style.backgroundRepeat = "no-repeat";
+        imgEl.src = '/static/img/logo-app-2.png';
+        imgEl.style.objectFit = "contain";
+        imgEl.style.padding = "20px";
         
         if(window.tmdbCache[title]) {
-            el.style.backgroundImage = `url('${window.tmdbCache[title]}')`;
-            el.style.backgroundSize = "cover";
+            imgEl.src = window.tmdbCache[title];
+            imgEl.style.objectFit = "cover";
+            imgEl.style.padding = "0";
             return;
         }
 
@@ -186,11 +201,17 @@
             if (data.status === 'success' && data.data.length > 0) {
                 const match = data.data.find(d => d.poster_path) || data.data[0];
                 if (match.poster_path) {
-                    window.tmdbCache[title] = match.poster_path;
                     const b64 = await toBase64(match.poster_path);
                     if(b64) {
-                        el.style.backgroundImage = `url('${b64}')`;
-                        el.style.backgroundSize = "cover";
+                        window.tmdbCache[title] = b64;
+                        imgEl.src = b64;
+                        imgEl.style.objectFit = "cover";
+                        imgEl.style.padding = "0";
+                        
+                        if (isTop1) {
+                            top1PhysicalBlurredBase64 = await applyPhysicalBlur(b64);
+                            if(isCoverBgEnabled) document.getElementById('poster-bg-img').style.backgroundImage = `url('${top1PhysicalBlurredBase64}')`;
+                        }
                     }
                 }
             }
@@ -205,14 +226,11 @@
                 const ctx = canvas.getContext('2d');
                 canvas.width = 400; 
                 canvas.height = 800; 
-                
                 ctx.filter = 'blur(40px) brightness(0.4)';
-                
                 const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
                 const x = (canvas.width / 2) - (img.width / 2) * scale;
                 const y = (canvas.height / 2) - (img.height / 2) * scale;
                 ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-                
                 resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
             img.onerror = () => resolve(base64Url);
@@ -253,20 +271,17 @@
                         <div id="podium-area" class="podium-container" style="display:none;">
                             <div class="podium-item rank-2" id="rank2-box" style="visibility: hidden;">
                                 <div class="medal rank-2">2</div>
-                                <img class="podium-cover" id="rank2-img" style="opacity:0; position:absolute; z-index:-1;" onerror="fallbackReportPoster(document.getElementById('rank2-bg'), this.dataset.title)">
-                                <div class="podium-cover" id="rank2-bg" data-src=""></div>
+                                <img class="podium-cover" id="rank2-img">
                                 <div class="podium-info"><div class="podium-title" id="rank2-title">-</div><div class="podium-meta" id="rank2-meta">0次</div></div>
                             </div>
                             <div class="podium-item rank-1" id="rank1-box" style="visibility: hidden;">
                                 <div class="medal rank-1"><i class="fa-solid fa-crown"></i></div>
-                                <img class="podium-cover" id="rank1-img" style="opacity:0; position:absolute; z-index:-1;" onerror="fallbackReportPoster(document.getElementById('rank1-bg'), this.dataset.title)">
-                                <div class="podium-cover" id="rank1-bg" data-src=""></div>
+                                <img class="podium-cover" id="rank1-img">
                                 <div class="podium-info"><div class="podium-title" id="rank1-title">-</div><div class="podium-meta" id="rank1-meta">0次</div></div>
                             </div>
                             <div class="podium-item rank-3" id="rank3-box" style="visibility: hidden;">
                                 <div class="medal rank-3">3</div>
-                                <img class="podium-cover" id="rank3-img" style="opacity:0; position:absolute; z-index:-1;" onerror="fallbackReportPoster(document.getElementById('rank3-bg'), this.dataset.title)">
-                                <div class="podium-cover" id="rank3-bg" data-src=""></div>
+                                <img class="podium-cover" id="rank3-img">
                                 <div class="podium-info"><div class="podium-title" id="rank3-title">-</div><div class="podium-meta" id="rank3-meta">0次</div></div>
                             </div>
                         </div>
@@ -403,28 +418,23 @@
         return '历史全量 观影报告';
     }
 
-    // 🔥 修复：同步设定全局 --theme-text，并强行卸载封面背景
     function setTheme(bg, text, hl) {
         const canvas = document.querySelector('.poster-canvas');
         canvas.style.background = bg;
         canvas.style.color = text;
         
         document.documentElement.style.setProperty('--theme-highlight', hl);
-        // 🔥 核心修复点1：同步更改 CSS 变量文本颜色，拯救纯白主题
         document.documentElement.style.setProperty('--theme-text', text); 
         
-        // 🔥 核心修复点2：点击任意主题颜色，强行踢掉“封面背景”逻辑
         isCoverBgEnabled = false;
         document.getElementById('poster-bg-img').style.opacity = '0';
         
         if(text === '#333') {
-            // 纯白主题下，高亮块背景变深，文字变白
             document.documentElement.style.setProperty('--theme-pill-bg', '#333');
             document.documentElement.style.setProperty('--theme-pill-text', 'white');
             document.documentElement.style.setProperty('--theme-card', 'rgba(0,0,0,0.05)');
             document.getElementById('poster-bg-gradient').style.background = 'transparent';
         } else {
-            // 深色主题下，高亮块背景变半透白，文字变白
             document.documentElement.style.setProperty('--theme-pill-bg', 'rgba(255,255,255,0.15)');
             document.documentElement.style.setProperty('--theme-pill-text', 'white');
             document.documentElement.style.setProperty('--theme-card', 'rgba(255,255,255,0.08)');
@@ -438,7 +448,6 @@
         
         if(!isCoverBgEnabled) {
             bgImg.style.opacity = '0';
-            // 恢复当前主题原状
             const currentColor = document.querySelector('.poster-canvas').style.color;
             if(currentColor === 'rgb(51, 51, 51)' || currentColor === '#333') {
                 document.getElementById('poster-bg-gradient').style.background = 'transparent';
@@ -447,13 +456,15 @@
             }
         } else {
             bgImg.style.opacity = '1';
-            // 强行转为深色氛围适应背景图
             document.documentElement.style.setProperty('--theme-card', 'rgba(255,255,255,0.08)');
             document.documentElement.style.setProperty('--theme-pill-bg', 'rgba(255,255,255,0.15)');
             document.documentElement.style.setProperty('--theme-pill-text', 'white');
-            document.documentElement.style.setProperty('--theme-text', 'white'); // 开启背景必为白字
+            document.documentElement.style.setProperty('--theme-text', 'white'); 
             document.querySelector('.poster-canvas').style.color = 'white';
             document.getElementById('poster-bg-gradient').style.background = 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%)';
+            if(top1PhysicalBlurredBase64) {
+                document.getElementById('poster-bg-img').style.backgroundImage = `url('${top1PhysicalBlurredBase64}')`;
+            }
         }
     }
 
@@ -601,20 +612,21 @@
                         const h = Math.round(list[idx].Duration/3600);
                         document.getElementById(`rank${rank}-meta`).innerText = `${list[idx].Count}次${h > 0 ? ` · ${h}h` : ''}`;
                         
-                        const imgUrl = `/api/proxy/image/${list[idx].ItemId}/primary`;
+                        const imgUrl = `/api/proxy/smart_image?item_id=${list[idx].ItemId}&type=Primary`;
                         const realImg = document.getElementById(`rank${rank}-img`);
-                        realImg.dataset.title = list[idx].ItemName;
                         realImg.removeAttribute('data-fallback-done');
-                        realImg.src = imgUrl; 
                         
                         const b64 = await toBase64(imgUrl);
-                        const coverBg = document.getElementById(`rank${rank}-bg`);
                         if(b64) {
-                            coverBg.style.backgroundImage = `url('${b64}')`;
+                            realImg.src = b64;
+                            realImg.style.objectFit = "cover";
+                            realImg.style.padding = "0";
                             if(rank === 1) {
                                 top1PhysicalBlurredBase64 = await applyPhysicalBlur(b64);
-                                document.getElementById('poster-bg-img').style.backgroundImage = `url('${top1PhysicalBlurredBase64}')`;
+                                if(isCoverBgEnabled) document.getElementById('poster-bg-img').style.backgroundImage = `url('${top1PhysicalBlurredBase64}')`;
                             }
+                        } else {
+                            fallbackReportPoster(realImg, list[idx].ItemName, rank === 1);
                         }
                     }
                 };
@@ -627,13 +639,10 @@
             const max = Math.min(list.length, 10);
             for(let i=3; i<max; i++) {
                 const hours = Math.round(list[i].Duration/3600);
-                const imgUrl = `/api/proxy/image/${list[i].ItemId}/primary`;
                 html += `
                 <div class="rank-row">
                     <div class="rank-idx">${i+1}</div>
-                    <div class="rank-poster-sm" id="sm-bg-${i}">
-                        <img src="${imgUrl}" data-title="${list[i].ItemName}" style="opacity:0; position:absolute; z-index:-1;" onerror="fallbackReportPoster(document.getElementById('sm-bg-${i}'), this.dataset.title)">
-                    </div>
+                    <img class="rank-poster-sm" id="sm-img-${i}">
                     <div class="rank-info">
                         <div class="rank-name">${list[i].ItemName}</div>
                         <div class="rank-meta-row"><span>${list[i].Count}次</span><span>${hours > 0 ? hours+'h' : '<1h'}</span></div>
@@ -642,13 +651,22 @@
             }
             listEl.innerHTML = html;
             
-            setTimeout(async () => {
-                for(let i=3; i<max; i++) {
-                    const imgUrl = `/api/proxy/image/${list[i].ItemId}/primary`;
+            // 异步并发加载小图 Base64 或触发 fallback
+            const smPromises = [];
+            for(let i=3; i<max; i++) {
+                smPromises.push((async () => {
+                    const imgUrl = `/api/proxy/smart_image?item_id=${list[i].ItemId}&type=Primary`;
                     const b64 = await toBase64(imgUrl);
-                    if(b64) document.getElementById(`sm-bg-${i}`).style.backgroundImage = `url('${b64}')`;
-                }
-            }, 100);
+                    const imgEl = document.getElementById(`sm-img-${i}`);
+                    if(b64) {
+                        imgEl.src = b64;
+                        imgEl.style.objectFit = "cover";
+                    } else {
+                        fallbackReportPoster(imgEl, list[i].ItemName);
+                    }
+                })());
+            }
+            await Promise.all(smPromises);
             
             if(data.mood_data) renderMoods(data.mood_data);
         }
@@ -662,12 +680,13 @@
         const wrapper = document.getElementById('scale-wrapper');
         const oldT = wrapper.style.transform;
         
-        // 🔥 终极绝杀：强行干预渲染环境，滚回顶部，取消缩放，避免 html2canvas 任何错位
+        // 强行把页面滚动到最顶端，并且移除缩放，保证 html2canvas 计算坐标绝对精准，拒绝偏移！
         window.scrollTo(0, 0);
         wrapper.style.transform = 'none';
-        await new Promise(r => setTimeout(r, 300)); 
+        await new Promise(r => setTimeout(r, 400)); 
         
         try {
+            // 此时页面上所有的 img src 都已经是准备好的 Base64 实体图，直接无脑截图即可
             const canvas = await html2canvas(document.getElementById('capture-target'), { 
                 scale: 2, 
                 useCORS: true, 
@@ -679,7 +698,7 @@
             link.download = `EmbyPulse_${currentUserName}_${currentPeriod}.png`;
             link.href = canvas.toDataURL();
             link.click();
-        } catch(e) { alert('生成截图失败，请确保图片已加载完毕。'); } 
+        } catch(e) { alert('生成截图失败，请重试。'); } 
         finally { 
             wrapper.style.transform = oldT; 
             btns.forEach(b => b.innerHTML = '<i class="fa-solid fa-download"></i> 保存海报');
