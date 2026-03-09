@@ -205,22 +205,18 @@ def api_top_movies(user_id: Optional[str] = None, category: str = 'all', sort_by
 def api_user_details(user_id: Optional[str] = None):
     try:
         where, params = get_base_filter(user_id)
-        mode = cfg.get("playback_data_mode", "sqlite")
         
-        # 🚀 修正点：将 DateCreated 完全拉到 Python 里处理，并加入 dict(row) 防止原生 SQLite 崩溃
         h_data = {str(i).zfill(2): 0 for i in range(24)}
         raw_logs = query_db(f"SELECT DateCreated FROM PlaybackActivity {where}", params)
         if raw_logs:
             for row in raw_logs:
-                # 这一句是拯救大盘的核心：强转 dict，让 .get() 方法生效
                 r = dict(row)
                 dc = r.get('DateCreated')
                 if dc:
                     m = re.search(r'(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})', str(dc))
                     if m:
+                        # 🔪 剔除了多余的 +8 小时，回归数据库纯粹的原始时间
                         dt = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
-                        if mode != 'api': 
-                            dt = dt + datetime.timedelta(hours=8)
                         h_data[str(dt.hour).zfill(2)] += 1
             
         c_res = query_db(f"SELECT COALESCE(ClientName, 'Unknown') as Client, COUNT(*) as Plays FROM PlaybackActivity {where} GROUP BY ClientName ORDER BY Plays DESC LIMIT 10", params)
@@ -253,7 +249,6 @@ def api_user_details(user_id: Optional[str] = None):
             overview['total_duration'] = ov_res[0]['Dur'] or 0
             overview['avg_duration'] = round(overview['total_duration'] / overview['total_plays'])
             
-        # 🚀 终极回调：直接读取 Emby 官方账号真实 DateCreated！不再受本地库任何限制
         try:
             host = cfg.get("emby_host")
             key = cfg.get("emby_api_key")
@@ -395,8 +390,6 @@ def api_badges(user_id: Optional[str] = None):
         items = {}
         movies, eps = 0, 0
         
-        mode = cfg.get("playback_data_mode", "sqlite")
-
         for row in raw_data:
             r = dict(row)
             dur = r.get('PlayDuration') or 0
@@ -418,8 +411,8 @@ def api_badges(user_id: Optional[str] = None):
             if dc:
                 m = re.search(r'(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})', str(dc))
                 if m:
+                    # 🔪 剔除多余的 +8 小时，让成就时段完全匹配你真实的观影时间
                     dt = datetime.datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)))
-                    if mode != 'api': dt = dt + datetime.timedelta(hours=8)
                         
                     hour = dt.hour
                     weekday = dt.weekday()
