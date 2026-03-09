@@ -52,8 +52,16 @@
         .preview-area { align-items: flex-start; } 
     }
     
-    /* 海报内部样式 */
-    :root { --theme-bg: #1a1a1a; --theme-card: rgba(255,255,255,0.08); --theme-text: white; --theme-highlight: #eab308; }
+    /* 🔥 全局变量定义：动态适配亮/暗主题 */
+    :root { 
+        --theme-bg: #1a1a1a; 
+        --theme-card: rgba(255,255,255,0.08); 
+        --theme-text: white; 
+        --theme-highlight: #eab308;
+        --theme-pill-bg: rgba(255,255,255,0.15); /* 高亮字块背景色 */
+        --theme-pill-text: white; /* 高亮字块文字色 */
+    }
+    
     .poster-canvas { 
         width: 400px; height: fit-content; min-height: auto; padding-bottom: 20px; 
         background: var(--theme-bg); color: var(--theme-text); position: relative; 
@@ -63,8 +71,10 @@
         transition: background 0.3s; transform-origin: top center; 
     }
     
-    #poster-bg-img { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; filter: blur(50px) brightness(0.4); transform: scale(1.2); opacity: 0; transition: opacity 0.5s; height: 100%; }
+    /* 去掉了 filter: blur，改由 JS 物理渲染画布 */
+    #poster-bg-img { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; transform: scale(1.2); opacity: 0; transition: opacity 0.5s; height: 100%; }
     #poster-bg-gradient { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%); height: 100%; }
+    
     .p-content { position: relative; z-index: 10; padding: 40px 30px; display: block; }
     .p-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
     .user-box { display: flex; align-items: center; gap: 12px; }
@@ -78,23 +88,19 @@
         z-index: 20; position: relative;
     }
     
-    .user-info h1 { font-size: 24px; font-weight: 900; margin: 0; padding: 4px 0; }
-    .user-info p { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin: 0; padding-bottom: 2px; }
-    .server-pill { background: var(--theme-card); padding: 4px 10px; border-radius: 20px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+    .user-info h1 { font-size: 24px; font-weight: 900; margin: 0; padding: 4px 0; color: var(--theme-text); }
+    .user-info p { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin: 0; padding-bottom: 2px; color: var(--theme-text); }
+    
+    .server-pill { background: var(--theme-card); padding: 4px 10px; border-radius: 20px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center; color: var(--theme-text); }
     .server-pill span { display: block; font-weight: 900; font-size: 12px; color: #4ade80; padding-bottom: 2px; }
+    
     .stats-row { display: flex; gap: 10px; margin-bottom: 25px; }
     .stat-card { flex: 1; background: var(--theme-card); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center; backdrop-filter: blur(10px); }
-    .stat-val { font-size: 28px; font-weight: 900; line-height: 1; margin-bottom: 4px; padding-bottom: 4px; }
-    .stat-label { font-size: 9px; opacity: 0.6; text-transform: uppercase; font-weight: bold; }
+    .stat-val { font-size: 28px; font-weight: 900; line-height: 1; margin-bottom: 4px; padding-bottom: 4px; color: var(--theme-text); }
+    .stat-label { font-size: 9px; opacity: 0.6; text-transform: uppercase; font-weight: bold; color: var(--theme-text); }
     
-    /* 🔥 修复 Bug 核心：领奖台排版锁死 */
-    .podium-container { 
-        display: flex; /* 改用 Flex，强制控制尺寸和对齐 */
-        justify-content: center; align-items: flex-end; 
-        gap: 10px; margin-bottom: 30px; margin-top: 10px; 
-    }
+    .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 10px; margin-bottom: 30px; margin-top: 10px; }
     .podium-item { position: relative; display: flex; flex-direction: column; align-items: center; }
-    /* 锁死宽高，绝不允许拉伸 */
     .podium-item.rank-2, .podium-item.rank-3 { width: 95px; }
     .podium-item.rank-1 { width: 115px; z-index: 10; }
     
@@ -102,33 +108,36 @@
     .podium-item.rank-1 .podium-cover { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.4); }
     .podium-item.rank-2 .podium-cover { border-color: #94a3b8; }
     .podium-item.rank-3 .podium-cover { border-color: #b45309; }
+    
     .medal { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; z-index: 10; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .medal.rank-1 { background: linear-gradient(135deg, #fcd34d, #b45309); width: 32px; height: 32px; top: -16px; font-size: 14px; }
     .medal.rank-2 { background: linear-gradient(135deg, #e2e8f0, #64748b); }
     .medal.rank-3 { background: linear-gradient(135deg, #fdba74, #9a3412); }
-    .podium-info { text-align: center; margin-top: 8px; width: 100%; }
+    
+    .podium-info { text-align: center; margin-top: 8px; width: 100%; color: var(--theme-text); }
     .podium-title { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; padding-bottom: 4px; }
     .podium-meta { font-size: 9px; opacity: 0.7; }
     
     .rank-list { display: flex; flex-direction: column; gap: 8px; }
-    .rank-row { display: flex; align-items: center; padding: 10px 10px; background: var(--theme-card); border-radius: 10px; backdrop-filter: blur(5px); min-height: 50px; }
+    .rank-row { display: flex; align-items: center; padding: 10px 10px; background: var(--theme-card); border-radius: 10px; backdrop-filter: blur(5px); min-height: 50px; color: var(--theme-text); }
     .rank-idx { font-size: 12px; font-weight: 900; opacity: 0.4; width: 25px; text-align: center; }
     .rank-poster-sm { width: 32px; height: 48px; border-radius: 4px; background-color: #333; background-size: cover; background-position: center; margin-right: 12px; flex-shrink: 0; position: relative; overflow: hidden; }
     .rank-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
     .rank-name { font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-bottom: 4px; margin-bottom: -2px; }
     .rank-meta-row { font-size: 9px; opacity: 0.7; display: flex; gap: 8px; }
     
-    /* 🔥 新增：情绪模块样式 */
+    /* 情绪模块 */
     .mood-area { margin-top: 25px; display: flex; flex-direction: column; gap: 15px; }
-    .mood-card { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; position: relative; overflow: hidden; }
+    .mood-card { background: linear-gradient(135deg, var(--theme-card), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; position: relative; overflow: hidden; color: var(--theme-text); }
     .mood-icon { position: absolute; right: -10px; bottom: -15px; font-size: 60px; opacity: 0.08; transform: rotate(-15deg); }
     .mood-title { font-size: 10px; font-weight: 900; letter-spacing: 1px; color: var(--theme-highlight); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
     .mood-text { font-size: 12px; line-height: 1.6; opacity: 0.9; }
-    .mood-highlight { font-weight: bold; color: white; background: rgba(255,255,255,0.15); padding: 0 4px; border-radius: 4px; }
+    .mood-highlight { font-weight: bold; color: var(--theme-pill-text); background: var(--theme-pill-bg); padding: 0 4px; border-radius: 4px; }
     
-    .p-footer { margin-top: 30px; text-align: center; opacity: 0.4; font-size: 10px; letter-spacing: 2px; }
-    .empty-box { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.4; min-height: 200px; text-align: center; }
+    .p-footer { margin-top: 30px; text-align: center; opacity: 0.4; font-size: 10px; letter-spacing: 2px; color: var(--theme-text); }
+    .empty-box { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.4; min-height: 200px; text-align: center; color: var(--theme-text); }
     
+    /* 控件样式 */
     .ctrl-label { font-size: 12px; font-weight: bold; color: #666; margin-bottom: 8px; display: block; }
     .btn-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
     .btn { flex: 1; padding: 10px; border: 1px solid #ddd; background: #fff; font-weight: bold; border-radius: 8px; font-size: 12px; cursor: pointer; min-width: 60px; white-space: nowrap; color: #374151; transition: all 0.2s; }
@@ -186,6 +195,32 @@
             }
         } catch(e) {}
     };
+
+    // 🔥 物理级模糊引擎：利用 Canvas 强行渲染模糊背景，解决 html2canvas 无法截取滤镜的终极绝杀！
+    async function applyPhysicalBlur(base64Url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 400; // 匹配海报宽度
+                canvas.height = 800; // 匹配海报高度估计
+                
+                // 物理模糊核心
+                ctx.filter = 'blur(40px) brightness(0.4)';
+                
+                // 绘制背景
+                const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+                const x = (canvas.width / 2) - (img.width / 2) * scale;
+                const y = (canvas.height / 2) - (img.height / 2) * scale;
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.onerror = () => resolve(base64Url);
+            img.src = base64Url;
+        });
+    }
 </script>
 
 <div class="app-container">
@@ -240,8 +275,7 @@
                         
                         <div class="rank-list" id="rank-list"></div>
                         
-                        <div class="mood-area" id="mood-area">
-                            </div>
+                        <div class="mood-area" id="mood-area"></div>
                     </div>
                     
                     <div id="empty-area" class="empty-box" style="display:none;"><i class="fa-solid fa-ghost" style="font-size: 40px; margin-bottom: 10px;"></i><p>该时段暂无记录</p></div>
@@ -305,9 +339,14 @@
 
 {% block scripts %}
 <script>
+    window.onerror = function(msg) { alert("发生错误: " + msg); return false; };
+</script>
+<script>
     let currentUserId = '';
     let currentUserName = 'User';
     let currentPeriod = 'month';
+    let isCoverBgEnabled = false;
+    let top1PhysicalBlurredBase64 = null;
 
     function checkLayout() {
         const isMobile = window.innerWidth <= 768;
@@ -370,24 +409,47 @@
         const canvas = document.querySelector('.poster-canvas');
         canvas.style.background = bg;
         canvas.style.color = text;
+        
         document.documentElement.style.setProperty('--theme-highlight', hl);
-        document.getElementById('poster-bg-img').style.opacity = '0';
+        
         if(text === '#333') {
+            // 纯白主题下，高亮块背景变深，文字变白
+            document.documentElement.style.setProperty('--theme-pill-bg', '#333');
+            document.documentElement.style.setProperty('--theme-pill-text', 'white');
             document.documentElement.style.setProperty('--theme-card', 'rgba(0,0,0,0.05)');
-            document.getElementById('poster-bg-gradient').style.background = 'transparent';
+            if(!isCoverBgEnabled) document.getElementById('poster-bg-gradient').style.background = 'transparent';
         } else {
+            // 深色主题下，高亮块背景变半透白，文字变白
+            document.documentElement.style.setProperty('--theme-pill-bg', 'rgba(255,255,255,0.15)');
+            document.documentElement.style.setProperty('--theme-pill-text', 'white');
             document.documentElement.style.setProperty('--theme-card', 'rgba(255,255,255,0.08)');
-            document.getElementById('poster-bg-gradient').style.background = 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5))';
+            if(!isCoverBgEnabled) document.getElementById('poster-bg-gradient').style.background = 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5))';
+        }
+        
+        if(!isCoverBgEnabled) {
+            document.getElementById('poster-bg-img').style.opacity = '0';
         }
     }
 
     function toggleCoverBg() {
+        isCoverBgEnabled = !isCoverBgEnabled;
         const bgImg = document.getElementById('poster-bg-img');
-        if(bgImg.style.opacity === '1') {
+        
+        if(!isCoverBgEnabled) {
             bgImg.style.opacity = '0';
+            // 恢复当前主题原状
+            const currentColor = document.querySelector('.poster-canvas').style.color;
+            if(currentColor === 'rgb(51, 51, 51)' || currentColor === '#333') {
+                document.getElementById('poster-bg-gradient').style.background = 'transparent';
+            } else {
+                document.getElementById('poster-bg-gradient').style.background = 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5))';
+            }
         } else {
             bgImg.style.opacity = '1';
+            // 强行转为深色氛围适应背景图
             document.documentElement.style.setProperty('--theme-card', 'rgba(255,255,255,0.08)');
+            document.documentElement.style.setProperty('--theme-pill-bg', 'rgba(255,255,255,0.15)');
+            document.documentElement.style.setProperty('--theme-pill-text', 'white');
             document.querySelector('.poster-canvas').style.color = 'white';
             document.getElementById('poster-bg-gradient').style.background = 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.8) 100%)';
         }
@@ -468,13 +530,11 @@
         loadData();
     }
 
-    // 🔥 渲染情绪卡片
     function renderMoods(moodData) {
         const area = document.getElementById('mood-area');
         area.innerHTML = '';
         let html = '';
         
-        // 基因 DNA
         if(moodData.genres && moodData.genres.length > 0) {
             html += `
             <div class="mood-card">
@@ -484,23 +544,21 @@
             </div>`;
         }
         
-        // 沉迷时刻
         if(moodData.binge_day && currentUserId !== 'all') {
             html += `
             <div class="mood-card">
                 <i class="fa-solid fa-couch mood-icon"></i>
                 <div class="mood-title"><i class="fa-solid fa-fire"></i> 沉迷时刻</div>
-                <div class="mood-text"><span class="mood-highlight">${moodData.binge_day.date}</span> 是你最疯狂的一天，一口气观看了 <span class="mood-highlight">${moodData.binge_day.hours}</span> 小时。那一天，是谁陪你一起度过的？</div>
+                <div class="mood-text"><span class="mood-highlight">${moodData.binge_day.date}</span> 是你最疯狂的一天，一口气观看了 <span class="mood-highlight">${moodData.binge_day.hours}</span> 小时。</div>
             </div>`;
         }
         
-        // 深夜刺客
         if(moodData.late_night && currentUserId !== 'all') {
             html += `
             <div class="mood-card">
                 <i class="fa-solid fa-moon mood-icon"></i>
                 <div class="mood-title"><i class="fa-solid fa-owl"></i> 深夜刺客</div>
-                <div class="mood-text"><span class="mood-highlight">${moodData.late_night.date} 凌晨 ${moodData.late_night.time}</span>，整座城市都沉睡了，你还在独自沉浸在《${moodData.late_night.name}》里。注意保护眼睛。</div>
+                <div class="mood-text"><span class="mood-highlight">${moodData.late_night.date} 凌晨 ${moodData.late_night.time}</span>，整座城市都沉睡了，你还在独自沉浸在《${moodData.late_night.name}》里。夜深了，注意保护眼睛。</div>
             </div>`;
         }
         
@@ -517,6 +575,8 @@
         document.getElementById('p-plays').innerText = data.plays;
         document.getElementById('p-hours').innerText = data.hours;
         document.getElementById('p-server').innerText = data.server_plays;
+        
+        top1PhysicalBlurredBase64 = null;
 
         const hasData = data.plays > 0;
         document.getElementById('content-area').style.display = hasData ? 'block' : 'none';
@@ -540,7 +600,6 @@
                         document.getElementById(`rank${rank}-meta`).innerText = `${list[idx].Count}次${h > 0 ? ` · ${h}h` : ''}`;
                         
                         const imgUrl = `/api/proxy/image/${list[idx].ItemId}/primary`;
-                        // 给真实 img 标签赋值触发 onerror 兜底机制
                         const realImg = document.getElementById(`rank${rank}-img`);
                         realImg.dataset.title = list[idx].ItemName;
                         realImg.removeAttribute('data-fallback-done');
@@ -551,15 +610,15 @@
                         if(b64) {
                             coverBg.style.backgroundImage = `url('${b64}')`;
                             if(rank === 1) {
-                                document.getElementById('poster-bg-img').style.backgroundImage = `url('${b64}')`;
+                                // 🔥 在后台悄悄生成物理模糊版本的图，专供 html2canvas 截图使用
+                                top1PhysicalBlurredBase64 = await applyPhysicalBlur(b64);
+                                // 同时为了预览，我们先把背景设置为正常图(因为CSS里我们移除了blur，所以我们直接用物理模糊图做背景)
+                                document.getElementById('poster-bg-img').style.backgroundImage = `url('${top1PhysicalBlurredBase64}')`;
                             }
-                        } else { 
-                            // fallback 会由 onerror 接管处理
                         }
                     }
                 };
                 
-                // 并发加载前三名，保持渲染速度
                 await Promise.all([renderRank(1, 0), renderRank(2, 1), renderRank(3, 2)]);
             } else { podiumArea.style.display = 'none'; }
 
@@ -583,7 +642,6 @@
             }
             listEl.innerHTML = html;
             
-            // 异步加载小图的 base64 (为了 html2canvas 截图)
             setTimeout(async () => {
                 for(let i=3; i<max; i++) {
                     const imgUrl = `/api/proxy/image/${list[i].ItemId}/primary`;
@@ -592,7 +650,6 @@
                 }
             }, 100);
             
-            // 渲染情绪模块
             if(data.mood_data) renderMoods(data.mood_data);
         }
     }
@@ -608,7 +665,7 @@
         await new Promise(r => setTimeout(r, 200)); 
         
         try {
-            // 保证 TMDB 兜底的图片也能被截图
+            // 🔥 此时背景图已经是经过 Canvas 处理过的物理模糊图，html2canvas 截出来绝对不会露馅！
             const canvas = await html2canvas(document.getElementById('capture-target'), { 
                 scale: 2, useCORS: true, backgroundColor: null 
             });
