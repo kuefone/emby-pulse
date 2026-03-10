@@ -21,9 +21,11 @@
         border: 1px solid rgba(255,255,255,0.04);
     }
 
-    /* 抽屉与弹窗动画 */
     #detail-modal { transition: opacity 0.3s ease-out; }
     #modal-container { transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
 {% endblock %}
 
@@ -72,7 +74,7 @@
         </div>
     </div>
 
-    <div id="mobile-day-nav" class="md:hidden sticky top-[72px] z-30 -mx-4 px-4 py-3 bg-apple-bgLight/80 dark:bg-apple-bgDark/80 backdrop-blur-[24px] saturate-[1.5] border-b border-gray-200/50 dark:border-white/5 flex gap-2 overflow-x-auto no-scrollbar shadow-sm transition-all">
+    <div id="mobile-day-nav" class="md:hidden sticky top-[72px] z-30 -mx-4 px-4 py-3 bg-apple-bgLight/80 dark:bg-apple-bgDark/80 backdrop-blur-[24px] saturate-[1.5] border-b border-gray-200/50 dark:border-white/5 flex gap-2 overflow-x-auto no-scrollbar shadow-sm transition-all scroll-smooth">
     </div>
 
     <div id="loading" class="flex flex-col items-center justify-center py-40">
@@ -85,7 +87,7 @@
         <button onclick="fetchCalendar(true)" class="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-[13px] font-bold shadow-md transition-all active:scale-95">重新加载</button>
     </div>
 
-    <div id="calendar-grid" class="hidden grid grid-cols-1 md:grid-cols-7 gap-y-6 md:gap-x-3 lg:gap-x-4 items-start pb-10 relative">
+    <div id="calendar-grid" class="hidden grid grid-cols-1 md:grid-cols-7 gap-y-6 md:gap-x-3 lg:gap-x-4 items-start relative pb-10">
     </div>
 </div>
 
@@ -177,17 +179,15 @@ async function fetchCalendar(forceRefresh = false) {
         renderMobileNav(data.days);
         renderCalendar(data.days);
         
-        // 绑定高精度滑动侦听
         setupScrollSpy(); 
         
         loadingEl.classList.add('hidden');
         gridEl.classList.remove('hidden');
 
-        // 初始化：默认定位到今天
+        // 默认定位到今天
         if (currentOffset === 0 && window.innerWidth < 768) {
             const todayIndex = data.days.findIndex(d => d.is_today);
             if (todayIndex !== -1) {
-                // 等待DOM渲染完成后跳转
                 setTimeout(() => scrollToDay(todayIndex), 200); 
             }
         }
@@ -230,7 +230,7 @@ function renderCalendar(days) {
             : day.items.map(item => generateCardHtml(item)).join('');
 
         return `
-            <div id="day-section-${index}" class="day-section flex flex-col gap-3 md:gap-4 pt-4">
+            <div id="day-section-${index}" class="day-section flex flex-col gap-3 md:gap-4 pt-4 relative">
                 
                 <div class="hidden md:flex flex-col items-center justify-center pb-2 pt-3 mb-1 sticky top-[72px] z-30 bg-apple-bgLight/90 dark:bg-apple-bgDark/90 backdrop-blur-md">
                     <span class="text-[10px] font-bold uppercase tracking-widest mb-1 ${isToday ? 'text-brand-500' : 'text-gray-400 dark:text-gray-500'}">${day.weekday_cn}</span>
@@ -295,67 +295,79 @@ function generateCardHtml(item) {
     `;
 }
 
-/* ===== 🔥 核心：高精度手工滚动侦听与跳转 (彻底告别乱跳 Bug) ===== */
+/* ===== 🔥 极度丝滑的高精度滚动引擎 ===== */
 
-// 修改1：绝对定位跳转
+// 1. 点击跳转：不再依靠模糊的 Anchor，而是绝对像素定位
 function scrollToDay(index) {
     const targetSection = document.getElementById(`day-section-${index}`);
-    const scrollContainer = document.querySelector('.flex-1.overflow-y-auto');
+    // 物理锁定滚动容器，绝不找错
+    const scrollContainer = document.querySelector('main').parentElement;
 
     if (targetSection && scrollContainer) {
-        // 加锁，防止滑动过程中侦听器抢戏导致按钮抽风
-        isClickScrolling = true;
+        // 上锁，防止跳转时的自然滚动触发 Scroll Spy 导致死循环乱跳
+        isClickScrolling = true; 
         lastActiveIndex = index;
         
         if (window.innerWidth < 768) {
-            highlightNavBtn(index, true); // 立刻高亮对应按钮并居中
+            highlightNavBtn(index, true); 
         }
 
-        // 计算绝对距离：目标元素距离顶部的 offset - 顶部两层毛玻璃的高度 (约140px)
-        const offsetTop = targetSection.offsetTop - 140;
-        scrollContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
+        // 精确计算：获取元素相对于滚动容器内的高度 = 元素顶部 - 容器顶部 + 容器已滚动的距离 - 顶部双层毛玻璃高度(130px)
+        const rect = targetSection.getBoundingClientRect();
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetScrollTop = scrollContainer.scrollTop + (rect.top - containerRect.top) - 130;
+        
+        scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
 
-        // 解锁（平滑滚动一般需 500ms，设 800ms 绝对安全）
+        // 等待平滑滚动完成（一般500ms），解锁
         clearTimeout(clickScrollTimeout);
         clickScrollTimeout = setTimeout(() => { isClickScrolling = false; }, 800);
     }
 }
 
-// 修改2：全局滚动侦听
+// 2. 滚动侦听：使用 requestAnimationFrame 保障丝滑性能
 function setupScrollSpy() {
     if (window.innerWidth >= 768) return; 
-    const scrollContainer = document.querySelector('.flex-1.overflow-y-auto');
+    
+    // 物理锁定滚动容器
+    const scrollContainer = document.querySelector('main').parentElement;
     if (!scrollContainer) return;
 
+    let isThrottled = false;
+
     scrollContainer.addEventListener('scroll', () => {
-        if (isClickScrolling) return; // 如果是点击触发的跳转，直接跳过计算
+        if (isClickScrolling) return; // 如果正在执行点击跳转，则闭嘴
 
-        // 使用 requestAnimationFrame 保证不掉帧
-        window.requestAnimationFrame(() => {
-            const sections = document.querySelectorAll('.day-section');
-            let activeIdx = 0;
-            
-            // 触发线设在距离顶部 160px 的位置（正好在横滑导航下方）
-            const triggerLine = 160;
+        if (!isThrottled) {
+            window.requestAnimationFrame(() => {
+                const sections = document.querySelectorAll('.day-section');
+                let activeIdx = 0;
+                
+                // 触发线：距离屏幕顶部约 150px 的位置（正好在横向导航条下面一点点）
+                const triggerLine = scrollContainer.getBoundingClientRect().top + 160;
 
-            sections.forEach((sec, idx) => {
-                const rect = sec.getBoundingClientRect();
-                // 只要该日期的顶部到达或越过了触发线，它就是当前正在看的日期
-                if (rect.top <= triggerLine) {
-                    activeIdx = idx;
+                sections.forEach((sec, idx) => {
+                    const rect = sec.getBoundingClientRect();
+                    // 只要日期的头部顶破了触发线，就算进入了这一天
+                    if (rect.top <= triggerLine) {
+                        activeIdx = idx;
+                    }
+                });
+
+                // 只有跨天了才执行 UI 更新
+                if (activeIdx !== lastActiveIndex) {
+                    lastActiveIndex = activeIdx;
+                    highlightNavBtn(activeIdx, true); 
                 }
+                
+                isThrottled = false;
             });
-
-            // 只有当滑动到了新的一天时，才去更新顶部按钮，节省性能
-            if (activeIdx !== lastActiveIndex) {
-                lastActiveIndex = activeIdx;
-                highlightNavBtn(activeIdx, true); 
-            }
-        });
+            isThrottled = true;
+        }
     });
 }
 
-// 修改3：只负责更新按钮状态和水平居中，不影响页面滚动
+// 3. 渲染顶部导航并自动居中
 function highlightNavBtn(activeIndex, autoCenter = false) {
     document.querySelectorAll('.nav-btn-item').forEach((btn, idx) => {
         if (idx == activeIndex) {
@@ -369,7 +381,7 @@ function highlightNavBtn(activeIndex, autoCenter = false) {
         const navContainer = document.getElementById('mobile-day-nav');
         const activeBtn = document.getElementById(`nav-btn-${activeIndex}`);
         if (navContainer && activeBtn) {
-            // 精确计算使按钮居中所需的 left 值
+            // 计算让胶囊居中在屏幕正中央的 scrollLeft 偏移量
             const scrollLeft = activeBtn.offsetLeft - (navContainer.clientWidth / 2) + (activeBtn.clientWidth / 2);
             navContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' });
         }
