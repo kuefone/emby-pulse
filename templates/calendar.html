@@ -21,9 +21,12 @@
         border: 1px solid rgba(255,255,255,0.04);
     }
 
-    /* 抽屉与弹窗动画 */
     #detail-modal { transition: opacity 0.3s ease-out; }
     #modal-container { transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+    
+    /* 隐藏横向滚动条但保持可滚动 */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
 {% endblock %}
 
@@ -72,7 +75,7 @@
         </div>
     </div>
 
-    <div id="mobile-day-nav" class="md:hidden sticky top-[72px] z-30 -mx-4 px-4 py-3 bg-apple-bgLight/80 dark:bg-apple-bgDark/80 backdrop-blur-[24px] saturate-[1.5] border-b border-gray-200/50 dark:border-white/5 flex gap-2 overflow-x-auto mac-scrollbar shadow-sm transition-all">
+    <div id="mobile-day-nav" class="md:hidden sticky top-[72px] z-30 -mx-4 px-4 py-3 bg-apple-bgLight/80 dark:bg-apple-bgDark/80 backdrop-blur-[24px] saturate-[1.5] border-b border-gray-200/50 dark:border-white/5 flex gap-2 overflow-x-auto no-scrollbar shadow-sm transition-all scroll-smooth">
     </div>
 
     <div id="loading" class="flex flex-col items-center justify-center py-40">
@@ -85,7 +88,7 @@
         <button onclick="fetchCalendar(true)" class="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-[13px] font-bold shadow-md transition-all active:scale-95">重新加载</button>
     </div>
 
-    <div id="calendar-grid" class="hidden grid grid-cols-1 md:grid-cols-7 gap-y-6 md:gap-x-3 lg:gap-x-4 items-start">
+    <div id="calendar-grid" class="hidden grid grid-cols-1 md:grid-cols-7 gap-y-6 md:gap-x-3 lg:gap-x-4 items-start relative pb-10">
     </div>
 </div>
 
@@ -107,7 +110,7 @@
         <div class="flex-1 flex flex-col justify-start p-6 md:p-8 overflow-y-auto mac-scrollbar relative z-20 bg-white dark:bg-transparent">
             <h3 id="m-title" class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-tight pr-6 md:pr-0 mb-3"></h3>
             
-            <div class="flex flex-wrap items-center gap-2 mb-4">
+            <div class="flex flex-wrap items-center gap-2 mb-5">
                 <span id="m-episode-label" class="text-brand-600 dark:text-brand-400 font-mono font-bold bg-brand-50 dark:bg-brand-500/10 px-2 py-1 rounded-md border border-brand-100 dark:border-brand-500/20 text-[11px] md:text-xs"></span>
                 <span id="m-status-badge" class="px-2 py-1 rounded-md text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-white shadow-sm"></span>
             </div>
@@ -129,8 +132,8 @@
 let currentOffset = 0;
 let currentServerId = ""; 
 let currentEmbyUrl = "";
-let scrollObserver = null;
 let isScrolling = false; 
+let lastActiveIndex = -1; // 记录当前亮起的日期按钮索引
 const imgBase = "https://image.tmdb.org/t/p/w500";
 
 document.addEventListener('DOMContentLoaded', () => fetchCalendar(false));
@@ -143,8 +146,7 @@ function changeWeek(offset) {
 async function updateTTL(val) {
     try {
         await fetch('/api/calendar/config', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ ttl: parseInt(val) })
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ ttl: parseInt(val) })
         });
         fetchCalendar(true);
     } catch (e) { console.error(e); }
@@ -159,6 +161,7 @@ async function fetchCalendar(forceRefresh = false) {
     document.getElementById('mobile-day-nav').innerHTML = ''; 
     loadingEl.classList.remove('hidden');
     errorEl.classList.add('hidden');
+    lastActiveIndex = -1; // 重置激活状态
 
     try {
         const res = await fetch(`/api/calendar/weekly?refresh=${forceRefresh}&offset=${currentOffset}`);
@@ -175,14 +178,17 @@ async function fetchCalendar(forceRefresh = false) {
         
         renderMobileNav(data.days);
         renderCalendar(data.days);
+        
+        // 渲染完毕后初始化高性能滚动侦听
         setupScrollSpy(); 
         
         loadingEl.classList.add('hidden');
         gridEl.classList.remove('hidden');
 
+        // 默认定位到今天
         if (currentOffset === 0 && window.innerWidth < 768) {
             const todayIndex = data.days.findIndex(d => d.is_today);
-            if (todayIndex !== -1) setTimeout(() => scrollToDay(todayIndex), 500); 
+            if (todayIndex !== -1) setTimeout(() => scrollToDay(todayIndex), 300); 
         }
 
     } catch (e) {
@@ -196,7 +202,7 @@ function renderMobileNav(days) {
     const navContainer = document.getElementById('mobile-day-nav');
     navContainer.innerHTML = days.map((day, index) => {
         const isToday = day.is_today && currentOffset === 0;
-        const baseClass = "relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[60px] rounded-xl transition-all duration-300 shrink-0";
+        const baseClass = "nav-btn-item relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[60px] rounded-xl transition-all duration-300 shrink-0 cursor-pointer";
         const stateClass = isToday 
             ? "bg-brand-500 text-white shadow-md shadow-brand-500/30 scale-105" 
             : "bg-white/50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#2C2C2E]";
@@ -204,7 +210,7 @@ function renderMobileNav(days) {
         return `
         <button id="nav-btn-${index}" onclick="scrollToDay(${index})" class="${baseClass} ${stateClass}">
             <span class="nav-text text-[11px] font-bold tracking-widest">${isToday ? '今天' : day.weekday_cn}</span>
-            <span class="nav-date text-[10px] font-mono mt-0.5 opacity-80">${day.date.slice(5)}</span>
+            <span class="nav-date text-[10px] font-mono mt-0.5 opacity-90">${day.date.slice(5)}</span>
         </button>
         `;
     }).join('');
@@ -215,7 +221,7 @@ function renderCalendar(days) {
     
     container.innerHTML = days.map((day, index) => {
         const isToday = day.is_today && currentOffset === 0;
-        const dayNum = day.date.split('-')[2]; // 提取具体日期数字，如 09
+        const dayNum = day.date.split('-')[2];
         
         const itemsHtml = day.items.length === 0 
             ? `<div class="py-10 text-center bg-gray-50/50 dark:bg-black/10 rounded-[20px] border border-dashed border-gray-200/80 dark:border-white/5">
@@ -224,9 +230,7 @@ function renderCalendar(days) {
             : day.items.map(item => generateCardHtml(item)).join('');
 
         return `
-            <div id="day-section-${index}" class="day-section flex flex-col gap-3 md:gap-4 relative">
-                
-                <div id="scroll-anchor-${index}" class="absolute -top-[140px] pointer-events-none"></div>
+            <div id="day-section-${index}" class="day-section flex flex-col gap-3 md:gap-4 relative pt-4">
                 
                 <div class="hidden md:flex flex-col items-center justify-center pb-2 pt-3 mb-1 sticky top-[72px] z-30 bg-apple-bgLight/90 dark:bg-apple-bgDark/90 backdrop-blur-md">
                     <span class="text-[10px] font-bold uppercase tracking-widest mb-1 ${isToday ? 'text-brand-500' : 'text-gray-400 dark:text-gray-500'}">${day.weekday_cn}</span>
@@ -235,7 +239,7 @@ function renderCalendar(days) {
                     </div>
                 </div>
                 
-                <div class="md:hidden flex items-center gap-3 pt-2 pb-1 relative z-10">
+                <div class="md:hidden flex items-center gap-3 pb-1 relative z-10">
                     <span class="font-black text-lg ${isToday ? 'text-brand-500' : 'text-gray-800 dark:text-white'}">${isToday ? '今天' : day.weekday_cn}</span>
                     <span class="text-[11px] font-mono font-bold text-gray-400 mt-1">${day.date.slice(5)}</span>
                     ${isToday ? '<span class="px-2 py-0.5 bg-brand-500 text-white rounded-md text-[9px] font-bold shadow-sm">今 日 更新</span>' : ''}
@@ -257,8 +261,6 @@ function generateCardHtml(item) {
     };
     const s = statusMap[item.status] || { color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-transparent', text: '未知', dot: 'bg-gray-500' };
     const poster = item.poster_path ? (imgBase + item.poster_path) : 'https://via.placeholder.com/300x450?text=No+Poster';
-    
-    // 🔥 优化4：找回丢失的简介！
     const desc = item.series_overview || item.overview || "暂无剧情简介，静待更新...";
     const formattedAirDate = item.air_date ? item.air_date.replace(/-/g, '.') : '未知';
 
@@ -293,46 +295,93 @@ function generateCardHtml(item) {
     `;
 }
 
+/* ===== 🔥 核心功能：高性能双向滚动联动 (Scroll Spy) ===== */
 function setupScrollSpy() {
-    if (scrollObserver) scrollObserver.disconnect();
     if (window.innerWidth >= 768) return; 
+    const scrollContainer = document.querySelector('.flex-1.overflow-y-auto');
+    if (!scrollContainer) return;
 
-    const sections = document.querySelectorAll('.day-section');
-    scrollObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !isScrolling) {
-                const dayIndex = entry.target.id.split('-')[2];
-                highlightNavBtn(dayIndex, true); 
-            }
-        });
-    }, { rootMargin: '-150px 0px -50% 0px' });
+    let isThrottled = false;
 
-    sections.forEach(sec => scrollObserver.observe(sec));
+    // 监听主容器的滚动
+    scrollContainer.addEventListener('scroll', () => {
+        if (isScrolling) return; // 如果是点击触发的跳转，暂停计算，避免回弹
+
+        if (!isThrottled) {
+            window.requestAnimationFrame(() => {
+                const sections = document.querySelectorAll('.day-section');
+                let currentIdx = 0;
+                
+                // 计算触发线：顶栏(72px) + 横滑导航(56px) + 额外缓冲 = 约 140px
+                const triggerLine = 150;
+
+                sections.forEach((sec, index) => {
+                    const rect = sec.getBoundingClientRect();
+                    // 如果这个日期的顶部已经越过了触发线，说明滑到了这一天
+                    if (rect.top <= triggerLine) {
+                        currentIdx = index;
+                    }
+                });
+
+                // 只有索引改变时才去触发渲染和水平居中滚动，节省性能
+                if (currentIdx !== lastActiveIndex) {
+                    highlightNavBtn(currentIdx, true);
+                    lastActiveIndex = currentIdx;
+                }
+                isThrottled = false;
+            });
+            isThrottled = true;
+        }
+    });
 }
 
+// 渲染横滑导航栏按钮的高亮状态
 function highlightNavBtn(activeIndex, isAutoScroll = false) {
-    document.querySelectorAll('[id^="nav-btn-"]').forEach(btn => {
-        btn.className = "relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[60px] rounded-xl transition-all duration-300 shrink-0 bg-white/50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#2C2C2E]";
-        btn.querySelector('.nav-text').classList.remove('scale-105');
+    document.querySelectorAll('.nav-btn-item').forEach((btn, idx) => {
+        const txt = btn.querySelector('.nav-text');
+        
+        if (idx == activeIndex) {
+            btn.className = "nav-btn-item relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[60px] rounded-xl transition-all duration-300 shrink-0 cursor-pointer bg-brand-500 text-white shadow-md shadow-brand-500/30 scale-105";
+        } else {
+            btn.className = "nav-btn-item relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[60px] rounded-xl transition-all duration-300 shrink-0 cursor-pointer bg-white/50 dark:bg-black/20 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#2C2C2E]";
+        }
     });
 
-    const activeBtn = document.getElementById(`nav-btn-${activeIndex}`);
-    if (activeBtn) {
-        activeBtn.className = "relative flex-1 flex flex-col items-center justify-center py-2 px-1 min-w-[60px] rounded-xl transition-all duration-300 shrink-0 bg-brand-500 text-white shadow-md shadow-brand-500/30 scale-105";
-        if (isAutoScroll) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    // 核心：让顶部导航栏平滑地滚动，将当前激活的日期按钮居中
+    if (isAutoScroll) {
+        const activeBtn = document.getElementById(`nav-btn-${activeIndex}`);
+        const navContainer = document.getElementById('mobile-day-nav');
+        if (activeBtn && navContainer) {
+            // 精准计算居中所需的 left 偏移量
+            const scrollLeft = activeBtn.offsetLeft - (navContainer.clientWidth / 2) + (activeBtn.clientWidth / 2);
+            navContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+        }
     }
 }
 
+// 点击顶部导航时，向下滚动到对应日期
 function scrollToDay(index) {
-    const anchor = document.getElementById(`scroll-anchor-${index}`);
-    if (anchor) {
-        isScrolling = true; 
-        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        if (window.innerWidth < 768) highlightNavBtn(index, false); 
-        setTimeout(() => { isScrolling = false; }, 800);
+    const targetSection = document.getElementById(`day-section-${index}`);
+    const scrollContainer = document.querySelector('.flex-1.overflow-y-auto');
+
+    if (targetSection && scrollContainer) {
+        isScrolling = true; // 上锁，防止触发 scroll spy 导致乱跳
+        lastActiveIndex = index;
+        
+        if (window.innerWidth < 768) {
+            highlightNavBtn(index, true);
+        }
+
+        // 精准定位：元素离容器顶部的距离 - 两层头部的高度 (约130px)
+        const offsetTop = targetSection.offsetTop - 130;
+        scrollContainer.scrollTo({ top: offsetTop, behavior: 'smooth' });
+
+        // 等待滚动动画完成 (约 500ms) 后解锁
+        setTimeout(() => { isScrolling = false; }, 600);
     }
 }
 
+// 弹窗逻辑
 function showDetails(item) {
     const modal = document.getElementById('detail-modal');
     const container = document.getElementById('modal-container');
