@@ -44,20 +44,25 @@
 {% block content %}
 <div class="w-full py-2 pb-32 px-2 sm:px-4 md:px-8 space-y-6 md:space-y-8">
     
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 w-full mb-6 mt-2 px-2">
-        <div>
-            <h1 class="text-3xl md:text-[34px] font-black tracking-tight text-gray-900 dark:text-white">数据概览</h1>
-            <div class="text-[13px] text-gray-500 mt-1.5 font-medium flex items-center">
-                <span id="current-date">...</span>
+    <div class="apple-card flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-6">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-[14px] bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center text-xl shadow-lg shadow-brand-500/30">
+                <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+                <h2 class="text-xl md:text-[22px] font-bold tracking-tight text-gray-900 dark:text-white">数据概览</h2>
+                <div class="text-[12px] text-gray-500 mt-1 font-medium flex items-center gap-1.5">
+                    <i class="fa-regular fa-calendar-days opacity-70"></i> <span id="current-date">...</span>
+                </div>
             </div>
         </div>
         
         <div class="relative w-full md:w-auto">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 z-10">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-brand-500 z-10">
                 <i class="fa-solid fa-earth-americas"></i>
             </div>
-            <select id="dash-user-select" onchange="changeUser()" class="w-full md:w-56 appearance-none bg-gray-200/50 hover:bg-gray-200 dark:bg-[#2C2C2E] dark:hover:bg-[#3A3A3C] border-none text-gray-800 dark:text-gray-200 py-2.5 pl-10 pr-10 rounded-full focus:outline-none focus:ring-0 text-[13px] font-medium transition-colors cursor-pointer shadow-sm">
-                <option value="all">全站统计数据 (All)</option>
+            <select id="dash-user-select" onchange="changeUser()" class="w-full md:w-60 appearance-none bg-gray-100/80 hover:bg-gray-200 dark:bg-apple-hoverDark dark:hover:bg-[#3A3A3C] border-none text-gray-800 dark:text-gray-200 py-3 pl-10 pr-10 rounded-xl focus:outline-none focus:ring-0 text-[13px] font-bold transition-colors cursor-pointer shadow-sm">
+                <option value="all">全站统计数据 (All Users)</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 z-10">
                 <i class="fa-solid fa-chevron-down text-[10px]"></i>
@@ -66,7 +71,6 @@
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-        
         <div class="apple-card stat-card-mobile flex flex-col justify-center">
             <h3 class="text-[15px] font-semibold tracking-wide mb-4 md:mb-5 text-gray-800 dark:text-gray-200">媒体库储量</h3>
             <div class="grid grid-cols-3 gap-3 md:gap-4">
@@ -149,7 +153,7 @@
         <div class="lg:col-span-2 apple-card stat-card-mobile flex flex-col">
             <div class="flex justify-between items-center mb-4 md:mb-6">
                 <h3 class="text-[15px] font-semibold tracking-wide text-gray-800 dark:text-gray-200">趋势追踪</h3>
-                <div class="flex bg-gray-100 dark:bg-apple-hoverDark rounded-lg p-1 text-[11px] font-medium">
+                <div class="flex bg-gray-100 dark:bg-[#2C2C2E] rounded-lg p-1 text-[11px] font-medium">
                     <button onclick="switchTrend('day')" id="trend-btn-day" class="px-3.5 py-1.5 rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition">30天</button>
                     <button onclick="switchTrend('week')" id="trend-btn-week" class="px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition">12周</button>
                     <button onclick="switchTrend('month')" id="trend-btn-month" class="px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition">12月</button>
@@ -161,14 +165,13 @@
         <div class="apple-card flex flex-col stat-card-mobile h-[400px] md:h-auto">
             <div class="flex justify-between items-center mb-4 shrink-0">
                 <h3 class="text-[15px] font-semibold tracking-wide text-gray-800 dark:text-gray-200">白金观影榜</h3>
-                <div class="flex bg-gray-100 dark:bg-apple-hoverDark rounded-lg p-1 text-[11px] font-medium">
+                <div class="flex bg-gray-100 dark:bg-[#2C2C2E] rounded-lg p-1 text-[11px] font-medium">
                     <button onclick="switchTopUsers('day')" id="top-btn-day" class="px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition">今日</button>
                     <button onclick="switchTopUsers('week')" id="top-btn-week" class="px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition">本周</button>
                     <button onclick="switchTopUsers('month')" id="top-btn-month" class="px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition">本月</button>
                     <button onclick="switchTopUsers('all')" id="top-btn-all" class="px-2 py-1 rounded bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition">总榜</button>
                 </div>
             </div>
-            
             <div class="flex-1 overflow-y-auto space-y-1 hide-scrollbar pr-1" id="top-users-container">
                 <div class="flex justify-center items-center h-full"><i class="fa-solid fa-spinner fa-spin text-gray-300"></i></div>
             </div>
@@ -179,12 +182,8 @@
 
 {% block scripts %}
 <script>
-    let trendChart = null; 
-    let currentTrendDim = 'day'; 
-    let currentTopPeriod = 'all';
-
-    const embyBaseUrl = "{{ emby_url }}";
-    const embyServerId = "{{ server_id }}";
+    let trendChart = null; let currentTrendDim = 'day'; let currentTopPeriod = 'all';
+    const embyBaseUrl = "{{ emby_url }}"; const embyServerId = "{{ server_id }}";
 
     function jumpToEmby(itemId) {
         if (!embyBaseUrl) { alert("提示: 未在设置中配置 Emby 地址。"); return; }
@@ -216,31 +215,19 @@
     });
 
     async function init() {
-        await loadUsers();
-        fetchDashboardData('all');
-        fetchLibraries();        
-        fetchLatest();            
-        fetchRecentActivity('all'); 
-        fetchTopUsers('all');
-        initTrendChart('all', 'day'); 
+        await loadUsers(); fetchDashboardData('all'); fetchLibraries(); fetchLatest(); fetchRecentActivity('all'); fetchTopUsers('all'); initTrendChart('all', 'day'); 
     }
     
     async function loadUsers() { 
         try {
-            const res = await fetch('/api/users');
-            const json = await res.json();
-            const select = document.getElementById('dash-user-select');
+            const res = await fetch('/api/users'); const json = await res.json(); const select = document.getElementById('dash-user-select');
             if(json.status === 'success') {
                 json.data.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.UserId;
-                    option.innerText = `${user.UserName}`;
-                    select.appendChild(option);
+                    const option = document.createElement('option'); option.value = user.UserId; option.innerText = `${user.UserName}`; select.appendChild(option);
                 });
             }
         } catch (e) { }
     }
-    
     function changeUser() {
         const userId = document.getElementById('dash-user-select').value;
         fetchDashboardData(userId); fetchRecentActivity(userId); initTrendChart(userId, currentTrendDim); 
@@ -248,250 +235,139 @@
 
     async function fetchDashboardData(userId) { 
         try {
-            const response = await fetch(`/api/stats/dashboard?user_id=${userId}`);
-            const res = await response.json();
+            const res = await (await fetch(`/api/stats/dashboard?user_id=${userId}`)).json();
             if(res.status === 'success') {
                 const data = res.data; const lib = data.library || {};
-                ['lib-movies', 'lib-series', 'lib-episodes'].forEach(id => {
-                    const els = document.querySelectorAll(`#${id}`);
-                    els.forEach(el => el.innerText = id.includes('movie') ? lib.movie : id.includes('series') ? lib.series : lib.episode || '0');
-                });
-                ['stat-plays', 'stat-users', 'stat-duration'].forEach(id => {
-                    const els = document.querySelectorAll(`#${id}`);
-                    els.forEach(el => el.innerText = id.includes('plays') ? data.total_plays : id.includes('users') ? data.active_users : Math.round((data.total_duration || 0) / 3600) || '0');
-                });
+                ['lib-movies', 'lib-series', 'lib-episodes'].forEach(id => { document.querySelectorAll(`#${id}`).forEach(el => el.innerText = id.includes('movie') ? lib.movie : id.includes('series') ? lib.series : lib.episode || '0'); });
+                ['stat-plays', 'stat-users', 'stat-duration'].forEach(id => { document.querySelectorAll(`#${id}`).forEach(el => el.innerText = id.includes('plays') ? data.total_plays : id.includes('users') ? data.active_users : Math.round((data.total_duration || 0) / 3600) || '0'); });
             }
-        } catch (error) { console.error(error); }
+        } catch (error) {}
     }
     
     async function fetchLibraries() { 
         const container = document.getElementById('library-container');
         try {
-            const res = await fetch('/api/stats/libraries');
-            const json = await res.json();
-            if (json.status === 'success' && json.data.length > 0) {
+            const res = await (await fetch('/api/stats/libraries')).json();
+            if (res.status === 'success' && res.data.length > 0) {
                 let html = '';
-                json.data.forEach(lib => {
+                res.data.forEach(lib => {
                     const imgUrl = `/api/proxy/image/${lib.Id}/primary`; 
                     html += `
-                    <div onclick="jumpToLibrary('${lib.Id}')" class="relative w-48 sm:w-60 md:w-full aspect-video flex-shrink-0 rounded-2xl overflow-hidden cursor-pointer snap-center bg-gray-200 dark:bg-gray-800">
+                    <div onclick="jumpToLibrary('${lib.Id}')" class="relative w-48 sm:w-60 md:w-full aspect-video flex-shrink-0 rounded-2xl overflow-hidden cursor-pointer snap-center bg-gray-200 dark:bg-[#2C2C2E]">
                         <img src="${imgUrl}" class="w-full h-full object-cover transition duration-500 opacity-90 hover:opacity-100 hover:scale-105" onerror="this.src='/static/img/logo-app.png'">
-                        <div class="absolute bottom-0 inset-x-0 p-3 pb-3 flex justify-center items-end bg-gradient-to-t from-black/60 to-transparent">
-                            <h4 class="text-white font-semibold text-sm md:text-[15px] truncate w-full text-center tracking-widest drop-shadow-md">${lib.Name}</h4>
-                        </div>
+                        <div class="absolute bottom-0 inset-x-0 p-3 pb-3 flex justify-center items-end bg-gradient-to-t from-black/60 to-transparent"><h4 class="text-white font-semibold text-sm md:text-[15px] truncate w-full text-center tracking-widest drop-shadow-md">${lib.Name}</h4></div>
                     </div>`;
                 });
                 container.innerHTML = html;
             } else { container.innerHTML = `<div class="w-full py-4 text-center text-sm text-gray-400">暂无媒体库</div>`; }
-        } catch (e) { console.error(e); }
+        } catch (e) {}
     }
     
     async function fetchLatest() { 
         const container = document.getElementById('latest-container');
         try {
-            const res = await fetch('/api/stats/latest?limit=40');
-            const json = await res.json();
-            if (json.status === 'success' && json.data.length > 0) {
+            const res = await (await fetch('/api/stats/latest?limit=40')).json();
+            if (res.status === 'success' && res.data.length > 0) {
                 let html = '';
-                json.data.forEach(item => {
-                    const imgUrl = `/api/proxy/image/${item.Id}/primary`;
-                    const title = item.SeriesName ? `${item.SeriesName} - ${item.Name}` : item.Name;
-                    
+                res.data.forEach(item => {
+                    const imgUrl = `/api/proxy/image/${item.Id}/primary`; const title = item.SeriesName ? `${item.SeriesName} - ${item.Name}` : item.Name;
                     html += `
                     <div onclick="jumpToEmby('${item.Id}')" class="group relative w-24 sm:w-28 md:w-full flex-shrink-0 cursor-pointer snap-center">
-                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-apple-hoverDark relative border border-gray-100 dark:border-white/5">
+                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-[#2C2C2E] relative border border-gray-100 dark:border-white/5">
                             <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" onerror="this.src='/static/img/logo-app.png'">
                         </div>
-                        <div class="mt-2 px-0.5">
-                            <h4 class="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate leading-tight mb-0.5 group-hover:text-brand-500 transition-colors">${title}</h4>
-                            <p class="text-[10px] text-gray-400 truncate">${item.Year || ''}</p>
-                        </div>
+                        <div class="mt-2 px-0.5"><h4 class="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate leading-tight mb-0.5 group-hover:text-brand-500 transition-colors">${title}</h4><p class="text-[10px] text-gray-400 truncate">${item.Year || ''}</p></div>
                     </div>`;
                 });
                 container.innerHTML = html; applyTwoRowLimit(); 
             } else { container.innerHTML = `<div class="w-full md:col-span-full py-10 text-center text-sm text-gray-400 flex-shrink-0">暂无数据</div>`; }
-        } catch (e) { console.error(e); }
+        } catch (e) {}
     }
     
     async function fetchRecentActivity(userId) { 
         const container = document.getElementById('recent-container');
         try {
-            const res = await fetch(`/api/stats/recent?user_id=${userId}`);
-            const json = await res.json();
-            if (json.status === 'success' && json.data.length > 0) {
+            const res = await (await fetch(`/api/stats/recent?user_id=${userId}`)).json();
+            if (res.status === 'success' && res.data.length > 0) {
                 let html = '';
-                json.data.slice(0, 40).forEach(item => {
-                    const displayTitle = item.DisplayName || item.ItemName;
+                res.data.slice(0, 40).forEach(item => {
                     const imgUrl = `/api/proxy/image/${item.ItemId}/primary`;
                     html += `
                     <div onclick="jumpToEmby('${item.ItemId}')" class="group relative w-24 sm:w-28 md:w-full flex-shrink-0 cursor-pointer snap-center">
-                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-apple-hoverDark relative border border-gray-100 dark:border-white/5">
+                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-[#2C2C2E] relative border border-gray-100 dark:border-white/5">
                             <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" onerror="this.src='/static/img/logo-app.png'">
-                            <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                                <p class="text-[10px] text-white font-medium truncate flex items-center w-full drop-shadow-md"><i class="fa-solid fa-play text-[8px] mr-1.5 opacity-80"></i>${item.UserName}</p>
-                            </div>
+                            <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent flex items-end"><p class="text-[10px] text-white font-medium truncate flex items-center w-full drop-shadow-md"><i class="fa-solid fa-play text-[8px] mr-1.5 opacity-80"></i>${item.UserName}</p></div>
                         </div>
-                        <div class="mt-2 px-0.5">
-                            <h4 class="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate leading-tight group-hover:text-brand-500 transition-colors">${displayTitle}</h4>
-                        </div>
+                        <div class="mt-2 px-0.5"><h4 class="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate leading-tight group-hover:text-brand-500 transition-colors">${item.DisplayName || item.ItemName}</h4></div>
                     </div>`;
                 });
                 container.innerHTML = html; applyTwoRowLimit(); 
             } else { container.innerHTML = `<div class="w-full md:col-span-full py-10 text-center text-sm text-gray-400 flex-shrink-0">暂无数据</div>`; }
-        } catch (e) { console.error(e); }
+        } catch (e) {}
     }
 
     function switchTopUsers(period) {
         currentTopPeriod = period;
         ['day', 'week', 'month', 'all'].forEach(p => {
             const btn = document.getElementById(`top-btn-${p}`);
-            if(p === period) {
-                btn.className = "px-2 py-1 rounded bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition font-medium";
-            } else {
-                btn.className = "px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition";
-            }
+            btn.className = p === period ? "px-2 py-1 rounded bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition font-medium" : "px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition";
         });
         fetchTopUsers(period);
     }
 
-    // 🔥 优化3：白金排行榜真实头像完美回归
     async function fetchTopUsers(period) {
-        const container = document.getElementById('top-users-container');
-        container.innerHTML = '<div class="flex justify-center items-center h-32"><i class="fa-solid fa-spinner fa-spin text-gray-300"></i></div>';
+        const container = document.getElementById('top-users-container'); container.innerHTML = '<div class="flex justify-center items-center h-32"><i class="fa-solid fa-spinner fa-spin text-gray-300"></i></div>';
         try {
-            const res = await fetch(`/api/stats/top_users_list?period=${period}`);
-            const json = await res.json();
-            if (json.status === 'success' && json.data.length > 0) {
+            const res = await (await fetch(`/api/stats/top_users_list?period=${period}`)).json();
+            if (res.status === 'success' && res.data.length > 0) {
                 let html = '';
-                json.data.forEach((user, index) => {
-                    let rankClass = "bg-gray-100 text-gray-500 dark:bg-[#2C2C2E] dark:text-gray-400";
-                    if(index === 0) rankClass = "bg-brand-500 text-white";
-                    if(index === 1) rankClass = "bg-gray-800 text-white dark:bg-gray-300 dark:text-black";
-                    if(index === 2) rankClass = "bg-gray-400 text-white dark:bg-gray-600 dark:text-white";
-                    
+                res.data.forEach((user, index) => {
+                    let rankClass = index === 0 ? "bg-brand-500 text-white" : index === 1 ? "bg-gray-800 text-white dark:bg-gray-300 dark:text-black" : index === 2 ? "bg-gray-400 text-white dark:bg-gray-600 dark:text-white" : "bg-gray-100 text-gray-500 dark:bg-[#2C2C2E] dark:text-gray-400";
                     html += `
                     <div onclick="jumpToUserInsight('${user.UserId}')" class="user-rank-card flex items-center justify-between p-2.5 rounded-xl">
                         <div class="flex items-center min-w-0">
                             <div class="w-6 h-6 rounded-md ${rankClass} flex items-center justify-center font-bold text-[11px] mr-3 shrink-0 shadow-sm">${index + 1}</div>
-                            
-                            <div class="relative w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-[#2C2C2E] shrink-0 mr-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                                <img src="/api/proxy/user_image/${user.UserId}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="w-full h-full object-cover absolute inset-0 z-10">
-                                <div class="w-full h-full flex items-center justify-center font-bold text-gray-500 dark:text-gray-300 text-xs absolute inset-0 z-0" style="display: none;">
-                                    ${user.UserName.charAt(0).toUpperCase()}
-                                </div>
+                            <div class="relative w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-[#2C2C2E] shrink-0 mr-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex items-center justify-center">
+                                <span class="font-bold text-gray-500 dark:text-gray-300 text-xs">${user.UserName.charAt(0).toUpperCase()}</span>
+                                <img src="/api/proxy/user_image/${user.UserId}" onload="this.style.opacity='1'" onerror="this.style.opacity='0'" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 z-10">
                             </div>
-
-                            <div class="truncate">
-                                <p class="text-[14px] font-medium text-gray-900 dark:text-white truncate">${user.UserName}</p>
-                                <p class="text-[11px] text-gray-500 mt-0.5">${user.Plays} 次播放</p>
-                            </div>
+                            <div class="truncate"><p class="text-[14px] font-medium text-gray-900 dark:text-white truncate">${user.UserName}</p><p class="text-[11px] text-gray-500 mt-0.5">${user.Plays} 次播放</p></div>
                         </div>
-                        <div class="flex items-center pl-3">
-                            <p class="text-[14px] font-semibold text-gray-900 dark:text-white tracking-tight text-right w-12">${Math.round(user.TotalTime/3600)}<span class="text-[9px] font-normal opacity-60 ml-0.5">h</span></p>
-                            <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 dark:text-gray-600 user-rank-arrow ml-2"></i>
-                        </div>
+                        <div class="flex items-center pl-3"><p class="text-[14px] font-semibold text-gray-900 dark:text-white tracking-tight text-right w-12">${Math.round(user.TotalTime/3600)}<span class="text-[9px] font-normal opacity-60 ml-0.5">h</span></p><i class="fa-solid fa-chevron-right text-[10px] text-gray-300 dark:text-gray-600 user-rank-arrow ml-2"></i></div>
                     </div>`;
                 });
                 container.innerHTML = html;
-            } else {
-                container.innerHTML = `<div class="text-center py-10 text-gray-400 text-[13px]">暂无数据</div>`;
-            }
-        } catch (e) { console.error(e); }
+            } else { container.innerHTML = `<div class="text-center py-10 text-gray-400 text-[13px]">暂无数据</div>`; }
+        } catch (e) {}
     }
     
     function switchTrend(dim) {
         currentTrendDim = dim;
         ['day', 'week', 'month'].forEach(d => {
             const btn = document.getElementById(`trend-btn-${d}`);
-            if(d === dim) {
-                btn.className = "px-3.5 py-1.5 rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition font-medium";
-            } else {
-                btn.className = "px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition";
-            }
+            btn.className = d === dim ? "px-3.5 py-1.5 rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition font-medium" : "px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition";
         });
         initTrendChart(document.getElementById('dash-user-select').value, dim);
     }
 
     async function initTrendChart(userId, dimension = 'day') {
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        if(trendChart) trendChart.destroy(); 
-        
-        const isDark = document.documentElement.classList.contains('dark');
-        const textColor = isDark ? '#6b7280' : '#9ca3af';
-
+        const ctx = document.getElementById('trendChart').getContext('2d'); if(trendChart) trendChart.destroy(); 
+        const isDark = document.documentElement.classList.contains('dark'); const textColor = isDark ? '#6b7280' : '#9ca3af';
         try {
-            const res = await fetch(`/api/stats/trend?user_id=${userId}&dimension=${dimension}`);
-            const json = await res.json();
-            const data = json.data || {};
-            const labels = Object.keys(data);
-            const values = Object.values(data).map(v => Math.round(v/3600)); 
+            const res = await (await fetch(`/api/stats/trend?user_id=${userId}&dimension=${dimension}`)).json();
+            const data = res.data || {}; const labels = Object.keys(data); const values = Object.values(data).map(v => Math.round(v/3600)); 
             
-            // 极简液态渐变
             let gradient = ctx.createLinearGradient(0, 0, 0, 300);
             gradient.addColorStop(0, isDark ? 'rgba(0, 122, 255, 0.3)' : 'rgba(0, 122, 255, 0.15)'); 
             gradient.addColorStop(1, isDark ? 'rgba(0, 122, 255, 0.0)' : 'rgba(0, 122, 255, 0.0)'); 
-            
-            let borderColor = '#007AFF'; // Apple System Blue
+            let borderColor = '#007AFF';
 
             trendChart = new Chart(ctx, { 
                 type: 'line', 
-                data: { 
-                    labels: labels.length > 0 ? labels : ['无数据'], 
-                    datasets: [{ 
-                        label: '播放时长', 
-                        data: values.length > 0 ? values : [0], 
-                        borderColor: borderColor, 
-                        backgroundColor: gradient, 
-                        borderWidth: 2.5, 
-                        pointBackgroundColor: borderColor,
-                        pointBorderColor: isDark ? '#1C1C1E' : '#fff', 
-                        pointBorderWidth: 2,
-                        pointRadius: 0,            
-                        pointHoverRadius: 5,      
-                        fill: true, 
-                        tension: 0.4              
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    interaction: { mode: 'index', intersect: false, },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: isDark ? 'rgba(28, 28, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                            titleColor: isDark ? '#F5F5F7' : '#1C1C1E',
-                            bodyColor: isDark ? '#A1A1A6' : '#6E6E73',
-                            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                            borderWidth: 1,
-                            padding: 10,
-                            displayColors: false,
-                            titleFont: { size: 13, weight: '600' },
-                            bodyFont: { size: 12 },
-                            callbacks: { label: function(context) { return context.parsed.y + ' 小时'; } }
-                        }
-                    }, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            border: { display: false }, 
-                            grid: { display: false },   
-                            ticks: { display: false }   
-                        }, 
-                        x: { 
-                            border: { display: false }, 
-                            grid: { display: false }, 
-                            ticks: { 
-                                font: { family: 'ui-monospace, SFPro, sans-serif', size: 10}, 
-                                color: textColor,
-                                maxTicksLimit: 6,       
-                                maxRotation: 0          
-                            } 
-                        } 
-                    } 
-                } 
+                data: { labels: labels.length > 0 ? labels : ['无数据'], datasets: [{ label: '播放时长', data: values.length > 0 ? values : [0], borderColor: borderColor, backgroundColor: gradient, borderWidth: 2.5, pointBackgroundColor: borderColor, pointBorderColor: isDark ? '#1C1C1E' : '#fff', pointBorderWidth: 2, pointRadius: 0, pointHoverRadius: 5, fill: true, tension: 0.4 }] }, 
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false, }, plugins: { legend: { display: false }, tooltip: { backgroundColor: isDark ? 'rgba(28, 28, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)', titleColor: isDark ? '#F5F5F7' : '#1C1C1E', bodyColor: isDark ? '#A1A1A6' : '#6E6E73', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderWidth: 1, padding: 10, displayColors: false, titleFont: { size: 13, weight: '600' }, bodyFont: { size: 12 }, callbacks: { label: function(context) { return context.parsed.y + ' 小时'; } } } }, scales: { y: { beginAtZero: true, border: { display: false }, grid: { display: false }, ticks: { display: false } }, x: { border: { display: false }, grid: { display: false }, ticks: { font: { family: 'ui-monospace, SFPro, sans-serif', size: 10}, color: textColor, maxTicksLimit: 6, maxRotation: 0 } } } } 
             });
-        } catch(e) { console.error("Chart Load Error:", e); }
+        } catch(e) {}
     }
     
     init();
