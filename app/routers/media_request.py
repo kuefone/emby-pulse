@@ -184,14 +184,18 @@ def request_system_logout(request: Request):
     request.session.pop("req_user", None)
     return {"status": "success"}
 
-# 🔥 种草弹窗拉取详情专属 API
+# 🔥 种草弹窗拉取详情专属 API (优化：提升至管理员权限穿透读取，修复拼接漏洞)
 @router.get("/api/requests/item_info")
 def get_item_info(item_id: str, request: Request):
-    user = request.session.get("req_user")
-    if not user: return {"status": "error"}
-    key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
+    key = cfg.get("emby_api_key")
+    # 强制清理末尾斜杠，防止 //emby 导致 404
+    host = (cfg.get("emby_host") or "").rstrip('/') 
     try:
-        url = f"{host}/emby/Users/{user['Id']}/Items/{item_id}?api_key={key}"
+        # 使用 admin_id 确保无视用户权限，100% 能够抓取到媒体库内的简介
+        admin_id = get_emby_admin(host, key)
+        if not admin_id: return {"status": "error"}
+        
+        url = f"{host}/emby/Users/{admin_id}/Items/{item_id}?api_key={key}"
         res = requests.get(url, timeout=5)
         if res.status_code == 200:
             d = res.json()
@@ -201,11 +205,12 @@ def get_item_info(item_id: str, request: Request):
                 "Type": d.get("Type", ""),
                 "ProductionYear": d.get("ProductionYear", ""),
                 "CommunityRating": d.get("CommunityRating", "N/A"),
-                "Overview": d.get("Overview", "暂无剧情简介..."),
+                "Overview": d.get("Overview", ""),
                 "Genres": d.get("Genres", [])
             }}
         return {"status": "error"}
-    except: return {"status": "error"}
+    except Exception as e: 
+        return {"status": "error"}
 
 # 🔥 新增：主页扩展枢纽 API (提供【镇站之宝】和【流派解析】)
 @router.get("/api/requests/hub_data")

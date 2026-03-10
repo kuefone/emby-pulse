@@ -51,8 +51,24 @@ document.addEventListener('alpine:init', () => {
 
         switchTab(tab) { this.currentTab = tab; this.$nextTick(() => window.scrollTo(0, 0)); if (tab === 'profile') { if (!this.statsLoaded) this.loadProfileStats(); else setTimeout(() => this.renderCharts(), 150); } },
 
-        async openShowcaseModal(itemId, fallbackItem = null) { const finalId = itemId || (fallbackItem ? fallbackItem.ItemId || fallbackItem.Id : ''); this.showcaseModal.data = fallbackItem || { Name: '加载中...' }; this.showcaseModal.open = true; this.showcaseModal.isLoading = true; document.body.style.overflow = 'hidden'; try { const res = await fetch(`/api/requests/item_info?item_id=${finalId}`); if(res.ok) { const data = await res.json(); if (data.status === 'success') this.showcaseModal.data = data.data; } } catch(e) {} finally { this.showcaseModal.isLoading = false; } },
-        closeShowcaseModal() { this.showcaseModal.open = false; document.body.style.overflow = ''; },
+        async openShowcaseModal(itemId, fallbackItem = null) { 
+            const finalId = itemId || (fallbackItem ? fallbackItem.ItemId || fallbackItem.Id : ''); 
+            this.showcaseModal.data = fallbackItem || { Name: '加载中...' }; 
+            this.showcaseModal.open = true; 
+            this.showcaseModal.isLoading = true; 
+            document.body.style.overflow = 'hidden'; 
+            try { 
+                const res = await fetch(`/api/requests/item_info?item_id=${finalId}`); 
+                if(res.ok) { 
+                    const data = await res.json(); 
+                    if (data.status === 'success') {
+                        // 核心修复：合并数据，防止覆盖掉已有字段
+                        this.showcaseModal.data = { ...fallbackItem, ...data.data }; 
+                    }
+                } 
+            } catch(e) {} finally { this.showcaseModal.isLoading = false; } 
+        },
+       closeShowcaseModal() { this.showcaseModal.open = false; document.body.style.overflow = ''; },
         openQueueModal(tab) { this.queueModal.activeTab = tab; this.queueModal.open = true; document.body.style.overflow = 'hidden'; if(tab === 'request') this.loadQueue(); else this.loadMyFeedback(); },
         closeQueueModal() { this.queueModal.open = false; document.body.style.overflow = ''; },
 

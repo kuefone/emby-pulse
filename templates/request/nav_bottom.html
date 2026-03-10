@@ -4,21 +4,21 @@
     <div class="bg-white/80 dark:bg-[#111]/80 backdrop-blur-3xl rounded-[2rem] shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.8)] border border-white/60 dark:border-white/10 px-2 py-1.5 flex justify-around items-center">
         
         <button @click="switchTab('explore');" class="flex flex-col items-center justify-center w-full relative py-1 group transition-colors" :class="currentTab === 'explore' ? 'text-brand-500 dark:text-brand-400' : 'text-slate-400 dark:text-zinc-500'">
-            <div class="absolute -top-1.5 w-6 h-1 bg-brand-500 dark:bg-brand-400 rounded-b-full transition-transform duration-300 scale-x-0" :class="currentTab === 'explore' ? 'scale-x-100' : ''"></div>
             <i class="fa-solid fa-house text-[17px] mb-0.5 transition-transform duration-300" :class="currentTab === 'explore' ? 'scale-110 drop-shadow-sm' : 'group-active:scale-90'"></i>
             <span class="text-[9px] font-black tracking-wider transition-opacity" :class="currentTab === 'explore' ? 'opacity-100' : 'opacity-80'">首页</span>
+            <div class="absolute -bottom-1.5 w-6 h-1 bg-brand-500 dark:bg-brand-400 rounded-t-full transition-transform duration-300 scale-x-0" :class="currentTab === 'explore' ? 'scale-x-100' : ''"></div>
         </button>
 
         <button @click="switchTab('request');" class="flex flex-col items-center justify-center w-full relative py-1 group transition-colors" :class="currentTab === 'request' ? 'text-brand-500 dark:text-brand-400' : 'text-slate-400 dark:text-zinc-500'">
-            <div class="absolute -top-1.5 w-6 h-1 bg-brand-500 dark:bg-brand-400 rounded-b-full transition-transform duration-300 scale-x-0" :class="currentTab === 'request' ? 'scale-x-100' : ''"></div>
             <i class="fa-solid fa-wand-magic-sparkles text-[17px] mb-0.5 transition-transform duration-300" :class="currentTab === 'request' ? 'scale-110 drop-shadow-sm' : 'group-active:scale-90'"></i>
             <span class="text-[9px] font-black tracking-wider transition-opacity" :class="currentTab === 'request' ? 'opacity-100' : 'opacity-80'">心愿</span>
+            <div class="absolute -bottom-1.5 w-6 h-1 bg-brand-500 dark:bg-brand-400 rounded-t-full transition-transform duration-300 scale-x-0" :class="currentTab === 'request' ? 'scale-x-100' : ''"></div>
         </button>
 
         <button @click="switchTab('profile');" class="flex flex-col items-center justify-center w-full relative py-1 group transition-colors" :class="currentTab === 'profile' ? 'text-brand-500 dark:text-brand-400' : 'text-slate-400 dark:text-zinc-500'">
-            <div class="absolute -top-1.5 w-6 h-1 bg-brand-500 dark:bg-brand-400 rounded-b-full transition-transform duration-300 scale-x-0" :class="currentTab === 'profile' ? 'scale-x-100' : ''"></div>
             <i class="fa-solid fa-user-astronaut text-[17px] mb-0.5 transition-transform duration-300" :class="currentTab === 'profile' ? 'scale-110 drop-shadow-sm' : 'group-active:scale-90'"></i>
             <span class="text-[9px] font-black tracking-wider transition-opacity" :class="currentTab === 'profile' ? 'opacity-100' : 'opacity-80'">我的</span>
+            <div class="absolute -bottom-1.5 w-6 h-1 bg-brand-500 dark:bg-brand-400 rounded-t-full transition-transform duration-300 scale-x-0" :class="currentTab === 'profile' ? 'scale-x-100' : ''"></div>
         </button>
         
     </div>
