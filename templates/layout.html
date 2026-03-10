@@ -17,8 +17,9 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb' },
-                        midnight: { 900: '#0B1121', 800: '#131C31', 700: '#1E293B' }
+                        /* Apple 经典色彩规范 */
+                        apple: { gray: '#F5F5F7', dark: '#000000', cardDark: '#1C1C1E', hoverDark: '#2C2C2E' },
+                        brand: { 50: '#eff6ff', 500: '#007AFF', 600: '#0056b3' } /* 纯正 iOS 蓝 */
                     }
                 }
             }
@@ -30,170 +31,154 @@
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;500;700;900&display=swap');
-        body { font-family: 'Noto Sans SC', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Noto Sans SC", sans-serif; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* iOS 抽屉动画 */
+        #bottom-sheet { transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
     </style>
     {% block head %}{% endblock %}
 </head>
 
-<body class="bg-gradient-to-br from-[#e8f0fe] via-[#f0f5ff] to-[#f8fbff] dark:from-[#0a0f1d] dark:via-[#0f1525] dark:to-[#131c31] bg-fixed text-slate-800 dark:text-slate-200 min-h-screen flex overflow-hidden transition-colors duration-300">
+<body class="bg-apple-gray dark:bg-apple-dark text-gray-900 dark:text-gray-100 min-h-screen flex overflow-hidden transition-colors duration-300">
 
-    <aside class="w-[240px] bg-white/80 dark:bg-midnight-800/80 backdrop-blur-3xl border-r border-slate-200/60 dark:border-white/5 hidden md:flex flex-col shrink-0 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        <div class="h-[72px] flex items-center px-6 border-b border-slate-100 dark:border-white/5 shrink-0">
-            <img src="/static/img/logo-app.png" class="w-8 h-8 mr-3 drop-shadow-sm">
-            <span class="font-black text-lg tracking-tight text-slate-900 dark:text-white">Emby<span class="text-brand-500">Pulse</span></span>
+    <aside class="w-[240px] bg-apple-gray dark:bg-apple-dark border-r border-gray-200/60 dark:border-white/5 hidden md:flex flex-col shrink-0 z-50">
+        <div class="h-[72px] flex items-center px-6 shrink-0">
+            <img src="/static/img/logo-app.png" class="w-7 h-7 mr-3 drop-shadow-sm">
+            <span class="font-bold text-[17px] tracking-tight">EmbyPulse</span>
         </div>
 
-        <nav class="flex-1 overflow-y-auto hide-scrollbar py-6 px-4 space-y-6">
+        <nav class="flex-1 overflow-y-auto hide-scrollbar px-3 py-2 space-y-6">
             <div>
-                <p class="px-3 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">数据与质量</p>
-                <div class="space-y-1">
-                    <a href="/" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'dashboard' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'dashboard' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-chart-line w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 仪表盘
+                <p class="px-3 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-2">数据与质量</p>
+                <div class="space-y-0.5">
+                    <a href="/" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'dashboard' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-chart-line w-6 text-center text-[15px]"></i> 仪表盘
                     </a>
-                    <a href="/details" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'details' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'details' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-magnifying-glass-chart w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 数据洞察
+                    <a href="/details" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'details' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-magnifying-glass-chart w-6 text-center text-[15px]"></i> 数据洞察
                     </a>
-                    <a href="/content" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'content' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'content' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-film w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 内容排行
+                    <a href="/content" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'content' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-film w-6 text-center text-[15px]"></i> 内容排行
                     </a>
-                    <a href="/insight" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'insight' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'insight' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-chart-pie w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 质量盘点
+                    <a href="/insight" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'insight' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-chart-pie w-6 text-center text-[15px]"></i> 质量盘点
                     </a>
-                    <a href="/gaps" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'gaps' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'gaps' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-puzzle-piece w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 缺集管理
+                    <a href="/gaps" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'gaps' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-puzzle-piece w-6 text-center text-[15px]"></i> 缺集管理
                     </a>
                 </div>
             </div>
 
             <div>
-                <p class="px-3 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">社区管理</p>
-                <div class="space-y-1">
-                    <a href="/requests_admin" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'requests_admin' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'requests_admin' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-clapperboard w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 工单大厅
+                <p class="px-3 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-2">社区管理</p>
+                <div class="space-y-0.5">
+                    <a href="/requests_admin" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'requests_admin' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-clapperboard w-6 text-center text-[15px]"></i> 工单大厅
                     </a>
-                    <a href="/users_manage" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'users' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'users' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-users-gear w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 用户管理
+                    <a href="/users_manage" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'users' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-users-gear w-6 text-center text-[15px]"></i> 用户管理
                     </a>
-                    <a href="/clients" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'clients' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'clients' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-desktop w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 客户端管控
+                    <a href="/clients" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'clients' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-desktop w-6 text-center text-[15px]"></i> 客户端管控
                     </a>
-                    <a href="/calendar" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'calendar' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'calendar' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-calendar-days w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 追剧日历
+                    <a href="/calendar" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'calendar' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-calendar-days w-6 text-center text-[15px]"></i> 追剧日历
+                    </a>
+                    <a href="/history" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'history' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-clock-rotate-left w-6 text-center text-[15px]"></i> 播放历史
                     </a>
                 </div>
             </div>
 
             <div>
-                <p class="px-3 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">系统构建</p>
-                <div class="space-y-1">
-                    <a href="/bot" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'bot' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'bot' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-robot w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 机器人助手
+                <p class="px-3 text-[11px] font-semibold text-gray-400 dark:text-gray-500 mb-2">系统</p>
+                <div class="space-y-0.5">
+                    <a href="/bot" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'bot' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-robot w-6 text-center text-[15px]"></i> 机器人助手
                     </a>
-                    <a href="/report" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'report' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'report' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-wand-magic-sparkles w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 映迹工坊
+                    <a href="/tasks" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'tasks' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-bolt w-6 text-center text-[15px]"></i> 任务中心
                     </a>
-                    <a href="/settings" class="nav-item group flex items-center px-3 py-2.5 rounded-xl text-sm font-bold transition-all {% if active_page == 'settings' %}bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm relative{% else %}text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5{% endif %}">
-                        {% if active_page == 'settings' %}<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-500 rounded-r-full"></div>{% endif %}
-                        <i class="fa-solid fa-gear w-5 text-center mr-2 opacity-70 group-hover:opacity-100"></i> 系统设置
+                    <a href="/report" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'report' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-wand-magic-sparkles w-6 text-center text-[15px]"></i> 映迹工坊
+                    </a>
+                    <a href="/settings" class="nav-item flex items-center px-3 py-2 rounded-lg text-[13px] font-medium transition-colors {% if active_page == 'settings' %}bg-white dark:bg-apple-cardDark text-brand-500 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark{% endif %}">
+                        <i class="fa-solid fa-gear w-6 text-center text-[15px]"></i> 系统设置
                     </a>
                 </div>
             </div>
         </nav>
-        
-        <div class="p-4 border-t border-slate-100 dark:border-white/5 text-center">
-            <span class="text-[10px] font-mono text-slate-400 bg-slate-50/50 dark:bg-midnight-700 px-3 py-1 rounded-full border border-slate-200/50 dark:border-white/5 shadow-sm">v{{ version }}</span>
-        </div>
     </aside>
 
     <div class="flex-1 flex flex-col min-w-0 h-screen relative">
         
-        <header class="h-[72px] shrink-0 bg-white/70 dark:bg-midnight-800/70 backdrop-blur-3xl border-b border-white/40 dark:border-white/5 flex items-center justify-between px-4 md:px-6 z-40 shadow-[0_2px_20px_rgba(0,0,0,0.01)]">
+        <header class="h-[72px] shrink-0 bg-apple-gray/70 dark:bg-apple-dark/70 backdrop-blur-2xl saturate-150 flex items-center justify-between px-4 md:px-8 z-40 sticky top-0 border-b border-gray-200/30 dark:border-white/5">
+            
             <div class="flex items-center gap-3 md:hidden">
-                <img src="/static/img/logo-app.png" class="w-8 h-8">
-                <span class="font-black text-lg">EmbyPulse</span>
+                <img src="/static/img/logo-app.png" class="w-7 h-7">
+                <span class="font-bold text-[17px]">EmbyPulse</span>
             </div>
 
-            <div class="hidden md:block">
-                <h2 class="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span> <span id="top-bar-title">管理控制台</span>
-                </h2>
-            </div>
-
-            <div class="flex items-center gap-2 md:gap-3 relative">
-                
-                <button onclick="openGlobalSearch()" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100/50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-full text-sm text-slate-500 dark:text-slate-400 transition-colors mr-1">
-                    <i class="fa-solid fa-magnifying-glass"></i> <span class="text-xs">搜索媒体库...</span>
-                    <kbd class="text-[9px] font-mono font-bold bg-white dark:bg-black/30 px-1.5 py-0.5 rounded shadow-sm">Cmd+K</kbd>
+            <div class="hidden md:flex items-center flex-1">
+                <button onclick="openGlobalSearch()" class="flex items-center gap-3 px-4 py-2 bg-gray-200/50 hover:bg-gray-200 dark:bg-apple-cardDark dark:hover:bg-apple-hoverDark rounded-xl text-[13px] text-gray-500 dark:text-gray-400 transition-colors w-72 shadow-sm border border-transparent dark:border-white/5">
+                    <i class="fa-solid fa-magnifying-glass"></i> <span class="font-medium flex-1 text-left">搜索媒体库...</span>
+                    <kbd class="text-[10px] font-mono font-medium bg-white dark:bg-black/50 px-1.5 py-0.5 rounded shadow-sm border border-gray-200 dark:border-white/5">Cmd+K</kbd>
                 </button>
-                <button onclick="openGlobalSearch()" class="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10">
+            </div>
+
+            <div class="flex items-center gap-2 relative">
+                
+                <button onclick="openGlobalSearch()" class="md:hidden w-10 h-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
 
-                <button onclick="toggleLiveDropdown()" id="global-live-btn" class="relative w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/20 transition-colors">
+                <button onclick="toggleLiveDropdown()" id="global-live-btn" class="relative w-10 h-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark transition-colors">
                     <i class="fa-solid fa-satellite-dish"></i>
-                    <span id="global-live-badge" class="hidden absolute top-[2px] right-[2px] flex h-2.5 w-2.5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 border-2 border-white dark:border-midnight-800"></span>
+                    <span id="global-live-badge" class="hidden absolute top-[6px] right-[6px] flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-apple-gray dark:border-apple-dark"></span>
                     </span>
                 </button>
 
-                <div id="global-live-panel" class="absolute top-[110%] right-0 md:right-24 mt-2 w-[280px] sm:w-[320px] bg-white/95 dark:bg-midnight-800/95 backdrop-blur-2xl rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.7)] border border-slate-200/60 dark:border-white/10 overflow-hidden z-[100] transform scale-95 opacity-0 hidden transition-all duration-200 origin-top-right">
-                    <div class="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-black/10">
-                        <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200 tracking-wider flex items-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2 animate-pulse"></span>正在热播
-                        </h4>
-                        <span class="text-[10px] font-bold text-slate-500" id="global-live-status-text">空闲中</span>
-                    </div>
-                    <div id="global-live-list" class="max-h-[50vh] overflow-y-auto hide-scrollbar p-2 space-y-1">
-                        <div class="py-10 text-center text-xs text-slate-400 italic font-medium">当前无人观看</div>
-                    </div>
-                </div>
-
-                <button onclick="toggleNotifyDropdown()" class="notify-bell-btn relative w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-500 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-500/20 transition-colors">
+                <button onclick="toggleNotifyDropdown()" class="notify-bell-btn relative w-10 h-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark transition-colors">
                     <i class="fa-regular fa-bell"></i>
-                    <span id="notify-badge-desktop" class="hidden absolute top-[2px] right-[2px] h-2.5 w-2.5 bg-indigo-500 rounded-full border-2 border-white dark:border-midnight-800 animate-pulse"></span>
+                    <span id="notify-badge-desktop" class="hidden absolute top-[6px] right-[6px] h-2.5 w-2.5 bg-brand-500 rounded-full border-2 border-apple-gray dark:border-apple-dark animate-pulse"></span>
                 </button>
 
-                <div id="notify-panel" class="absolute top-[110%] right-0 md:right-12 mt-2 w-[320px] bg-white/95 dark:bg-midnight-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200/60 dark:border-white/10 overflow-hidden z-[100] transform scale-95 opacity-0 hidden transition-all duration-200 origin-top-right">
-                    <div class="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-black/10">
-                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200">待处理工单</h3>
-                        <span id="notify-count-text" class="text-[10px] font-bold bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 px-2 py-0.5 rounded-full">0 条</span>
-                    </div>
-                    <div id="notify-list" class="max-h-[50vh] overflow-y-auto hide-scrollbar p-2 flex flex-col gap-1"></div>
-                    <a href="/requests_admin" class="block w-full px-4 py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10 transition-colors border-t border-slate-100 dark:border-white/5">
-                        前往工单大厅处理全部 <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </a>
-                </div>
-
-                <button onclick="toggleTheme()" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10 transition-colors">
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-apple-hoverDark transition-colors">
                     <i class="fa-solid fa-moon dark:hidden"></i>
                     <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
                 </button>
 
-                <div class="h-5 w-px bg-slate-200 dark:bg-white/10 mx-0.5 hidden md:block"></div>
-
-                <div class="hidden md:flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center font-bold text-brand-600 dark:text-brand-400 shrink-0 text-sm border border-brand-200 dark:border-brand-800/50">
-                        {{ (user.name[0] if user and user.name else 'A') | upper }}
+                <div class="hidden md:flex items-center ml-2 pl-2 border-l border-gray-200 dark:border-white/10">
+                    <div class="relative w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 border border-gray-200/50 dark:border-gray-700 shadow-sm">
+                        <img src="/api/proxy/user_image/{{ user.Id if user and user.Id else '' }}" 
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" 
+                             class="w-full h-full object-cover absolute inset-0 z-10" alt="Avatar">
+                        <div class="w-full h-full flex items-center justify-center font-bold text-gray-500 dark:text-gray-300 text-xs bg-gray-100 dark:bg-apple-hoverDark absolute inset-0 z-0" style="display: none;">
+                            {{ (user.name[0] if user and user.name else 'A') | upper }}
+                        </div>
                     </div>
-                    <a href="/logout" title="退出登录" class="w-8 h-8 rounded-full flex items-center justify-center text-rose-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 transition-colors">
-                        <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
-                    </a>
                 </div>
+            </div>
+            
+            <div id="global-live-panel" class="absolute top-[100%] right-0 md:right-28 mt-2 w-[280px] sm:w-[320px] bg-white/90 dark:bg-apple-cardDark/90 backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-white/5 overflow-hidden z-[100] transform scale-95 opacity-0 hidden transition-all duration-200 origin-top-right">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/20">
+                    <h4 class="font-bold text-[13px] flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-2 animate-pulse"></span>正在热播</h4>
+                    <span class="text-[10px] font-medium text-gray-400" id="global-live-status-text">空闲中</span>
+                </div>
+                <div id="global-live-list" class="max-h-[50vh] overflow-y-auto hide-scrollbar p-2 space-y-1">
+                    <div class="py-10 text-center text-xs text-gray-400 font-medium">当前无人观看</div>
+                </div>
+            </div>
+            <div id="notify-panel" class="absolute top-[100%] right-0 md:right-16 mt-2 w-[320px] bg-white/90 dark:bg-apple-cardDark/90 backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-white/5 overflow-hidden z-[100] transform scale-95 opacity-0 hidden transition-all duration-200 origin-top-right">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/20">
+                    <h3 class="font-bold text-[13px]">待处理工单</h3>
+                    <span id="notify-count-text" class="text-[10px] font-medium bg-gray-100 dark:bg-apple-hoverDark px-2 py-0.5 rounded-full">0 条</span>
+                </div>
+                <div id="notify-list" class="max-h-[50vh] overflow-y-auto hide-scrollbar p-2 flex flex-col gap-1"></div>
             </div>
         </header>
 
@@ -202,90 +187,111 @@
         </main>
     </div>
 
-    <div class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] z-50">
-        <div class="bg-white/95 dark:bg-midnight-800/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-[1.5rem] shadow-2xl px-2 py-2 flex justify-between items-center">
-            <a href="/" class="flex flex-col items-center flex-1 py-1 transition-colors {% if active_page == 'dashboard' %}text-brand-600 dark:text-brand-400{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-chart-pie text-[17px] mb-0.5"></i><span class="text-[9px] font-black">数据</span>
+    <div class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] z-50">
+        <div class="bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-xl border border-gray-200/50 dark:border-white/5 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.1)] px-2 py-1.5 flex justify-between items-center">
+            <a href="/" class="flex flex-col items-center justify-center flex-1 py-1.5 transition-colors {% if active_page == 'dashboard' %}text-brand-500{% else %}text-gray-400{% endif %}">
+                <i class="fa-solid fa-chart-line text-lg mb-0.5"></i><span class="text-[10px] font-medium">数据</span>
             </a>
-            <a href="/requests_admin" class="flex flex-col items-center flex-1 py-1 transition-colors relative {% if active_page == 'requests_admin' %}text-brand-600 dark:text-brand-400{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-clapperboard text-[17px] mb-0.5"></i><span class="text-[9px] font-black">工单</span>
-                <span id="notify-badge-mobile" class="hidden absolute top-0 right-1/4 h-2 w-2 bg-red-500 rounded-full border border-white dark:border-midnight-800 animate-pulse"></span>
+            <a href="/requests_admin" class="flex flex-col items-center justify-center flex-1 py-1.5 transition-colors relative {% if active_page == 'requests_admin' %}text-brand-500{% else %}text-gray-400{% endif %}">
+                <i class="fa-solid fa-clapperboard text-lg mb-0.5"></i><span class="text-[10px] font-medium">工单</span>
+                <span id="notify-badge-mobile" class="hidden absolute top-1 right-1/4 h-2 w-2 bg-red-500 rounded-full border border-white dark:border-apple-cardDark animate-pulse"></span>
             </a>
-            <a href="/users_manage" class="flex flex-col items-center flex-1 py-1 transition-colors {% if active_page == 'users' %}text-brand-600 dark:text-brand-400{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-users-gear text-[17px] mb-0.5"></i><span class="text-[9px] font-black">用户</span>
+            <a href="/users_manage" class="flex flex-col items-center justify-center flex-1 py-1.5 transition-colors {% if active_page == 'users' %}text-brand-500{% else %}text-gray-400{% endif %}">
+                <i class="fa-solid fa-users-gear text-lg mb-0.5"></i><span class="text-[10px] font-medium">用户</span>
             </a>
-            <button onclick="toggleBottomSheet()" class="flex flex-col items-center flex-1 py-1 text-slate-400 transition-colors">
-                <i class="fa-solid fa-grid-2 pl-[2px] fas fa-th-large text-[17px] mb-0.5"></i><span class="text-[9px] font-black">菜单</span>
+            <button onclick="toggleBottomSheet()" class="flex flex-col items-center justify-center flex-1 py-1.5 text-gray-400 transition-colors">
+                <i class="fa-solid fa-bars text-lg mb-0.5"></i><span class="text-[10px] font-medium">菜单</span>
             </button>
         </div>
     </div>
 
-    <div id="bottom-sheet-overlay" onclick="toggleBottomSheet()" class="fixed inset-0 bg-slate-900/60 z-[60] hidden backdrop-blur-sm transition-opacity opacity-0 md:hidden"></div>
-    <div id="bottom-sheet" class="fixed inset-x-0 bottom-0 z-[70] bg-white/95 dark:bg-midnight-800/95 backdrop-blur-3xl rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transform translate-y-full transition-transform duration-300 ease-out border-t border-slate-100 dark:border-white/5 md:hidden pb-24">
-        <div class="flex justify-center pt-4 pb-2">
-            <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full"></div>
+    <div id="bottom-sheet-overlay" onclick="toggleBottomSheet()" class="fixed inset-0 bg-black/40 z-[60] hidden backdrop-blur-sm transition-opacity opacity-0 md:hidden"></div>
+    <div id="bottom-sheet" class="fixed inset-x-0 bottom-0 z-[70] bg-apple-gray dark:bg-apple-dark rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] transform translate-y-full transition-transform duration-400 ease-out border-t border-gray-200 dark:border-white/5 md:hidden pb-10 flex flex-col max-h-[85vh]">
+        <div class="flex justify-center pt-4 pb-3 shrink-0">
+            <div class="w-10 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
         </div>
-        <div class="p-6 pt-2">
-            <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 text-center">所有功能模块</h3>
-            <div class="grid grid-cols-4 gap-y-8 gap-x-2">
-                <a href="/details" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">洞察</span>
+        
+        <div class="px-5 py-2 overflow-y-auto hide-scrollbar space-y-5 flex-1">
+            <div class="bg-white dark:bg-apple-cardDark rounded-2xl overflow-hidden shadow-sm">
+                <a href="/details" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-blue-500 text-white flex justify-center items-center"><i class="fa-solid fa-magnifying-glass-chart"></i></div><span class="text-[15px] font-medium">数据洞察</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
                 </a>
-                <a href="/insight" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-blue-50 text-blue-500 dark:bg-blue-500/10 dark:text-blue-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-chart-pie"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">全景</span>
+                <a href="/insight" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-green-500 text-white flex justify-center items-center"><i class="fa-solid fa-chart-pie"></i></div><span class="text-[15px] font-medium">质量盘点</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
                 </a>
-                <a href="/gaps" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-amber-50 text-amber-500 dark:bg-amber-500/10 dark:text-amber-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-puzzle-piece"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">缺集</span>
+                <a href="/gaps" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-orange-500 text-white flex justify-center items-center"><i class="fa-solid fa-puzzle-piece"></i></div><span class="text-[15px] font-medium">缺集管理</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
                 </a>
-                <a href="/content" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-purple-50 text-purple-500 dark:bg-purple-500/10 dark:text-purple-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-film"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">排行</span>
-                </a>
-                <a href="/calendar" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-calendar-days"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">日历</span>
-                </a>
-                <a href="/bot" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-robot"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">机器</span>
-                </a>
-                <a href="/clients" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-cyan-50 text-cyan-500 dark:bg-cyan-500/10 dark:text-cyan-400 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-desktop"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">管控</span>
-                </a>
-                <a href="/settings" class="flex flex-col items-center group">
-                    <div class="w-12 h-12 rounded-[1rem] bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300 flex items-center justify-center text-xl mb-2 shadow-sm"><i class="fa-solid fa-gear"></i></div>
-                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">设置</span>
+                <a href="/content" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-purple-500 text-white flex justify-center items-center"><i class="fa-solid fa-film"></i></div><span class="text-[15px] font-medium">内容排行</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
                 </a>
             </div>
-            <div class="mt-8">
-                <a href="/logout" class="w-full flex items-center justify-center gap-2 py-3 bg-rose-50 dark:bg-rose-500/10 text-rose-500 rounded-xl font-black text-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-right-from-bracket"></i> 退出系统</a>
+
+            <div class="bg-white dark:bg-apple-cardDark rounded-2xl overflow-hidden shadow-sm">
+                <a href="/calendar" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-red-500 text-white flex justify-center items-center"><i class="fa-solid fa-calendar-days"></i></div><span class="text-[15px] font-medium">追剧日历</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+                <a href="/bot" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-teal-500 text-white flex justify-center items-center"><i class="fa-solid fa-robot"></i></div><span class="text-[15px] font-medium">机器人助手</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+                <a href="/clients" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-indigo-500 text-white flex justify-center items-center"><i class="fa-solid fa-desktop"></i></div><span class="text-[15px] font-medium">客户端管控</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+                <a href="/report" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-pink-500 text-white flex justify-center items-center"><i class="fa-solid fa-wand-magic-sparkles"></i></div><span class="text-[15px] font-medium">映迹工坊</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+                <a href="/tasks" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-yellow-500 text-white flex justify-center items-center"><i class="fa-solid fa-bolt"></i></div><span class="text-[15px] font-medium">任务中心</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
             </div>
+
+            <div class="bg-white dark:bg-apple-cardDark rounded-2xl overflow-hidden shadow-sm">
+                <a href="/history" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-gray-500 text-white flex justify-center items-center"><i class="fa-solid fa-clock-rotate-left"></i></div><span class="text-[15px] font-medium">播放历史</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+                <a href="/settings" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark border-b border-gray-100 dark:border-white/5">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-gray-700 text-white flex justify-center items-center"><i class="fa-solid fa-gear"></i></div><span class="text-[15px] font-medium">系统设置</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+                <a href="/about" class="flex items-center justify-between p-3.5 active:bg-gray-50 dark:active:bg-apple-hoverDark">
+                    <div class="flex items-center gap-3"><div class="w-7 h-7 rounded-[8px] bg-gray-400 text-white flex justify-center items-center"><i class="fa-solid fa-circle-info"></i></div><span class="text-[15px] font-medium">关于与支持</span></div>
+                    <i class="fa-solid fa-chevron-right text-[12px] text-gray-300 dark:text-gray-600"></i>
+                </a>
+            </div>
+            
+            <a href="/logout" class="block w-full py-4 text-center bg-white dark:bg-apple-cardDark text-red-500 rounded-2xl font-bold text-[15px] shadow-sm mb-12 active:bg-gray-50 dark:active:bg-apple-hoverDark">
+                退出系统
+            </a>
         </div>
     </div>
 
 
     <div id="global-toast-container" class="fixed top-20 right-2 md:top-auto md:bottom-6 md:right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
-
     <div id="ep-global-search" class="fixed inset-0 z-[100] hidden opacity-0 transition-opacity duration-200">
-        <div class="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm" onclick="closeGlobalSearch()"></div>
-        <div class="absolute top-[8%] left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-white/95 dark:bg-midnight-800/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col transform scale-95 transition-transform duration-200" id="ep-search-container">
-            <div class="relative border-b border-slate-100 dark:border-white/5 bg-white/50 dark:bg-black/10">
-                <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 text-xl"></i>
-                <input type="text" id="ep-search-input" autocomplete="off" class="w-full bg-transparent border-none pl-14 pr-24 py-5 text-lg font-bold text-slate-900 dark:text-white focus:ring-0 placeholder-slate-400 outline-none" placeholder="输入影视名称、拼音穿透搜索...">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeGlobalSearch()"></div>
+        <div class="absolute top-[8%] left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/5 overflow-hidden flex flex-col transform scale-95 transition-transform duration-200" id="ep-search-container">
+            <div class="relative border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/10">
+                <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 text-xl"></i>
+                <input type="text" id="ep-search-input" autocomplete="off" class="w-full bg-transparent border-none pl-14 pr-24 py-5 text-[17px] font-medium focus:ring-0 placeholder-gray-400 outline-none" placeholder="输入影视名称、拼音穿透搜索...">
                 <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
                     <span id="ep-search-loading" class="hidden animate-spin w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full"></span>
-                    <button onclick="closeGlobalSearch()" class="px-2 py-1 text-[11px] font-mono font-bold bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-300 rounded border border-slate-200 dark:border-white/5 hover:bg-slate-200 transition hidden sm:inline-block">ESC</button>
+                    <button onclick="closeGlobalSearch()" class="px-2 py-1 text-[11px] font-mono font-medium bg-gray-200/50 dark:bg-white/10 text-gray-500 dark:text-gray-300 rounded border border-gray-200 dark:border-white/5 hover:bg-gray-200 transition hidden sm:inline-block">ESC</button>
                 </div>
             </div>
             <div id="ep-search-results" class="max-h-[60vh] overflow-y-auto hide-scrollbar p-2">
-                <div class="text-center py-16 text-slate-400" id="ep-search-empty">
+                <div class="text-center py-16 text-gray-400" id="ep-search-empty">
                     <i class="fa-solid fa-clapperboard text-5xl mb-4 opacity-20"></i>
-                    <p class="text-sm font-bold">全局检索 Emby 媒体库深度信息</p>
-                    <p class="text-[10px] mt-2 opacity-60 uppercase tracking-widest">支持解析 4K / HDR / 杜比视界</p>
+                    <p class="text-[15px] font-medium">全局检索 Emby 媒体库</p>
                 </div>
             </div>
         </div>
@@ -294,7 +300,6 @@
     {% block scripts %}{% endblock %}
     
     <script>
-        // 优化5：触发底部抽屉
         function toggleBottomSheet() {
             const sheet = document.getElementById('bottom-sheet');
             const overlay = document.getElementById('bottom-sheet-overlay');
@@ -303,7 +308,7 @@
                 overlay.classList.remove('opacity-0'); sheet.classList.remove('translate-y-full');
             } else {
                 overlay.classList.add('opacity-0'); sheet.classList.add('translate-y-full');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
+                setTimeout(() => overlay.classList.add('hidden'), 400);
             }
         }
 
@@ -313,7 +318,6 @@
             window.dispatchEvent(new Event('theme-changed'));
         }
 
-        /* ----- 全局热播雷达 (从 index.html 搬家过来) ----- */
         const globalEmbyBaseUrl = "{{ emby_url | default('') }}";
         const globalEmbyServerId = "{{ server_id | default('') }}";
         
@@ -322,7 +326,7 @@
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden'); void panel.offsetWidth;
                 panel.classList.remove('opacity-0', 'scale-95'); panel.classList.add('opacity-100', 'scale-100');
-                fetchGlobalLive(); // 打开时主动拉取一次
+                fetchGlobalLive(); 
             } else {
                 panel.classList.remove('opacity-100', 'scale-100'); panel.classList.add('opacity-0', 'scale-95');
                 setTimeout(() => panel.classList.add('hidden'), 200);
@@ -337,32 +341,24 @@
                 const statusText = document.getElementById('global-live-status-text');
 
                 if(json.status === 'success' && json.data.length > 0) {
-                    badge.classList.remove('hidden');
-                    statusText.innerText = `${json.data.length} 设备在线`;
+                    badge.classList.remove('hidden'); statusText.innerText = `${json.data.length} 设备在线`;
                     let html = '';
                     json.data.forEach(s => {
                         const item = s.NowPlayingItem || {}; const playState = s.PlayState || {};
                         const targetId = item.SeriesId || item.ParentId || s.ItemId || item.Id;
                         const imgUrl = `/api/proxy/image/${targetId}/primary`; 
-                        const isTranscoding = playState.IsTranscoding || s.IsTranscoding;
                         const title = item.SeriesName ? `${item.SeriesName} - ${item.Name}` : (item.Name || '未知内容');
                         let percentage = 0; if (item.RunTimeTicks && item.RunTimeTicks > 0) { percentage = Math.round((playState.PositionTicks / item.RunTimeTicks) * 100); }
                         html += `
-                        <div onclick="if(globalEmbyBaseUrl) window.open('${globalEmbyBaseUrl}/web/index.html#!/item?id=${targetId}&serverId=${globalEmbyServerId}')" class="flex gap-3 p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-slate-100 dark:hover:border-white/5">
-                            <div class="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-midnight-700 shadow-sm relative">
-                                <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='/static/img/favicon.png'">
+                        <div onclick="if(globalEmbyBaseUrl) window.open('${globalEmbyBaseUrl}/web/index.html#!/item?id=${targetId}&serverId=${globalEmbyServerId}')" class="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-apple-hoverDark rounded-xl transition-colors cursor-pointer group">
+                            <div class="w-12 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800 relative">
+                                <img src="${imgUrl}" class="w-full h-full object-cover">
                             </div>
                             <div class="flex flex-col justify-center flex-1 min-w-0">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-[11px] font-black text-slate-500 dark:text-slate-400 truncate pr-2">${s.UserName || s.User || '未知'}</span>
-                                    ${isTranscoding ? '<span class="text-[9px] bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400 px-1.5 py-0.5 rounded">转码</span>' : '<span class="text-[9px] bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400 px-1.5 py-0.5 rounded">直通</span>'}
-                                </div>
-                                <h4 class="text-xs font-black text-slate-800 dark:text-slate-200 truncate mb-2 group-hover:text-brand-500 transition-colors">${title}</h4>
+                                <div class="flex items-center justify-between mb-1"><span class="text-[11px] font-medium text-gray-500 truncate">${s.UserName || s.User || '未知'}</span></div>
+                                <h4 class="text-[13px] font-medium truncate mb-2">${title}</h4>
                                 <div class="flex items-center gap-2">
-                                    <div class="flex-1 bg-slate-100 dark:bg-black/30 rounded-full h-1.5 overflow-hidden shadow-inner">
-                                        <div class="bg-brand-500 h-1.5 rounded-full" style="width: ${percentage}%"></div>
-                                    </div>
-                                    <span class="text-[9px] font-black text-brand-500 w-6 text-right">${percentage}%</span>
+                                    <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden"><div class="bg-brand-500 h-1 rounded-full" style="width: ${percentage}%"></div></div>
                                 </div>
                             </div>
                         </div>`;
@@ -370,12 +366,11 @@
                     listContainer.innerHTML = html; 
                 } else { 
                     badge.classList.add('hidden'); statusText.innerText = `空闲中`;
-                    listContainer.innerHTML = `<div class="py-12 text-center text-xs text-slate-400 font-bold"><i class="fa-solid fa-bed block text-2xl mb-2 opacity-50"></i>当前暂无播放</div>`;
+                    listContainer.innerHTML = `<div class="py-12 text-center text-xs text-gray-400 font-medium">当前暂无播放</div>`;
                 }
             } catch(e) {}
         }
 
-        /* ----- 通知与工单轮询逻辑 ----- */
         let lastNotifyIds = []; let isNotifyPanelOpen = false;
         function toggleNotifyDropdown() {
             const panel = document.getElementById('notify-panel');
@@ -389,18 +384,11 @@
             }
         }
 
-        // 统一处理点击外部关闭弹窗 (通知 + 雷达)
         document.addEventListener('click', (e) => {
-            const notifyPanel = document.getElementById('notify-panel');
-            const notifyBell = document.querySelector('.notify-bell-btn');
-            if (isNotifyPanelOpen && !notifyPanel.contains(e.target) && !notifyBell.contains(e.target)) {
-                toggleNotifyDropdown();
-            }
-            const livePanel = document.getElementById('global-live-panel');
-            const liveBtn = document.getElementById('global-live-btn');
-            if (livePanel && !livePanel.classList.contains('hidden') && !livePanel.contains(e.target) && !liveBtn.contains(e.target)) {
-                toggleLiveDropdown();
-            }
+            const notifyPanel = document.getElementById('notify-panel'); const notifyBell = document.querySelector('.notify-bell-btn');
+            if (isNotifyPanelOpen && !notifyPanel.contains(e.target) && !notifyBell.contains(e.target)) toggleNotifyDropdown();
+            const livePanel = document.getElementById('global-live-panel'); const liveBtn = document.getElementById('global-live-btn');
+            if (livePanel && !livePanel.classList.contains('hidden') && !livePanel.contains(e.target) && !liveBtn.contains(e.target)) toggleLiveDropdown();
         });
 
         async function fetchPendingNotify() {
@@ -421,20 +409,20 @@
             }
             let html = ''; let newIds = [];
             if (items.length === 0) {
-                html = '<div class="text-center py-8 text-slate-400 text-xs font-bold"><i class="fa-solid fa-mug-hot mb-2 text-xl opacity-50 block"></i>一切清静，无待处理工单</div>';
+                html = '<div class="text-center py-8 text-gray-400 text-xs font-medium">无待处理工单</div>';
             } else {
                 items.forEach(item => {
                     newIds.push(item.id);
                     const timeObj = new Date(item.time); const timeStr = isNaN(timeObj) ? '' : timeObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     const linkUrl = item.type === 'feedback' ? '/requests_admin?tab=feedback' : '/requests_admin';
                     html += `
-                    <a href="${linkUrl}" class="flex gap-3 p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition cursor-pointer group">
-                        <img src="${item.poster || '/static/img/favicon.png'}" onerror="this.src='/static/img/favicon.png'" class="w-10 h-14 object-cover rounded-lg shadow-sm bg-slate-100 dark:bg-midnight-800 shrink-0">
+                    <a href="${linkUrl}" class="flex gap-3 p-2 hover:bg-gray-50 dark:hover:bg-apple-hoverDark rounded-xl transition cursor-pointer group">
+                        <img src="${item.poster || '/static/img/favicon.png'}" onerror="this.src='/static/img/favicon.png'" class="w-10 h-14 object-cover rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0">
                         <div class="flex-1 min-w-0 flex flex-col justify-center">
-                            <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-brand-500 transition">${item.title}</div>
-                            <div class="text-[10px] text-slate-500 mt-1 truncate">${item.users}</div>
+                            <div class="text-[13px] font-medium truncate">${item.title}</div>
+                            <div class="text-[11px] text-gray-500 mt-1 truncate">${item.users}</div>
                         </div>
-                        <div class="text-[9px] text-slate-400 font-mono mt-1 shrink-0">${timeStr}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 shrink-0">${timeStr}</div>
                     </a>`;
                 });
             }
@@ -445,20 +433,20 @@
 
         function showGlobalToast(item) {
             const container = document.getElementById('global-toast-container'); const toast = document.createElement('div');
-            toast.className = "flex items-center gap-3 bg-white/95 dark:bg-midnight-800/95 backdrop-blur-2xl border border-slate-100 dark:border-white/5 p-3 rounded-2xl shadow-2xl transform translate-x-full opacity-0 transition-all duration-500 pointer-events-auto w-[280px] md:w-80 cursor-pointer hover:scale-105";
+            toast.className = "flex items-center gap-3 bg-white/95 dark:bg-apple-cardDark/95 backdrop-blur-2xl border border-gray-100 dark:border-white/5 p-3 rounded-2xl shadow-xl transform translate-x-full opacity-0 transition-all duration-400 pointer-events-auto w-[280px] md:w-80 cursor-pointer";
             toast.onclick = () => { window.location.href = item.type === 'feedback' ? '/requests_admin?tab=feedback' : '/requests_admin'; };
-            toast.innerHTML = `<div class="w-10 h-10 rounded-full ${item.type === 'feedback' ? 'bg-rose-50 text-rose-500' : 'bg-brand-50 text-brand-500'} flex items-center justify-center shrink-0">${item.poster ? `<img src="${item.poster}" class="w-full h-full object-cover rounded-full">` : `<i class="fa-solid fa-bell"></i>`}</div><div class="flex-1 min-w-0"><div class="text-[10px] font-black text-brand-500 mb-0.5 uppercase">新工单</div><div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${item.title}</div></div>`;
+            toast.innerHTML = `<div class="w-10 h-10 rounded-full ${item.type === 'feedback' ? 'bg-red-500' : 'bg-brand-500'} text-white flex items-center justify-center shrink-0">${item.poster ? `<img src="${item.poster}" class="w-full h-full object-cover rounded-full">` : `<i class="fa-solid fa-bell"></i>`}</div><div class="flex-1 min-w-0"><div class="text-[10px] font-bold ${item.type === 'feedback' ? 'text-red-500' : 'text-brand-500'} mb-0.5">新工单</div><div class="text-[13px] font-medium truncate">${item.title}</div></div>`;
             container.appendChild(toast);
             setTimeout(() => { toast.classList.remove('translate-x-full', 'opacity-0'); toast.classList.add('translate-x-0', 'opacity-100'); }, 50);
-            setTimeout(() => { if(toast.parentElement) { toast.classList.remove('translate-x-0', 'opacity-100'); toast.classList.add('translate-x-full', 'opacity-0'); setTimeout(() => toast.remove(), 500); } }, 8000);
+            setTimeout(() => { if(toast.parentElement) { toast.classList.remove('translate-x-0', 'opacity-100'); toast.classList.add('translate-x-full', 'opacity-0'); setTimeout(() => toast.remove(), 400); } }, 6000);
         }
 
         document.addEventListener('DOMContentLoaded', () => { 
             setTimeout(fetchPendingNotify, 1000); setInterval(fetchPendingNotify, 30000); 
-            setTimeout(fetchGlobalLive, 2000); setInterval(fetchGlobalLive, 10000); // 全局雷达轮询
+            setTimeout(fetchGlobalLive, 2000); setInterval(fetchGlobalLive, 10000);
         });
 
-        /* ----- 全局搜索逻辑 ----- */
+        /* ----- 全局搜索 ----- */
         const searchModal = document.getElementById('ep-global-search'); const searchContainer = document.getElementById('ep-search-container');
         const searchInput = document.getElementById('ep-search-input'); const searchResults = document.getElementById('ep-search-results');
         const searchLoading = document.getElementById('ep-search-loading'); const searchEmpty = document.getElementById('ep-search-empty');
@@ -472,33 +460,25 @@
             searchLoading.classList.remove('hidden'); searchEmpty.style.display = 'none';
             searchTimeout = setTimeout(async () => {
                 try { const res = await fetch(`/api/library/search?query=${encodeURIComponent(query)}`); const data = await res.json(); renderSearchResults(data.data || []); } 
-                catch (err) { searchResults.innerHTML = '<div class="text-center py-10 text-rose-500 font-bold">搜索失败</div>'; } finally { searchLoading.classList.add('hidden'); }
+                catch (err) { searchResults.innerHTML = '<div class="text-center py-10 text-red-500 font-medium">搜索失败</div>'; } finally { searchLoading.classList.add('hidden'); }
             }, 500);
         });
         function renderSearchResults(items) {
-            if (items.length === 0) { searchResults.innerHTML = '<div class="text-center py-12 text-slate-400 font-bold">未找到资源 🤷‍♂️</div>'; return; }
+            if (items.length === 0) { searchResults.innerHTML = '<div class="text-center py-12 text-gray-400 font-medium">未找到资源</div>'; return; }
             let html = '';
             items.forEach(item => {
-                let badgesHtml = item.badges.map(b => `<span class="px-2 py-0.5 text-[10px] font-black rounded border ${b.color.replace('text-', 'text-').replace('bg-', 'bg-').replace('border-', 'border-')} shadow-sm">${b.text}</span>`).join('');
+                let badgesHtml = item.badges.map(b => `<span class="px-2 py-0.5 text-[10px] font-medium rounded bg-gray-100 dark:bg-gray-800 text-gray-500">${b.text}</span>`).join('');
                 html += `
-                    <a href="${item.emby_url}" target="_blank" class="flex gap-4 p-3 mb-1 hover:bg-white dark:hover:bg-white/5 rounded-xl cursor-pointer transition-all group border border-transparent hover:border-slate-200 dark:hover:border-white/10 hover:shadow-sm">
-                        <img src="${item.poster}" onerror="this.src='/static/img/logo-app.png';" class="w-16 h-24 object-cover rounded-lg bg-slate-100 dark:bg-midnight-800 shrink-0 border border-slate-100 dark:border-white/5">
-                        <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
-                            <div><div class="flex items-center gap-2 mb-1.5"><h4 class="font-bold text-base text-slate-900 dark:text-white truncate flex-1">${item.name}</h4><span class="text-[10px] font-black font-mono bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500">${item.year}</span></div><p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">${item.overview ? item.overview.replace(/<[^>]+>/g, ' ').trim() : '暂无简介'}</p></div>
-                            <div class="flex flex-wrap gap-2 mt-2">${badgesHtml}</div>
+                    <a href="${item.emby_url}" target="_blank" class="flex gap-4 p-3 mb-1 hover:bg-gray-50 dark:hover:bg-apple-hoverDark rounded-xl cursor-pointer transition-colors group">
+                        <img src="${item.poster}" onerror="this.src='/static/img/logo-app.png';" class="w-14 h-20 object-cover rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0">
+                        <div class="flex-1 min-w-0 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 mb-1"><h4 class="font-medium text-[15px] truncate">${item.name}</h4></div>
+                            <div class="flex flex-wrap gap-2 mt-1">${badgesHtml}</div>
                         </div>
                     </a>`;
             });
             searchResults.innerHTML = html;
         }
-
-        // 设置顶栏动态标题
-        document.addEventListener("DOMContentLoaded", () => {
-            const titleMap = { '/': '仪表盘', '/content': '内容排行', '/details': '数据洞察', '/report': '映迹工坊', '/bot': '机器人助手', '/users_manage': '用户管理', '/clients': '客户端管控', '/insight': '质量盘点', '/gaps': '缺集管理', '/requests_admin': '工单大厅', '/calendar': '追剧日历', '/history': '播放历史', '/tasks': '任务中心', '/settings': '系统设置', '/about': '关于' };
-            const currentPath = window.location.pathname; let matchedTitle = '管理控制台';
-            for (let path in titleMap) { if (currentPath === path || (path !== '/' && currentPath.startsWith(path))) { matchedTitle = titleMap[path]; break; } }
-            const titleEl = document.getElementById('top-bar-title'); if(titleEl) titleEl.innerText = matchedTitle;
-        });
     </script>
 </body>
 </html>

@@ -5,39 +5,37 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* === 卡片通透悬浮质感 === */
-    .glass-card { 
-        background-color: rgba(255, 255, 255, 0.7); 
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.9); 
+    /* === 🔥 Apple 级极简卡片质感 === */
+    .apple-card { 
+        background-color: #ffffff; 
         border-radius: 24px; 
         padding: 24px; 
-        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.5);
+        /* 极其微弱的弥散阴影，告别廉价感 */
+        box-shadow: 0 4px 24px -8px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.02);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    html.dark .glass-card {
-        background-color: rgba(19, 28, 49, 0.5); 
-        border-color: rgba(255, 255, 255, 0.05); 
-        box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.02);
+    html.dark .apple-card {
+        background-color: #1C1C1E; /* iOS 标准卡片底色 */
+        box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255,255,255,0.04);
     }
 
-    .user-rank-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
-    .user-rank-card:hover { transform: translateX(6px); background-color: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.15); }
-    html.dark .user-rank-card:hover { background-color: rgba(59, 130, 246, 0.1); border-color: rgba(255, 255, 255, 0.05); }
-    .user-rank-arrow { opacity: 0; transform: translateX(-10px); transition: all 0.3s ease; }
+    .user-rank-card { transition: all 0.2s ease-out; cursor: pointer; }
+    .user-rank-card:hover { background-color: #F5F5F7; }
+    html.dark .user-rank-card:hover { background-color: #2C2C2E; }
+    
+    .user-rank-arrow { opacity: 0; transform: translateX(-4px); transition: all 0.2s ease-out; }
     .user-rank-card:hover .user-rank-arrow { opacity: 1; transform: translateX(0); }
 
     @media (min-width: 768px) {
-        .glass-card:hover { box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08); transform: translateY(-2px); }
-        html.dark .glass-card:hover { box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7); }
-        .md-fluid-grid-poster { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1.25rem; }
-        .md-fluid-grid-lib { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        .md-fluid-grid-poster { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1.25rem; }
+        .md-fluid-grid-lib { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
     }
 
     @media (max-width: 767px) {
-        .mobile-borderless { background: transparent !important; border: none !important; box-shadow: none !important; backdrop-filter: none !important; padding: 0 !important; border-radius: 0 !important; }
+        .mobile-borderless { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
         .stat-card-mobile { padding: 20px !important; margin-bottom: 0 !important; }
         .section-title-mobile { margin-bottom: 12px !important; padding-left: 4px; }
     }
@@ -45,158 +43,121 @@
 {% endblock %}
 
 {% block content %}
-<div class="w-full py-2 pb-32 px-1 sm:px-2 md:px-4 space-y-6 md:space-y-8">
+<div class="w-full py-2 pb-32 px-2 sm:px-4 md:px-8 space-y-6 md:space-y-8">
     
-    <div class="glass-card flex flex-col md:flex-row md:items-center justify-between gap-4 w-full shadow-sm mb-6">
-        <div class="flex items-center gap-4 pl-2">
-            <div class="w-12 h-12 rounded-2xl bg-brand-500 text-white flex items-center justify-center text-xl shadow-md shadow-brand-500/20">
+    <div class="apple-card flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-6 py-4 md:py-6">
+        <div class="flex items-center gap-4 pl-1">
+            <div class="w-12 h-12 rounded-[14px] bg-brand-500 text-white flex items-center justify-center text-xl shadow-md">
                 <i class="fa-solid fa-chart-pie"></i>
             </div>
             <div>
-                <h2 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">数据概览</h2>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-bold tracking-widest flex items-center">
-                    <i class="fa-regular fa-calendar-days mr-1.5 opacity-70"></i><span id="current-date">...</span>
+                <h2 class="text-xl md:text-[22px] font-semibold tracking-tight">数据概览</h2>
+                <div class="text-[12px] text-gray-500 mt-0.5 font-medium flex items-center">
+                    <span id="current-date">...</span>
                 </div>
             </div>
         </div>
         
-        <div class="relative w-full md:w-72">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 dark:text-slate-500">
+        <div class="relative w-full md:w-auto">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 z-10">
                 <i class="fa-solid fa-earth-americas"></i>
             </div>
-            <select id="dash-user-select" onchange="changeUser()" class="w-full appearance-none bg-slate-50/50 dark:bg-black/20 border border-slate-200/50 dark:border-white/5 text-slate-700 dark:text-slate-200 py-3.5 pl-10 pr-10 rounded-xl shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-bold transition cursor-pointer hover:bg-white dark:hover:bg-white/5">
+            <select id="dash-user-select" onchange="changeUser()" class="w-full md:w-60 appearance-none bg-gray-100/80 hover:bg-gray-200 dark:bg-apple-hoverDark dark:hover:bg-[#3A3A3C] border-none text-gray-800 dark:text-gray-200 py-2.5 pl-10 pr-10 rounded-full focus:outline-none focus:ring-0 text-[13px] font-medium transition-colors cursor-pointer">
                 <option value="all">全站统计数据 (All Users)</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                <i class="fa-solid fa-chevron-down text-xs"></i>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 z-10">
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-        <div class="glass-card stat-card-mobile flex flex-col justify-center">
-            <h3 class="text-sm md:text-base font-black text-slate-800 dark:text-slate-200 tracking-wide mb-4 md:mb-5 flex items-center">
-                <span class="w-1 h-4 bg-brand-500 rounded-full mr-2.5"></span>媒体库储量
-            </h3>
-            <div class="grid grid-cols-3 gap-3 md:gap-5">
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/80 to-blue-100/40 dark:from-blue-500/10 dark:to-blue-900/5 p-4 md:p-5 border border-blue-100/50 dark:border-blue-500/20 group hover:shadow-lg transition-all duration-300">
-                    <i class="fa-solid fa-film absolute -right-3 -bottom-3 text-[50px] md:text-[70px] text-blue-500/10 dark:text-blue-400/5 transform group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500"></i>
-                    <div class="relative z-10">
-                        <p class="text-[10px] md:text-xs font-black text-blue-600 dark:text-blue-400/80 mb-1 uppercase tracking-widest">电影</p>
-                        <p class="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono" id="lib-movies">-</p>
-                    </div>
+        <div class="apple-card stat-card-mobile flex flex-col justify-center">
+            <h3 class="text-[15px] font-semibold tracking-wide mb-4 md:mb-5 text-gray-800 dark:text-gray-200">媒体库储量</h3>
+            <div class="grid grid-cols-3 gap-3 md:gap-4">
+                <div class="rounded-2xl bg-blue-50 dark:bg-blue-500/10 p-4 md:p-5">
+                    <p class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mb-1 opacity-80">电影</p>
+                    <p class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight" id="lib-movies">-</p>
                 </div>
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50/80 to-purple-100/40 dark:from-purple-500/10 dark:to-purple-900/5 p-4 md:p-5 border border-purple-100/50 dark:border-purple-500/20 group hover:shadow-lg transition-all duration-300">
-                    <i class="fa-solid fa-tv absolute -right-3 -bottom-3 text-[50px] md:text-[70px] text-purple-500/10 dark:text-purple-400/5 transform group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500"></i>
-                    <div class="relative z-10">
-                        <p class="text-[10px] md:text-xs font-black text-purple-600 dark:text-purple-400/80 mb-1 uppercase tracking-widest">剧集</p>
-                        <p class="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono" id="lib-series">-</p>
-                    </div>
+                <div class="rounded-2xl bg-purple-50 dark:bg-purple-500/10 p-4 md:p-5">
+                    <p class="text-[11px] font-semibold text-purple-600 dark:text-purple-400 mb-1 opacity-80">剧集</p>
+                    <p class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight" id="lib-series">-</p>
                 </div>
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50/80 to-amber-100/40 dark:from-amber-500/10 dark:to-amber-900/5 p-4 md:p-5 border border-amber-100/50 dark:border-amber-500/20 group hover:shadow-lg transition-all duration-300">
-                    <i class="fa-solid fa-layer-group absolute -right-3 -bottom-3 text-[50px] md:text-[70px] text-amber-500/10 dark:text-amber-400/5 transform group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500"></i>
-                    <div class="relative z-10">
-                        <p class="text-[10px] md:text-xs font-black text-amber-600 dark:text-amber-400/80 mb-1 uppercase tracking-widest">总集数</p>
-                        <p class="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono" id="lib-episodes">-</p>
-                    </div>
+                <div class="rounded-2xl bg-orange-50 dark:bg-orange-500/10 p-4 md:p-5">
+                    <p class="text-[11px] font-semibold text-orange-600 dark:text-orange-400 mb-1 opacity-80">总集数</p>
+                    <p class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight" id="lib-episodes">-</p>
                 </div>
             </div>
         </div>
 
-        <div class="glass-card stat-card-mobile flex flex-col justify-center">
-            <h3 class="text-sm md:text-base font-black text-slate-800 dark:text-slate-200 tracking-wide mb-4 md:mb-5 flex items-center">
-                <span class="w-1 h-4 bg-emerald-500 rounded-full mr-2.5"></span>核心运营指标
-            </h3>
-            <div class="grid grid-cols-3 gap-3 md:gap-5">
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 dark:from-emerald-500/10 dark:to-emerald-900/5 p-4 md:p-5 border border-emerald-100/50 dark:border-emerald-500/20 group hover:shadow-lg transition-all duration-300">
-                    <i class="fa-solid fa-play absolute -right-3 -bottom-3 text-[50px] md:text-[70px] text-emerald-500/10 dark:text-emerald-400/5 transform group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500"></i>
-                    <div class="relative z-10">
-                        <p class="text-[10px] md:text-xs font-black text-emerald-600 dark:text-emerald-400/80 mb-1 uppercase tracking-widest">播放次数</p>
-                        <p class="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono" id="stat-plays">-</p>
-                    </div>
+        <div class="apple-card stat-card-mobile flex flex-col justify-center">
+            <h3 class="text-[15px] font-semibold tracking-wide mb-4 md:mb-5 text-gray-800 dark:text-gray-200">核心运营指标</h3>
+            <div class="grid grid-cols-3 gap-3 md:gap-4">
+                <div class="rounded-2xl bg-green-50 dark:bg-green-500/10 p-4 md:p-5">
+                    <p class="text-[11px] font-semibold text-green-600 dark:text-green-400 mb-1 opacity-80">播放次数</p>
+                    <p class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight" id="stat-plays">-</p>
                 </div>
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50/80 to-indigo-100/40 dark:from-indigo-500/10 dark:to-indigo-900/5 p-4 md:p-5 border border-indigo-100/50 dark:border-indigo-500/20 group hover:shadow-lg transition-all duration-300">
-                    <i class="fa-solid fa-users absolute -right-3 -bottom-3 text-[50px] md:text-[70px] text-indigo-500/10 dark:text-indigo-400/5 transform group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500"></i>
-                    <div class="relative z-10">
-                        <p class="text-[10px] md:text-xs font-black text-indigo-600 dark:text-indigo-400/80 mb-1 uppercase tracking-widest">活跃观众</p>
-                        <p class="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono" id="stat-users">-</p>
-                    </div>
+                <div class="rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 p-4 md:p-5">
+                    <p class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 mb-1 opacity-80">活跃观众</p>
+                    <p class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight" id="stat-users">-</p>
                 </div>
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-50/80 to-rose-100/40 dark:from-rose-500/10 dark:to-rose-900/5 p-4 md:p-5 border border-rose-100/50 dark:border-rose-500/20 group hover:shadow-lg transition-all duration-300">
-                    <i class="fa-solid fa-clock absolute -right-3 -bottom-3 text-[50px] md:text-[70px] text-rose-500/10 dark:text-rose-400/5 transform group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500"></i>
-                    <div class="relative z-10">
-                        <p class="text-[10px] md:text-xs font-black text-rose-600 dark:text-rose-400/80 mb-1 uppercase tracking-widest">时长 (H)</p>
-                        <p class="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter font-mono" id="stat-duration">-</p>
-                    </div>
+                <div class="rounded-2xl bg-pink-50 dark:bg-pink-500/10 p-4 md:p-5">
+                    <p class="text-[11px] font-semibold text-pink-600 dark:text-pink-400 mb-1 opacity-80">时长 (小时)</p>
+                    <p class="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight" id="stat-duration">-</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="glass-card w-full stat-card-mobile">
-        <h3 class="text-base md:text-lg font-black text-slate-800 dark:text-slate-200 tracking-wide mb-4 md:mb-6 flex items-center">
-            <span class="w-1 h-4 bg-indigo-500 rounded-full mr-2.5"></span>我的媒体库
-        </h3>
-        <div id="library-container" class="flex overflow-x-auto hide-scrollbar gap-3 md:gap-5 snap-x md-fluid-grid-lib md:overflow-visible pb-2">
-            <div class="w-full py-10 text-center text-sm text-slate-400 flex-shrink-0 col-span-full"><i class="fa-solid fa-spinner fa-spin mr-2"></i> 正在加载数据...</div>
+    <div class="apple-card w-full stat-card-mobile">
+        <h3 class="text-[15px] font-semibold tracking-wide mb-4 md:mb-5 text-gray-800 dark:text-gray-200">我的媒体库</h3>
+        <div id="library-container" class="flex overflow-x-auto hide-scrollbar gap-3 md:gap-4 snap-x md-fluid-grid-lib md:overflow-visible">
+            <div class="w-full py-10 text-center text-sm text-gray-400 flex-shrink-0 col-span-full"><i class="fa-solid fa-spinner fa-spin mr-2"></i> 正在加载数据...</div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
-        <div class="glass-card flex flex-col mobile-borderless">
-            <div class="flex items-center justify-between mb-4 md:mb-5 section-title-mobile">
-                <h3 class="text-base md:text-lg font-black text-slate-800 dark:text-slate-200 tracking-wide flex items-center">
-                    <span class="w-1 h-4 bg-brand-500 rounded-full mr-2.5"></span>最近入库
-                </h3>
-            </div>
-            <div id="latest-container" class="flex overflow-x-auto hide-scrollbar gap-3 md:gap-4 snap-x md-fluid-grid-poster md:overflow-visible pb-2">
-                <div class="w-full py-10 text-center text-sm text-slate-400 md:col-span-full flex-shrink-0"><i class="fa-solid fa-spinner fa-spin mr-2"></i> 数据处理中...</div>
+        <div class="apple-card flex flex-col mobile-borderless">
+            <h3 class="text-[15px] font-semibold tracking-wide mb-4 md:mb-5 text-gray-800 dark:text-gray-200 section-title-mobile">最近入库</h3>
+            <div id="latest-container" class="flex overflow-x-auto hide-scrollbar gap-3 md:gap-4 snap-x md-fluid-grid-poster md:overflow-visible">
+                <div class="w-full py-10 text-center text-sm text-gray-400 md:col-span-full flex-shrink-0"><i class="fa-solid fa-spinner fa-spin mr-2"></i> 数据处理中...</div>
             </div>
         </div>
 
-        <div class="glass-card flex flex-col mobile-borderless">
-            <div class="flex items-center justify-between mb-4 md:mb-5 section-title-mobile">
-                <h3 class="text-base md:text-lg font-black text-slate-800 dark:text-slate-200 tracking-wide flex items-center">
-                    <span class="w-1 h-4 bg-emerald-500 rounded-full mr-2.5"></span>最近播放
-                </h3>
-            </div>
-            <div id="recent-container" class="flex overflow-x-auto hide-scrollbar gap-3 md:gap-4 snap-x md-fluid-grid-poster md:overflow-visible pb-2">
-                <div class="w-full py-10 text-center text-sm text-slate-400 md:col-span-full flex-shrink-0"><i class="fa-solid fa-spinner fa-spin mr-2"></i> 数据处理中...</div>
+        <div class="apple-card flex flex-col mobile-borderless">
+            <h3 class="text-[15px] font-semibold tracking-wide mb-4 md:mb-5 text-gray-800 dark:text-gray-200 section-title-mobile">最近播放</h3>
+            <div id="recent-container" class="flex overflow-x-auto hide-scrollbar gap-3 md:gap-4 snap-x md-fluid-grid-poster md:overflow-visible">
+                <div class="w-full py-10 text-center text-sm text-gray-400 md:col-span-full flex-shrink-0"><i class="fa-solid fa-spinner fa-spin mr-2"></i> 数据处理中...</div>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        
-        <div class="lg:col-span-2 glass-card stat-card-mobile flex flex-col">
+        <div class="lg:col-span-2 apple-card stat-card-mobile flex flex-col">
             <div class="flex justify-between items-center mb-4 md:mb-6">
-                <h3 class="text-base md:text-lg font-black text-slate-800 dark:text-slate-200 tracking-wide flex items-center">
-                    <span class="w-1 h-4 bg-brand-500 rounded-full mr-2.5"></span>趋势追踪
-                </h3>
-                <div class="flex bg-slate-100 dark:bg-black/20 rounded-lg p-1 text-[11px] md:text-xs font-bold border border-slate-200/50 dark:border-white/5">
-                    <button onclick="switchTrend('day')" id="trend-btn-day" class="px-4 py-1.5 rounded-md bg-white dark:bg-white/10 shadow-sm text-brand-600 dark:text-brand-400 transition">30天</button>
-                    <button onclick="switchTrend('week')" id="trend-btn-week" class="px-4 py-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">12周</button>
-                    <button onclick="switchTrend('month')" id="trend-btn-month" class="px-4 py-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">12月</button>
+                <h3 class="text-[15px] font-semibold tracking-wide text-gray-800 dark:text-gray-200">趋势追踪</h3>
+                <div class="flex bg-gray-100 dark:bg-apple-hoverDark rounded-lg p-1 text-[11px] font-medium">
+                    <button onclick="switchTrend('day')" id="trend-btn-day" class="px-3.5 py-1.5 rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition">30天</button>
+                    <button onclick="switchTrend('week')" id="trend-btn-week" class="px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition">12周</button>
+                    <button onclick="switchTrend('month')" id="trend-btn-month" class="px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition">12月</button>
                 </div>
             </div>
             <div class="relative flex-1 w-full min-h-[260px] md:min-h-[300px]"><canvas id="trendChart"></canvas></div>
         </div>
         
-        <div class="glass-card flex flex-col stat-card-mobile h-[400px] md:h-auto">
+        <div class="apple-card flex flex-col stat-card-mobile h-[400px] md:h-auto">
             <div class="flex justify-between items-center mb-4 shrink-0">
-                <h3 class="text-base md:text-lg font-black text-slate-800 dark:text-slate-200 tracking-wide flex items-center">
-                    <span class="w-1 h-4 bg-amber-500 rounded-full mr-2.5"></span>白金观影榜
-                </h3>
-                <div class="flex bg-slate-100 dark:bg-black/20 rounded-lg p-0.5 text-[10px] font-bold border border-slate-200/50 dark:border-white/5">
-                    <button onclick="switchTopUsers('day')" id="top-btn-day" class="px-2.5 py-1.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition">今日</button>
-                    <button onclick="switchTopUsers('week')" id="top-btn-week" class="px-2.5 py-1.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition">本周</button>
-                    <button onclick="switchTopUsers('month')" id="top-btn-month" class="px-2.5 py-1.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition">本月</button>
-                    <button onclick="switchTopUsers('all')" id="top-btn-all" class="px-2.5 py-1.5 rounded bg-white dark:bg-white/10 shadow-sm text-amber-600 dark:text-amber-400 transition">总榜</button>
+                <h3 class="text-[15px] font-semibold tracking-wide text-gray-800 dark:text-gray-200">白金观影榜</h3>
+                <div class="flex bg-gray-100 dark:bg-apple-hoverDark rounded-lg p-1 text-[11px] font-medium">
+                    <button onclick="switchTopUsers('day')" id="top-btn-day" class="px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition">今日</button>
+                    <button onclick="switchTopUsers('week')" id="top-btn-week" class="px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition">本周</button>
+                    <button onclick="switchTopUsers('month')" id="top-btn-month" class="px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition">本月</button>
+                    <button onclick="switchTopUsers('all')" id="top-btn-all" class="px-2 py-1 rounded bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition">总榜</button>
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto space-y-2 hide-scrollbar pr-1 pb-2" id="top-users-container">
-                <div class="flex justify-center items-center h-full"><i class="fa-solid fa-spinner fa-spin text-slate-300"></i></div>
+            <div class="flex-1 overflow-y-auto space-y-1 hide-scrollbar pr-1" id="top-users-container">
+                <div class="flex justify-center items-center h-full"><i class="fa-solid fa-spinner fa-spin text-gray-300"></i></div>
             </div>
         </div>
     </div>
@@ -300,15 +261,15 @@
                 json.data.forEach(lib => {
                     const imgUrl = `/api/proxy/image/${lib.Id}/primary`; 
                     html += `
-                    <div onclick="jumpToLibrary('${lib.Id}')" class="relative w-48 sm:w-60 md:w-full aspect-video flex-shrink-0 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer snap-center bg-slate-200 dark:bg-midnight-800 ring-1 ring-slate-200/50 dark:ring-white/5 hover:ring-brand-400/50">
-                        <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-90 group-hover:opacity-100" onerror="this.src='/static/img/favicon.png'">
-                        <div class="absolute bottom-0 inset-x-0 p-3 pb-4 flex justify-center items-end bg-gradient-to-t from-black/80 to-transparent">
-                            <h4 class="text-white font-black text-sm md:text-base truncate w-full text-center tracking-widest transform group-hover:scale-105 transition-transform duration-300 drop-shadow-md">${lib.Name}</h4>
+                    <div onclick="jumpToLibrary('${lib.Id}')" class="relative w-48 sm:w-60 md:w-full aspect-video flex-shrink-0 rounded-2xl overflow-hidden cursor-pointer snap-center bg-gray-200 dark:bg-gray-800">
+                        <img src="${imgUrl}" class="w-full h-full object-cover transition duration-500 opacity-90 hover:opacity-100 hover:scale-105" onerror="this.src='/static/img/logo-app.png'">
+                        <div class="absolute bottom-0 inset-x-0 p-3 pb-3 flex justify-center items-end bg-gradient-to-t from-black/60 to-transparent">
+                            <h4 class="text-white font-semibold text-sm md:text-[15px] truncate w-full text-center tracking-widest drop-shadow-md">${lib.Name}</h4>
                         </div>
                     </div>`;
                 });
                 container.innerHTML = html;
-            } else { container.innerHTML = `<div class="w-full py-4 text-center text-sm text-slate-400">暂无媒体库</div>`; }
+            } else { container.innerHTML = `<div class="w-full py-4 text-center text-sm text-gray-400">暂无媒体库</div>`; }
         } catch (e) { console.error(e); }
     }
     
@@ -322,21 +283,20 @@
                 json.data.forEach(item => {
                     const imgUrl = `/api/proxy/image/${item.Id}/primary`;
                     const title = item.SeriesName ? `${item.SeriesName} - ${item.Name}` : item.Name;
-                    const metaInfo = [item.Year, item.Rating ? `⭐${item.Rating}` : ''].filter(Boolean).join(' • '); 
                     
                     html += `
-                    <div onclick="jumpToEmby('${item.Id}')" class="group relative w-24 sm:w-28 md:w-full flex-shrink-0 cursor-pointer snap-center hover:-translate-y-1 transition-all duration-300">
-                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-slate-100 dark:bg-midnight-800 relative shadow-sm group-hover:shadow-xl group-hover:ring-2 group-hover:ring-brand-400/50 transition-all border border-slate-200/50 dark:border-white/5">
-                            <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" onerror="this.src='/static/img/favicon.png'">
+                    <div onclick="jumpToEmby('${item.Id}')" class="group relative w-24 sm:w-28 md:w-full flex-shrink-0 cursor-pointer snap-center">
+                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-apple-hoverDark relative border border-gray-100 dark:border-white/5">
+                            <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" onerror="this.src='/static/img/logo-app.png'">
                         </div>
-                        <div class="mt-2.5 px-0.5">
-                            <h4 class="text-[11px] md:text-sm font-black text-slate-800 dark:text-slate-200 truncate leading-tight mb-1 group-hover:text-brand-500 transition-colors">${title}</h4>
-                            <p class="text-[9px] md:text-[11px] text-slate-400 truncate font-bold tracking-wide">${metaInfo}</p>
+                        <div class="mt-2 px-0.5">
+                            <h4 class="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate leading-tight mb-0.5 group-hover:text-brand-500 transition-colors">${title}</h4>
+                            <p class="text-[10px] text-gray-400 truncate">${item.Year || ''}</p>
                         </div>
                     </div>`;
                 });
                 container.innerHTML = html; applyTwoRowLimit(); 
-            } else { container.innerHTML = `<div class="w-full md:col-span-full py-10 text-center text-sm text-slate-400 flex-shrink-0">暂无数据</div>`; }
+            } else { container.innerHTML = `<div class="w-full md:col-span-full py-10 text-center text-sm text-gray-400 flex-shrink-0">暂无数据</div>`; }
         } catch (e) { console.error(e); }
     }
     
@@ -351,20 +311,20 @@
                     const displayTitle = item.DisplayName || item.ItemName;
                     const imgUrl = `/api/proxy/image/${item.ItemId}/primary`;
                     html += `
-                    <div onclick="jumpToEmby('${item.ItemId}')" class="group relative w-24 sm:w-28 md:w-full flex-shrink-0 cursor-pointer snap-center hover:-translate-y-1 transition-all duration-300">
-                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-slate-100 dark:bg-midnight-800 relative shadow-sm group-hover:shadow-xl group-hover:ring-2 group-hover:ring-emerald-400/50 transition-all border border-slate-200/50 dark:border-white/5">
-                            <img src="${imgUrl}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" onerror="this.src='/static/img/favicon.png'">
-                            <div class="absolute bottom-0 left-0 right-0 p-2 sm:p-2.5 bg-gradient-to-t from-black/80 to-transparent opacity-90 group-hover:opacity-100 transition-opacity flex items-end">
-                                <p class="text-[9px] sm:text-[11px] text-white font-black truncate flex items-center tracking-wider w-full drop-shadow-md"><i class="fa-solid fa-play text-[8px] mr-1.5 opacity-80"></i>${item.UserName}</p>
+                    <div onclick="jumpToEmby('${item.ItemId}')" class="group relative w-24 sm:w-28 md:w-full flex-shrink-0 cursor-pointer snap-center">
+                        <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-apple-hoverDark relative border border-gray-100 dark:border-white/5">
+                            <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" onerror="this.src='/static/img/logo-app.png'">
+                            <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                                <p class="text-[10px] text-white font-medium truncate flex items-center w-full drop-shadow-md"><i class="fa-solid fa-play text-[8px] mr-1.5 opacity-80"></i>${item.UserName}</p>
                             </div>
                         </div>
-                        <div class="mt-2.5 px-0.5">
-                            <h4 class="text-[11px] md:text-sm font-black text-slate-800 dark:text-slate-200 truncate leading-tight mb-0.5 group-hover:text-emerald-500 transition-colors">${displayTitle}</h4>
+                        <div class="mt-2 px-0.5">
+                            <h4 class="text-[12px] font-medium text-gray-900 dark:text-gray-100 truncate leading-tight group-hover:text-brand-500 transition-colors">${displayTitle}</h4>
                         </div>
                     </div>`;
                 });
                 container.innerHTML = html; applyTwoRowLimit(); 
-            } else { container.innerHTML = `<div class="w-full md:col-span-full py-10 text-center text-sm text-slate-400 flex-shrink-0">暂无数据</div>`; }
+            } else { container.innerHTML = `<div class="w-full md:col-span-full py-10 text-center text-sm text-gray-400 flex-shrink-0">暂无数据</div>`; }
         } catch (e) { console.error(e); }
     }
 
@@ -373,9 +333,9 @@
         ['day', 'week', 'month', 'all'].forEach(p => {
             const btn = document.getElementById(`top-btn-${p}`);
             if(p === period) {
-                btn.className = "px-2.5 py-1.5 rounded bg-white dark:bg-white/10 shadow-sm text-amber-600 dark:text-amber-400 transition font-bold";
+                btn.className = "px-2 py-1 rounded bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition font-medium";
             } else {
-                btn.className = "px-2.5 py-1.5 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition";
+                btn.className = "px-2 py-1 rounded text-gray-500 hover:text-gray-900 dark:hover:text-white transition";
             }
         });
         fetchTopUsers(period);
@@ -383,36 +343,37 @@
 
     async function fetchTopUsers(period) {
         const container = document.getElementById('top-users-container');
-        container.innerHTML = '<div class="flex justify-center items-center h-32"><i class="fa-solid fa-spinner fa-spin text-slate-300"></i></div>';
+        container.innerHTML = '<div class="flex justify-center items-center h-32"><i class="fa-solid fa-spinner fa-spin text-gray-300"></i></div>';
         try {
             const res = await fetch(`/api/stats/top_users_list?period=${period}`);
             const json = await res.json();
             if (json.status === 'success' && json.data.length > 0) {
                 let html = '';
                 json.data.forEach((user, index) => {
-                    let rankClass = "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-white/5";
-                    if(index === 0) rankClass = "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 shadow-sm border border-amber-200 dark:border-amber-700/50";
-                    if(index === 1) rankClass = "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 shadow-sm border border-slate-300 dark:border-slate-600";
-                    if(index === 2) rankClass = "bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 shadow-sm border border-orange-100 dark:border-orange-800/50";
+                    // Apple 风克制色彩，去掉花哨渐变
+                    let rankClass = "bg-gray-100 text-gray-500 dark:bg-apple-hoverDark dark:text-gray-400";
+                    if(index === 0) rankClass = "bg-brand-500 text-white";
+                    if(index === 1) rankClass = "bg-gray-800 text-white dark:bg-gray-300 dark:text-black";
+                    if(index === 2) rankClass = "bg-gray-400 text-white dark:bg-gray-600 dark:text-white";
                     
                     html += `
-                    <div onclick="jumpToUserInsight('${user.UserId}')" class="user-rank-card flex items-center justify-between p-3 rounded-xl border border-transparent bg-white/50 dark:bg-white/[0.02]">
+                    <div onclick="jumpToUserInsight('${user.UserId}')" class="user-rank-card flex items-center justify-between p-2.5 rounded-xl">
                         <div class="flex items-center min-w-0">
-                            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-[10px] ${rankClass} flex items-center justify-center font-black text-sm mr-4 shrink-0">${index + 1}</div>
+                            <div class="w-8 h-8 rounded-lg ${rankClass} flex items-center justify-center font-bold text-[13px] mr-3 shrink-0">${index + 1}</div>
                             <div class="truncate">
-                                <p class="text-sm font-bold text-slate-800 dark:text-slate-200 truncate transition">${user.UserName}</p>
-                                <p class="text-[10px] md:text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 uppercase tracking-wide">${user.Plays} 次播放</p>
+                                <p class="text-[13px] font-semibold text-gray-900 dark:text-white truncate">${user.UserName}</p>
+                                <p class="text-[11px] text-gray-500 mt-0.5">${user.Plays} 次播放</p>
                             </div>
                         </div>
                         <div class="flex items-center pl-3">
-                            <p class="text-base font-black text-brand-600 dark:text-brand-400 tracking-tight text-right w-16">${Math.round(user.TotalTime/3600)}<span class="text-[9px] font-bold opacity-60 ml-0.5">H</span></p>
-                            <i class="fa-solid fa-chevron-right text-xs text-brand-400 user-rank-arrow ml-2 opacity-0"></i>
+                            <p class="text-[14px] font-semibold text-gray-900 dark:text-white tracking-tight text-right w-12">${Math.round(user.TotalTime/3600)}<span class="text-[9px] font-normal opacity-60 ml-0.5">h</span></p>
+                            <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 dark:text-gray-600 user-rank-arrow ml-2"></i>
                         </div>
                     </div>`;
                 });
                 container.innerHTML = html;
             } else {
-                container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">当前时段暂无数据</div>`;
+                container.innerHTML = `<div class="text-center py-10 text-gray-400 text-[13px]">暂无数据</div>`;
             }
         } catch (e) { console.error(e); }
     }
@@ -422,9 +383,9 @@
         ['day', 'week', 'month'].forEach(d => {
             const btn = document.getElementById(`trend-btn-${d}`);
             if(d === dim) {
-                btn.className = "px-4 py-1.5 rounded-md bg-white dark:bg-white/10 shadow-sm text-brand-600 dark:text-brand-400 transition font-bold";
+                btn.className = "px-3.5 py-1.5 rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white transition font-medium";
             } else {
-                btn.className = "px-4 py-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+                btn.className = "px-3.5 py-1.5 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white transition";
             }
         });
         initTrendChart(document.getElementById('dash-user-select').value, dim);
@@ -435,7 +396,7 @@
         if(trendChart) trendChart.destroy(); 
         
         const isDark = document.documentElement.classList.contains('dark');
-        const textColor = isDark ? '#64748b' : '#94a3b8';
+        const textColor = isDark ? '#6b7280' : '#9ca3af';
 
         try {
             const res = await fetch(`/api/stats/trend?user_id=${userId}&dimension=${dimension}`);
@@ -444,27 +405,28 @@
             const labels = Object.keys(data);
             const values = Object.values(data).map(v => Math.round(v/3600)); 
             
+            // 极简液态渐变
             let gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, isDark ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.3)'); 
-            gradient.addColorStop(1, isDark ? 'rgba(59, 130, 246, 0.0)' : 'rgba(59, 130, 246, 0.0)'); 
+            gradient.addColorStop(0, isDark ? 'rgba(0, 122, 255, 0.3)' : 'rgba(0, 122, 255, 0.15)'); 
+            gradient.addColorStop(1, isDark ? 'rgba(0, 122, 255, 0.0)' : 'rgba(0, 122, 255, 0.0)'); 
             
-            let borderColor = isDark ? '#60a5fa' : '#3b82f6';
+            let borderColor = '#007AFF'; // Apple System Blue
 
             trendChart = new Chart(ctx, { 
                 type: 'line', 
                 data: { 
                     labels: labels.length > 0 ? labels : ['无数据'], 
                     datasets: [{ 
-                        label: '播放时长 (小时)', 
+                        label: '播放时长', 
                         data: values.length > 0 ? values : [0], 
                         borderColor: borderColor, 
                         backgroundColor: gradient, 
-                        borderWidth: 3, 
+                        borderWidth: 2.5, 
                         pointBackgroundColor: borderColor,
-                        pointBorderColor: isDark ? '#0B1121' : '#fff', 
+                        pointBorderColor: isDark ? '#1C1C1E' : '#fff', 
                         pointBorderWidth: 2,
                         pointRadius: 0,            
-                        pointHoverRadius: 6,      
+                        pointHoverRadius: 5,      
                         fill: true, 
                         tension: 0.4              
                     }] 
@@ -476,13 +438,15 @@
                     plugins: { 
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                            titleColor: isDark ? '#f8fafc' : '#0f172a',
-                            bodyColor: borderColor,
+                            backgroundColor: isDark ? 'rgba(28, 28, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                            titleColor: isDark ? '#F5F5F7' : '#1C1C1E',
+                            bodyColor: isDark ? '#A1A1A6' : '#6E6E73',
                             borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                             borderWidth: 1,
-                            padding: 12,
+                            padding: 10,
                             displayColors: false,
+                            titleFont: { size: 13, weight: '600' },
+                            bodyFont: { size: 12 },
                             callbacks: { label: function(context) { return context.parsed.y + ' 小时'; } }
                         }
                     }, 
@@ -497,7 +461,7 @@
                             border: { display: false }, 
                             grid: { display: false }, 
                             ticks: { 
-                                font: { family: 'ui-monospace, SFPro, sans-serif', size: 10, weight: 'bold'}, 
+                                font: { family: 'ui-monospace, SFPro, sans-serif', size: 10}, 
                                 color: textColor,
                                 maxTicksLimit: 6,       
                                 maxRotation: 0          
