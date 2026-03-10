@@ -1,20 +1,59 @@
 {% extends "layout.html" %}
 {% block title %}任务中心 - EmbyPulse{% endblock %}
 
-{% block content %}
-<div class="max-w-[1600px] mx-auto w-full px-4 py-6 pb-24">
+{% block head %}
+<style>
+    /* === 🔥 Apple 级极简卡片质感 === */
+    .apple-card { 
+        background-color: rgba(255, 255, 255, 0.95); 
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 24px; 
+        padding: 24px; 
+        box-shadow: 0 4px 24px -8px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.02);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
     
-    <div class="flex items-center justify-between mb-6 sticky top-0 z-30 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur py-2">
-        <div>
-            <h1 class="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-bolt text-blue-500"></i> 任务中心
-            </h1>
-            <p class="text-xs text-gray-500 mt-1 hidden md:block">管理 Emby 计划任务与插件作业</p>
+    html.dark .apple-card {
+        background-color: rgba(28, 28, 30, 0.85); 
+        box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    @media (min-width: 768px) {
+        .apple-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px -8px rgba(0,0,0,0.08); }
+        html.dark .apple-card:hover { box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6); }
+    }
+
+    .mac-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .mac-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .mac-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.4); border-radius: 10px; }
+    html.dark .mac-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.15); }
+    html.dark .mac-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-[1600px] mx-auto py-4 pb-32 px-4 sm:px-6 md:px-8 space-y-4 md:space-y-6">
+    
+    <div class="apple-card flex flex-col md:flex-row md:items-center justify-between gap-6 w-full mb-2 p-5 md:p-6">
+        <div class="flex items-center gap-4 pl-1 shrink-0">
+            <div class="w-12 h-12 rounded-[14px] bg-gradient-to-br from-yellow-400 to-orange-500 text-white flex items-center justify-center text-xl shadow-lg shadow-orange-500/30 shrink-0">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+                <h2 class="text-xl md:text-[22px] font-bold tracking-tight text-gray-900 dark:text-white">任务中心</h2>
+                <div class="text-[12px] text-gray-500 mt-1 font-medium flex items-center gap-1.5">
+                    <i class="fa-solid fa-server opacity-70"></i> <span>管理 Emby 计划任务与后台作业</span>
+                </div>
+            </div>
         </div>
         
-        <div class="flex items-center gap-2 md:gap-3">
+        <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+            
             <div class="relative" id="running-tasks-dropdown-container">
-                <button onclick="toggleRunningDropdown()" id="running-tasks-btn" class="hidden items-center gap-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-3 md:px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800/50 text-sm font-bold transition shadow-sm active:scale-95">
+                <button onclick="toggleRunningDropdown()" id="running-tasks-btn" class="hidden items-center gap-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-4 py-2.5 rounded-[14px] border border-blue-200/50 dark:border-blue-500/20 text-[13px] font-bold transition-all shadow-sm active:scale-95">
                     <span class="relative flex h-2.5 w-2.5">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                       <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
@@ -24,26 +63,26 @@
                     <i class="fa-solid fa-chevron-down text-[10px] ml-0.5 transition-transform duration-300" id="running-tasks-icon"></i>
                 </button>
 
-                <div id="running-tasks-panel" class="absolute right-0 mt-3 w-72 md:w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700/60 hidden flex-col z-50 transform origin-top-right transition-all duration-200 scale-95 opacity-0">
-                    <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700/50 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30 rounded-t-2xl">
-                        <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5"><i class="fa-solid fa-gear fa-spin text-blue-500"></i> 当前执行中</h3>
-                        <span class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 px-2 py-0.5 rounded font-mono font-bold border border-blue-200 dark:border-blue-800" id="panel-count-badge">0</span>
+                <div id="running-tasks-panel" class="absolute right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 mt-3 w-72 md:w-80 bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-2xl rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.6)] border border-white/60 dark:border-white/10 hidden flex-col z-[100] transform origin-top-right md:origin-top transition-all duration-200 scale-95 opacity-0">
+                    <div class="px-5 py-4 border-b border-gray-100/50 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/10 rounded-t-[24px]">
+                        <h3 class="text-[13px] font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><i class="fa-solid fa-gear fa-spin text-blue-500"></i> 当前执行中</h3>
+                        <span class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 px-2 py-0.5 rounded-md font-mono font-bold border border-blue-200 dark:border-blue-800/50" id="panel-count-badge">0</span>
                     </div>
-                    <div class="max-h-[60vh] overflow-y-auto custom-scroll p-3 space-y-2.5" id="running-tasks-list">
+                    <div class="max-h-[50vh] overflow-y-auto mac-scrollbar p-3 space-y-2" id="running-tasks-list">
                         </div>
                 </div>
             </div>
 
-            <button onclick="loadTasks()" class="bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-200 px-3 md:px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-bold transition shadow-sm flex items-center active:scale-95">
-                <i class="fa-solid fa-rotate-right mr-0 md:mr-2"></i> <span class="hidden md:inline">刷新</span>
+            <button onclick="loadTasks()" class="bg-gray-100 hover:bg-gray-200 dark:bg-[#2C2C2E] dark:hover:bg-[#3A3A3C] text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-[14px] border border-transparent dark:border-white/5 text-[13px] font-bold transition-all shadow-sm flex items-center active:scale-95 shrink-0">
+                <i class="fa-solid fa-rotate-right md:mr-1.5"></i> <span class="hidden md:inline">刷新状态</span>
             </button>
         </div>
     </div>
 
-    <div id="task-container" class="space-y-8">
-        <div class="text-center py-32">
-            <i class="fa-solid fa-circle-notch fa-spin text-gray-300 text-4xl mb-4"></i>
-            <p class="text-gray-400 text-sm font-bold tracking-widest animate-pulse">正在同步服务器任务状态...</p>
+    <div id="task-container" class="space-y-6 md:space-y-8 mt-4">
+        <div class="text-center py-40">
+            <i class="fa-solid fa-circle-notch fa-spin text-brand-500 text-4xl mb-4"></i>
+            <p class="text-gray-400 text-[11px] font-bold tracking-widest uppercase animate-pulse">正在同步服务器任务矩阵...</p>
         </div>
     </div>
 
@@ -125,17 +164,17 @@
             tasks.forEach(t => {
                 const progress = t.CurrentProgressPercentage || 0;
                 html += `
-                <div class="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3 border border-gray-100 dark:border-gray-700/50 relative overflow-hidden flex flex-col gap-2 group shadow-sm">
-                    <div class="absolute bottom-0 left-0 h-1 bg-blue-500 transition-all duration-1000 ease-linear" style="width: ${progress}%"></div>
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl p-3.5 border border-gray-100 dark:border-white/5 relative overflow-hidden flex flex-col gap-2 shadow-sm">
+                    <div class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-1000 ease-linear" style="width: ${progress}%"></div>
                     <div class="flex justify-between items-start">
-                        <div class="font-black text-gray-800 dark:text-gray-200 text-xs truncate flex-1 pr-2" title="${t.Name}">${t.Name}</div>
-                        <button onclick="stopTask('${t.Id}')" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-2 py-1 rounded transition-colors shrink-0 flex items-center gap-1 active:scale-95">
-                            <i class="fa-solid fa-stop text-[10px]"></i> <span class="text-[10px] font-bold">停止</span>
+                        <div class="font-bold text-gray-900 dark:text-white text-[13px] truncate flex-1 pr-3" title="${t.Name}">${t.Name}</div>
+                        <button onclick="stopTask('${t.Id}')" class="text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 px-2 py-1 rounded-md transition-colors shrink-0 flex items-center gap-1 active:scale-95 border border-red-100 dark:border-red-500/20">
+                            <i class="fa-solid fa-stop text-[10px]"></i> <span class="text-[10px] font-bold">终止</span>
                         </button>
                     </div>
                     <div class="flex justify-between items-end">
-                        <div class="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-1 flex-1 pr-2" title="${t.Description || ''}">${t.Description || '正在执行后台任务...'}</div>
-                        <div class="text-blue-600 dark:text-blue-400 font-mono text-[11px] font-black shrink-0 tabular-nums">${progress.toFixed(1)}%</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1 flex-1 pr-2 leading-relaxed" title="${t.Description || ''}">${t.Description || '正在后台疯狂运转中...'}</div>
+                        <div class="text-blue-600 dark:text-blue-400 font-mono text-[12px] font-black shrink-0 tabular-nums">${progress.toFixed(1)}%</div>
                     </div>
                 </div>`;
             });
@@ -149,7 +188,7 @@
     function renderGroupedTasks(groups) {
         const container = document.getElementById('task-container');
         if(!groups || groups.length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-20 font-bold">暂无任务数据</div>';
+            container.innerHTML = '<div class="text-center text-gray-400 py-20 font-bold text-[13px] tracking-widest"><i class="fa-solid fa-ghost mr-2 opacity-50"></i>暂无任务数据</div>';
             return;
         }
 
@@ -157,96 +196,97 @@
         groups.forEach(group => {
             html += `
             <div class="animate-fade-in">
-                <div class="flex items-center mb-3 px-1">
-                    <h3 class="font-black text-gray-700 dark:text-gray-200 text-sm md:text-base">${group.title}</h3>
-                    <span class="ml-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] px-2 py-0.5 rounded-full font-bold">${group.tasks.length}</span>
+                <div class="flex items-center mb-4 px-2">
+                    <div class="w-2 h-5 bg-brand-500 rounded-full mr-2.5"></div>
+                    <h3 class="font-black text-gray-800 dark:text-gray-200 text-[15px] tracking-wide">${group.title}</h3>
+                    <span class="ml-3 bg-gray-200 dark:bg-[#2C2C2E] text-gray-500 dark:text-gray-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-sm border border-gray-300/50 dark:border-white/5">${group.tasks.length}</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             `;
 
             group.tasks.forEach(t => {
                 const isRunning = t.State === 'Running';
                 const progress = t.CurrentProgressPercentage || 0;
                 
-                let lastRunTime = '从未执行';
-                let statusIcon = '<span class="w-2 h-2 rounded-full bg-gray-300 inline-block mr-1"></span>';
+                let lastRunTime = '从未执行过';
+                let statusIcon = '<span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block mr-1.5"></span>';
                 let statusText = '无记录';
                 
                 if (t.LastExecutionResult) {
                     const end = new Date(t.LastExecutionResult.EndTimeUtc);
                     lastRunTime = end.toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
                     if (t.LastExecutionResult.Status === 'Completed') {
-                        statusIcon = '<span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></span>';
-                        statusText = '成功';
+                        statusIcon = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mr-1.5 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>';
+                        statusText = '执行成功';
                     } else if (t.LastExecutionResult.Status === 'Failed') {
-                        statusIcon = '<span class="w-2 h-2 rounded-full bg-red-500 inline-block mr-1 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span>';
-                        statusText = '失败';
+                        statusIcon = '<span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block mr-1.5 shadow-[0_0_6px_rgba(239,68,68,0.6)]"></span>';
+                        statusText = '执行失败';
                     } else {
-                        statusIcon = '<span class="w-2 h-2 rounded-full bg-yellow-500 inline-block mr-1 shadow-[0_0_5px_rgba(234,179,8,0.5)]"></span>';
-                        statusText = '取消';
+                        statusIcon = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block mr-1.5 shadow-[0_0_6px_rgba(245,158,11,0.6)]"></span>';
+                        statusText = '已取消';
                     }
                 }
 
+                // 🔥 运行中的高级发光动效
+                const cardBaseClass = "relative bg-white dark:bg-[#1C1C1E] rounded-[20px] p-5 flex flex-col justify-between min-h-[130px] group transition-all duration-300";
                 const borderClass = isRunning 
-                    ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/50 shadow-lg scale-[1.02] z-10' 
-                    : 'border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-md';
+                    ? 'border border-blue-500 shadow-[0_8px_30px_rgba(59,130,246,0.15)] dark:shadow-[0_8px_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-500 scale-[1.02] z-10' 
+                    : 'border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.4)] hover:-translate-y-1 hover:border-gray-200 dark:hover:border-white/10';
 
-                // 防止引号中断 HTML
                 const safeOrig = t.OriginalName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const safeCurr = t.Name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                 html += `
-                <div class="relative bg-white dark:bg-gray-800 rounded-xl border ${borderClass} p-4 transition-all duration-300 group overflow-hidden flex flex-col justify-between min-h-[110px]">
+                <div class="${cardBaseClass} ${borderClass}">
                     
-                    ${isRunning ? `<div class="absolute bottom-0 left-0 h-1.5 bg-blue-500 transition-all duration-1000 ease-linear z-10" style="width: ${progress}%"></div>` : ''}
+                    ${isRunning ? `<div class="absolute bottom-0 left-0 h-1.5 bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-1000 ease-linear z-10" style="width: ${progress}%"></div>` : ''}
                     
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="pr-2 overflow-hidden flex-1">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="pr-3 overflow-hidden flex-1">
                             <div class="flex items-center gap-2 group/title">
-                                <div class="font-bold text-gray-800 dark:text-gray-100 text-sm truncate" title="${t.OriginalName}">${t.Name}</div>
-                                <button onclick="renameTask('${safeOrig}', '${safeCurr}')" class="text-gray-300 hover:text-indigo-500 dark:text-gray-600 dark:hover:text-indigo-400 opacity-0 group-hover/title:opacity-100 transition-all cursor-pointer" title="设置中文别名">
-                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                <div class="font-bold text-gray-900 dark:text-white text-[14px] truncate" title="${t.OriginalName}">${t.Name}</div>
+                                <button onclick="renameTask('${safeOrig}', '${safeCurr}')" class="text-gray-300 hover:text-brand-500 dark:text-gray-600 dark:hover:text-brand-400 opacity-0 group-hover/title:opacity-100 transition-all cursor-pointer bg-gray-50 dark:bg-[#2C2C2E] w-5 h-5 rounded flex items-center justify-center border border-gray-200 dark:border-white/5" title="设置中文别名">
+                                    <i class="fa-solid fa-pen text-[9px]"></i>
                                 </button>
                             </div>
-                            <div class="text-[11px] text-gray-400 dark:text-gray-500 mt-1 line-clamp-2 leading-relaxed" title="${t.Description || ''}">
-                                ${t.Description || '暂无说明'}
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2 leading-relaxed" title="${t.Description || ''}">
+                                ${t.Description || '该任务暂无描述说明。'}
                             </div>
                         </div>
-                        <div class="shrink-0 ml-2">
+                        
+                        <div class="shrink-0 ml-1">
                             ${isRunning ? 
-                                `<button onclick="stopTask('${t.Id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/30 text-red-500 hover:bg-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 transition active:scale-90 shadow-sm">
+                                `<button onclick="stopTask('${t.Id}')" class="w-9 h-9 flex items-center justify-center rounded-[12px] bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-all active:scale-90 shadow-sm border border-red-100 dark:border-red-500/20" title="强行终止">
                                     <i class="fa-solid fa-stop text-xs"></i>
                                 </button>` : 
-                                `<button onclick="startTask('${t.Id}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-500 hover:bg-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition active:scale-90 shadow-sm">
+                                `<button onclick="startTask('${t.Id}')" class="w-9 h-9 flex items-center justify-center rounded-[12px] bg-gray-50 text-gray-500 hover:text-brand-600 hover:bg-brand-50 dark:bg-[#2C2C2E] dark:text-gray-400 dark:hover:bg-brand-500/20 dark:hover:text-brand-400 transition-all active:scale-90 shadow-sm border border-gray-100 dark:border-white/5" title="立即执行">
                                     <i class="fa-solid fa-play text-xs pl-0.5"></i>
                                 </button>`
                             }
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500 mt-2 pt-2 border-t border-gray-50 dark:border-gray-700/50">
+                    <div class="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-auto pt-3 border-t border-gray-100 dark:border-white/5">
                         <div class="flex items-center">
                             ${isRunning ? 
-                                `<span class="text-blue-500 font-black flex items-center bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded"><i class="fa-solid fa-gear fa-spin mr-1.5"></i> 运行中 ${progress.toFixed(1)}%</span>` : 
-                                `<div class="flex items-center font-bold">${statusIcon} ${statusText}</div>`
+                                `<span class="text-blue-600 dark:text-blue-400 font-black flex items-center bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-500/20 shadow-sm animate-pulse"><i class="fa-solid fa-gear fa-spin mr-1.5"></i> 运转中 ${progress.toFixed(1)}%</span>` : 
+                                `<div class="flex items-center font-bold tracking-wide">${statusIcon} ${statusText}</div>`
                             }
                         </div>
-                        <div class="font-mono opacity-80 font-bold">${lastRunTime}</div>
+                        <div class="font-mono font-medium opacity-80 tracking-tight">${lastRunTime}</div>
                     </div>
                 </div>`;
             });
 
-            html += `</div></div><div class="h-5"></div>`;
+            html += `</div></div>`;
         });
 
         container.innerHTML = html;
     }
 
-    // 🔥 核心重命名函数
     async function renameTask(originalName, currentName) {
-        const newName = prompt(`给任务 "${originalName}" 设置中文别名：\n(留空并保存将恢复为默认英文名)`, currentName === originalName ? '' : currentName);
+        const newName = prompt(`给任务 "${originalName}" 设置易读的中文别名：\n(如果留空并保存，将恢复为系统默认英文名)`, currentName === originalName ? '' : currentName);
         
-        // 用户点击了取消，什么也不做
         if (newName === null) return; 
         
         try {
@@ -257,7 +297,7 @@
             });
             const json = await res.json();
             if(json.status === 'success') {
-                loadTasks(); // 刷新大厅查看效果
+                loadTasks(); 
             } else {
                 alert(json.message);
             }
@@ -276,7 +316,7 @@
     }
 
     async function stopTask(id) {
-        if(!confirm('确定要强制停止此任务吗？可能导致数据不同步。')) return;
+        if(!confirm('⚠️ 警告：强制终止运行中的任务可能导致数据未完全同步。确定要中断吗？')) return;
         try {
             const res = await fetch(`/api/tasks/${id}/stop`, {method: 'POST'});
             const json = await res.json();
@@ -284,14 +324,5 @@
             else alert(json.message);
         } catch(e) { alert('网络错误'); }
     }
-
-    init();
 </script>
-
-<style>
-    .custom-scroll::-webkit-scrollbar { width: 4px; }
-    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    .dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
-</style>
 {% endblock %}
