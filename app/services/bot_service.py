@@ -484,35 +484,43 @@ class NotificationBot:
         except Exception as e: 
             logger.error(f"登录通知组装异常: {e}")
 
-# 🔥 史诗级重构：10秒防抖去重拦截 + TMDB 云端海报溯源兜底
+# 🔥 史诗级重构：5分钟双重防抖拦截 + TMDB 云端海报溯源兜底
     def on_item_deleted(self, data):
         if not cfg.get("notify_item_deleted"): return
         try:
             item = data.get("Item") or data
             
-            # ==========================================
-            # 🔥 核心防御：10秒去重拦截器
-            item_id = item.get("Id") or item.get("Name") or "unknown_id"
-            now = time.time()
-            if item_id in self.delete_cache and (now - self.delete_cache[item_id] < 10):
-                return  # 10秒内同一个资源的重复警报，直接静默丢弃！
-            self.delete_cache[item_id] = now
-            # 顺手清理掉 60 秒前的老记忆，防止内存越堆越多
-            self.delete_cache = {k: v for k, v in self.delete_cache.items() if now - v < 60}
-            # ==========================================
-            
             raw_type = item.get("Type", "")
             title = item.get("Name") or item.get("Title") or "未知资源"
             series_name = item.get("SeriesName")
-            
             season_num = item.get("ParentIndexNumber")
             ep_num = item.get("IndexNumber")
-            
             year = item.get("ProductionYear", "")
-            year_str = f" ({year})" if year else ""
             
+            # ==========================================
+            # 🔥 终极防抖：5分钟 (300秒) 双重拦截器 (ID + 名称)
+            # 完美拦截 Emby 延迟一两分钟才发送的 deep.delete 确认通知
+            item_id = str(item.get("Id", ""))
+            unique_name = f"{series_name}_{season_num}_{ep_num}_{title}" if series_name else title
+            
+            now = time.time()
+            
+            # 只要 ID 或者 名称 在 5 分钟内出现过，直接静默丢弃！
+            if (item_id and item_id in self.delete_cache and (now - self.delete_cache[item_id] < 300)) or \
+               (unique_name and unique_name in self.delete_cache and (now - self.delete_cache[unique_name] < 300)):
+                return  
+                
+            if item_id: self.delete_cache[item_id] = now
+            if unique_name: self.delete_cache[unique_name] = now
+            
+            # 顺手清理 10 分钟前的老记忆，防止内存溢出
+            self.delete_cache = {k: v for k, v in self.delete_cache.items() if now - v < 600}
+            # ==========================================
+            
+            year_str = f" ({year})" if year else ""
             del_type = "媒体"
             
+            # 精准推导删除内容的层级与结构
             if raw_type == "Movie":
                 del_type = "电影"
             elif raw_type == "Series":
@@ -532,12 +540,15 @@ class NotificationBot:
                    f"🕒 <b>时间：</b>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                    f"<i>* 该项目已从媒体库物理存储中被永久移除。</i>")
             
+            # 1. 尝试获取原目标图片（对于已删除的通常拿不到）
             primary_io = self._download_emby_image(item.get("Id"), 'Primary') if item.get("Id") else None
             backdrop_io = self._download_emby_image(item.get("Id"), 'Backdrop') if item.get("Id") else None
             
+            # 2. 如果是单集/季被删，自动去借用“整剧”的海报进行兜底
             if not primary_io and not backdrop_io and item.get("SeriesId"):
                 primary_io = self._download_emby_image(item.get("SeriesId"), 'Primary')
             
+            # 3. TMDB 云端海报溯源兜底
             tmdb_img_url = None
             if not primary_io and not backdrop_io:
                 tmdb_id = item.get("ProviderIds", {}).get("Tmdb")
