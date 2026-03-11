@@ -33,10 +33,10 @@
 {% endblock %}
 
 {% block content %}
-<div x-data="gapManager()" x-init="init()" class="w-full max-w-[1600px] mx-auto py-4 pb-32 px-4 sm:px-6 md:px-8 space-y-4 md:space-y-6" x-cloak>
+<div x-data="gapManager()" x-init="init()" class="w-full max-w-[1800px] mx-auto py-4 pb-32 px-4 sm:px-6 md:px-8 space-y-4 md:space-y-6" x-cloak>
 
-    <div class="apple-card flex flex-col lg:flex-row items-center justify-between gap-5 w-full mb-2 p-5 md:p-6">
-        <div class="flex items-center gap-4 pl-1 shrink-0 w-full lg:w-auto">
+    <div class="apple-card flex flex-col xl:flex-row items-center justify-between gap-5 w-full mb-2 p-5 md:p-6">
+        <div class="flex items-center gap-4 pl-1 shrink-0 w-full xl:w-auto">
             <div class="w-12 h-12 rounded-[14px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30 shrink-0 relative overflow-hidden">
                 <div x-show="isScanning" class="absolute inset-0 radar-sweep"></div>
                 <i class="fa-solid fa-tower-broadcast relative z-10" :class="isScanning ? 'animate-pulse' : ''"></i>
@@ -44,12 +44,12 @@
             <div>
                 <h2 class="text-xl md:text-[22px] font-bold tracking-tight text-gray-900 dark:text-white">媒体库缺集扫描</h2>
                 <div class="text-[12px] text-gray-500 mt-1 font-medium flex items-center gap-1.5">
-                    <i class="fa-solid fa-satellite-dish opacity-70"></i> <span>智能截胡与缺失补全</span>
+                    <i class="fa-solid fa-satellite-dish opacity-70"></i> <span>智能截胡与缺失补全网络</span>
                 </div>
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-end gap-3 w-full lg:flex-1">
+        <div class="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:flex-1">
             <div class="relative w-full sm:max-w-[280px] xl:max-w-md shrink-0">
                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                     <i class="fa-solid fa-magnifying-glass transition-colors"></i>
@@ -116,54 +116,53 @@
     <div x-show="!isScanning && filteredGaps.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5 items-stretch" x-transition x-cloak>
         <template x-for="series in displayedGaps" :key="series.series_id">
             
-            <div class="relative apple-card !p-3.5 !rounded-[24px] transition-all duration-300 z-10 group hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col justify-start">
+            <div :id="'card-' + series.series_id" class="relative apple-card !p-4 !rounded-[24px] transition-all duration-500 z-10 group hover:-translate-y-1 hover:shadow-lg overflow-hidden flex flex-row items-stretch gap-4 border border-gray-100 dark:border-white/5">
                 
                 <div :id="'tint-' + series.series_id" class="absolute inset-0 z-0 opacity-[0.12] dark:opacity-20 pointer-events-none transition-colors duration-1000"></div>
 
-                <div class="relative z-10 flex gap-3.5 items-start w-full">
-                    <a :href="series.emby_url" target="_blank" class="shrink-0 relative rounded-[14px] overflow-hidden shadow-md aspect-[2/3] w-20 sm:w-24 block group/poster border border-gray-200/50 dark:border-white/10">
-                        <img :src="series.poster" crossorigin="anonymous" loading="lazy" :data-color-done="false" :onload="`extractCardColor(this, 'tint-${series.series_id}')`" class="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-500 bg-gray-100 dark:bg-[#2C2C2E]">
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center">
-                            <i class="fa-solid fa-play text-white/90 text-2xl drop-shadow-lg"></i>
-                        </div>
-                    </a>
+                <a :href="series.emby_url" target="_blank" class="shrink-0 relative rounded-[14px] overflow-hidden shadow-md aspect-[2/3] w-20 sm:w-24 block group/poster border border-gray-200/50 dark:border-white/10 z-10">
+                    <img :src="series.poster" crossorigin="anonymous" loading="lazy" :data-color-done="false" :onload="`applyThemeColor(this, 'card-${series.series_id}')`" class="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-500 bg-gray-100 dark:bg-[#2C2C2E]">
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center">
+                        <i class="fa-solid fa-play text-white/90 text-2xl drop-shadow-lg"></i>
+                    </div>
+                </a>
 
-                    <div class="flex-1 min-w-0 flex flex-col h-full justify-start py-0.5">
-                        <div class="flex justify-between items-start w-full gap-2">
-                            <div class="min-w-0">
-                                <h3 class="text-[14px] sm:text-[15px] font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" x-text="series.series_name"></h3>
-                                <div class="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1.5 font-medium">
-                                    发现 <span class="text-rose-500 font-bold bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-100 dark:border-rose-900/30" x-text="series.gaps.length"></span> 处断层
+                <div class="flex-1 min-w-0 flex flex-col justify-start z-10 py-0.5">
+                    
+                    <div class="flex justify-between items-start gap-2 mb-2">
+                        <div class="min-w-0">
+                            <h3 class="text-[14px] sm:text-[15px] font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" x-text="series.series_name"></h3>
+                            <div class="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
+                                发现 <span class="text-rose-500 font-bold bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-100 dark:border-rose-900/30" x-text="series.gaps.length"></span> 处断层
+                            </div>
+                        </div>
+                        <button @click.prevent="ignoreSeries(series)" class="w-7 h-7 rounded-full bg-gray-100/80 dark:bg-black/20 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-colors border border-gray-200/80 dark:border-white/5 backdrop-blur-md shadow-sm shrink-0" title="永久忽略该剧">
+                            <i class="fa-solid fa-eye-slash text-[11px]"></i>
+                        </button>
+                    </div>
+
+                    <div class="mt-1 overflow-y-auto pr-1 space-y-2.5 mac-scrollbar flex-1 max-h-[100px] sm:max-h-[120px]">
+                        <template x-for="seasonGroup in series.grouped_gaps" :key="seasonGroup.season_num">
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-black text-indigo-500 dark:text-indigo-400 tracking-wider">S<span x-text="String(seasonGroup.season_num).padStart(2,'0')"></span></span>
+                                    <button @click="openResolverMulti(series, seasonGroup.season_num, seasonGroup.episodes)"
+                                            class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white px-2 py-0.5 rounded border border-indigo-200/50 shadow-sm dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400 transition-colors font-bold">
+                                        一键补齐
+                                    </button>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <template x-for="ep in seasonGroup.episodes" :key="ep.episode">
+                                        <button @click="openResolver(series, ep)" 
+                                                class="px-2 py-1 rounded-md border text-[10px] font-bold transition-all relative overflow-hidden shadow-sm"
+                                                :class="ep.status === 2 ? 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30' : 'bg-white dark:bg-[#2C2C2E] text-rose-600 border-rose-200 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:text-rose-400 dark:border-rose-500/30 dark:hover:bg-rose-600 dark:hover:text-white'">
+                                            <div x-show="ep.status === 2" class="absolute inset-x-0 bottom-0 bg-blue-300 dark:bg-blue-500/50 animate-pulse h-1/2"></div>
+                                            <span class="relative z-10">E<span x-text="ep.episode"></span></span>
+                                        </button>
+                                    </template>
                                 </div>
                             </div>
-                            <button @click.prevent="ignoreSeries(series)" class="w-7 h-7 rounded-full bg-gray-100/80 dark:bg-black/20 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-colors border border-gray-200/80 dark:border-white/5 backdrop-blur-md shadow-sm shrink-0" title="永久忽略该剧">
-                                <i class="fa-solid fa-eye-slash text-[11px]"></i>
-                            </button>
-                        </div>
-
-                        <div class="mt-3 overflow-y-auto pr-1 space-y-2 mac-scrollbar max-h-28 sm:max-h-32 w-full flex-1">
-                            <template x-for="seasonGroup in series.grouped_gaps" :key="seasonGroup.season_num">
-                                <div class="flex items-start gap-1.5 w-full flex-col sm:flex-row sm:items-center">
-                                    <div class="flex items-center justify-between w-full sm:w-auto">
-                                        <div class="text-[11px] font-black text-indigo-500 dark:text-indigo-400 w-6 shrink-0 pt-0.5 tracking-wider">S<span x-text="String(seasonGroup.season_num).padStart(2,'0')"></span></div>
-                                        <button @click="openResolverMulti(series, seasonGroup.season_num, seasonGroup.episodes)" class="sm:hidden text-[9px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-bold border border-indigo-200/50 shadow-sm dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400">一键补齐</button>
-                                    </div>
-                                    
-                                    <div class="flex flex-wrap gap-1.5 flex-1 items-center">
-                                        <template x-for="ep in seasonGroup.episodes" :key="ep.episode">
-                                            <button @click="openResolver(series, ep)" 
-                                                    class="px-2 py-1 rounded-md text-[10px] sm:text-[11px] font-bold transition-all shadow-sm relative overflow-hidden border"
-                                                    :class="ep.status === 2 ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30 dark:hover:bg-blue-500/30' : 'bg-white dark:bg-[#2C2C2E] text-rose-600 border-rose-200 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:text-rose-400 dark:border-rose-500/30 dark:hover:bg-rose-600 dark:hover:text-white dark:hover:border-rose-600'"
-                                                    :title="ep.status === 2 ? '处理中 (点击可重新配型换种)' : '点击补全该集'">
-                                                <div x-show="ep.status === 2" class="absolute inset-x-0 bottom-0 bg-blue-300 dark:bg-blue-500/50 animate-pulse h-1/2"></div>
-                                                <span class="relative z-10" x-text="ep.episode"></span>
-                                            </button>
-                                        </template>
-                                        <button @click="openResolverMulti(series, seasonGroup.season_num, seasonGroup.episodes)" class="hidden sm:flex px-1.5 py-1 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-200/80 hover:bg-indigo-500 hover:text-white transition-colors shadow-sm items-center gap-1 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-600 dark:hover:text-white" title="一键搜索季包并提取所有缺失集"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -171,7 +170,7 @@
     </div>
 
     <div x-show="!isScanning && displayLimit < filteredGaps.length" class="text-center mt-10 pb-10" x-cloak>
-        <button @click="loadMore()" class="px-6 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 dark:bg-[#2C2C2E] dark:border-white/5 dark:hover:bg-[#3A3A3C] text-gray-700 dark:text-gray-200 font-bold transition shadow-sm flex items-center justify-center gap-2 mx-auto active:scale-95 text-[13px]">
+        <button @click="loadMore()" class="px-8 py-3.5 rounded-full bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-200 font-bold transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 mx-auto text-[13px]">
             <span>继续加载剩余 <span x-text="filteredGaps.length - displayLimit" class="text-indigo-500 font-black"></span> 部剧集</span> <i class="fa-solid fa-angle-down"></i>
         </button>
     </div>
@@ -307,15 +306,8 @@
                                     <div class="flex flex-wrap items-center gap-2 mt-1.5">
                                         <span class="text-[10px] px-2 py-0.5 rounded-md font-black border shadow-sm" :class="res.match_score >= 50 ? 'bg-emerald-50 text-emerald-600 border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : (res.match_score > 0 ? 'bg-indigo-50 text-indigo-600 border-indigo-200/50 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20' : 'bg-gray-100 text-gray-500 border-gray-200/50 dark:bg-[#3A3A3C] dark:text-gray-300 dark:border-white/5')">Score: <span x-text="res.match_score"></span></span>
                                         <span class="text-[10px] font-mono text-gray-500 dark:text-gray-400 font-bold bg-gray-50 dark:bg-[#2C2C2E] px-1.5 py-0.5 rounded border border-gray-200/50 dark:border-white/5 shadow-sm" x-text="formatBytes(res.ui_size)"></span>
-                                        
-                                        <span class="text-[10px] text-teal-600 dark:text-teal-400 font-bold flex items-center gap-1 ml-1">
-                                            <i class="fa-solid fa-server"></i> <span x-text="res.ui_site"></span>
-                                        </span>
-                                        
-                                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 ml-1">
-                                            <i class="fa-solid fa-seedling"></i> <span x-text="res.ui_seeders"></span>
-                                        </span>
-
+                                        <span class="text-[10px] text-teal-600 dark:text-teal-400 font-bold flex items-center gap-1 ml-1"><i class="fa-solid fa-server"></i> <span x-text="res.ui_site"></span></span>
+                                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 ml-1"><i class="fa-solid fa-seedling"></i> <span x-text="res.ui_seeders"></span></span>
                                         <template x-for="tag in res.extracted_tags" :key="tag"><span class="text-[10px] text-indigo-500 dark:text-indigo-400 font-bold ml-1 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 rounded" x-text="tag"></span></template>
                                     </div>
                                 </div>
@@ -339,15 +331,32 @@
 
 <script>
 const globalColorThief = new ColorThief();
-window.extractCardColor = function(imgElement, tintId) {
+window.applyThemeColor = function(imgElement, cardId) {
     if (imgElement.complete && imgElement.getAttribute('data-color-done') !== 'true') {
         try {
             const color = globalColorThief.getColor(imgElement);
+            const card = document.getElementById(cardId);
+            const tintId = cardId.replace('card-', 'tint-');
             const tint = document.getElementById(tintId);
-            if (tint) {
+            
+            if (card && tint) {
+                const isDark = document.documentElement.classList.contains('dark');
+                // 让背景有微弱的同色系渐变
                 tint.style.background = `linear-gradient(135deg, rgb(${color[0]}, ${color[1]}, ${color[2]}) 0%, transparent 80%)`;
-                imgElement.setAttribute('data-color-done', 'true');
+                
+                const borderTint = isDark ? `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)` : `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`;
+                const shadowTint = `0 16px 40px -10px rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.5)`;
+
+                card.addEventListener('mouseenter', () => {
+                    card.style.boxShadow = shadowTint;
+                    card.style.borderColor = borderTint;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.boxShadow = '';
+                    card.style.borderColor = '';
+                });
             }
+            imgElement.setAttribute('data-color-done', 'true');
         } catch(e) {}
     }
 };
@@ -481,7 +490,6 @@ document.addEventListener('alpine:init', () => {
         async startScan() {
             // 🔥 修复 Bug：只有在手动点击重新扫描时，才折叠列表。日常操作和后台静默刷新不再折叠！
             this.displayLimit = 24; 
-            
             try {
                 const res = await fetch('/api/gaps/scan/start', { method: 'POST' });
                 const data = await res.json();
