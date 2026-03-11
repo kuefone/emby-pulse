@@ -38,7 +38,7 @@
 {% endblock %}
 
 {% block content %}
-<div x-data="gapManager()" x-init="init()" class="w-full max-w-[1800px] mx-auto py-4 pb-32 px-4 sm:px-6 md:px-8 space-y-4 md:space-y-6" x-cloak>
+<div x-data="gapManager()" x-init="init()" class="w-full max-w-[1800px] mx-auto py-4 pb-40 px-4 sm:px-6 md:px-8 space-y-4 md:space-y-6" x-cloak>
 
     <div class="apple-card flex flex-col xl:flex-row items-center justify-between gap-5 w-full mb-2 p-5 md:p-6">
         <div class="flex items-center gap-4 pl-1 shrink-0 w-full xl:w-auto">
@@ -122,38 +122,27 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">换个关键词试试，或者该剧很完美，没有缺集。</p>
     </div>
 
-    <div class="col-span-full flex flex-wrap items-center justify-between px-3 pb-2 gap-3" x-show="!isScanning && filteredGaps.length > 0" x-cloak>
-        <label class="flex items-center gap-2 cursor-pointer group">
-            <input type="checkbox" @click="toggleSelectAll()" :checked="selectedSeries.length > 0 && selectedSeries.length === displayedGaps.length" class="w-4 h-4 text-indigo-500 rounded cursor-pointer bg-white dark:bg-[#2C2C2E] border-gray-300 dark:border-gray-600 focus:ring-indigo-500">
-            <span class="text-[13px] text-gray-500 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 font-bold transition">全选本页 <span x-text="displayedGaps.length"></span> 部剧集</span>
-        </label>
-
-        <div x-show="selectedSeries.length > 0" x-transition class="flex items-center gap-2.5 bg-white/50 dark:bg-[#2C2C2E]/50 px-3 py-1.5 rounded-xl border border-gray-200/50 dark:border-white/5 shadow-sm backdrop-blur-md">
-            <span class="text-[12px] font-black text-indigo-500">已选 <span x-text="selectedSeries.length"></span> 项</span>
-            <div class="w-[1px] h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-            <button @click="batchIgnoreSeries()" class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 rounded-lg text-[12px] font-bold transition active:scale-95 shadow-sm flex items-center gap-1.5">
-                <i class="fa-solid fa-eye-slash"></i> 批量永久忽略
-            </button>
-        </div>
-    </div>
-
     <div x-show="!isScanning && filteredGaps.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5" x-transition x-cloak>
         <template x-for="series in displayedGaps" :key="series.series_id">
             
-            <div :id="'card-' + series.series_id" class="relative apple-card !p-4 !rounded-[24px] transition-all duration-500 z-10 group hover:-translate-y-1 hover:shadow-lg overflow-hidden flex flex-row items-center gap-4 border border-gray-100 dark:border-white/5"
-                 :class="selectedSeries.includes(series.series_id) ? 'ring-2 ring-indigo-500 bg-indigo-50/10 dark:bg-indigo-900/10' : ''">
+            <div :id="'card-' + series.series_id" class="relative apple-card !p-4 !rounded-[24px] transition-all duration-500 z-10 group hover:-translate-y-1 hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.6)] overflow-hidden flex flex-row items-center gap-4 border border-gray-100 dark:border-white/5"
+                 :class="selectedSeries.includes(series.series_id) ? 'ring-2 ring-indigo-500 bg-indigo-50/20 dark:bg-indigo-900/10' : ''">
                 
                 <div :id="'tint-' + series.series_id" class="absolute inset-0 z-0 opacity-[0.12] dark:opacity-20 pointer-events-none transition-colors duration-1000"></div>
 
                 <div class="shrink-0 relative rounded-[14px] overflow-hidden shadow-md aspect-[2/3] w-24 sm:w-28 xl:w-32 block group/poster border border-gray-200/50 dark:border-white/10 z-10">
                     
-                    <div class="absolute top-2 left-2 z-30 transition-opacity duration-300" :class="selectedSeries.includes(series.series_id) ? 'opacity-100' : 'opacity-0 group-hover/poster:opacity-100'">
-                        <input type="checkbox" :value="series.series_id" x-model="selectedSeries" class="w-5 h-5 text-indigo-600 bg-white/80 backdrop-blur border-gray-300 rounded cursor-pointer shadow-sm focus:ring-indigo-500">
-                    </div>
+                    <label class="absolute top-2 left-2 z-30 cursor-pointer transition-all duration-400" 
+                           :class="selectedSeries.includes(series.series_id) ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover/poster:opacity-100 group-hover/poster:scale-100'">
+                        <input type="checkbox" :value="series.series_id" x-model="selectedSeries" class="hidden peer">
+                        <div class="w-[22px] h-[22px] rounded-full border-[1.5px] border-white/90 bg-black/30 backdrop-blur-md peer-checked:bg-indigo-500 peer-checked:border-indigo-500 shadow-sm flex items-center justify-center transition-all duration-300 group-hover/poster:bg-black/50 peer-checked:group-hover/poster:bg-indigo-600">
+                            <i class="fa-solid fa-check text-white text-[11px] opacity-0 peer-checked:opacity-100 transform scale-50 peer-checked:scale-100 transition-all duration-300"></i>
+                        </div>
+                    </label>
 
                     <a :href="series.emby_url" target="_blank" class="w-full h-full block">
-                        <img :src="series.poster" crossorigin="anonymous" loading="lazy" :data-color-done="false" :onload="`applyThemeColor(this, 'card-${series.series_id}')`" class="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-500 bg-gray-100 dark:bg-[#2C2C2E]">
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center">
+                        <img :src="series.poster" crossorigin="anonymous" loading="lazy" :data-color-done="false" :onload="`applyThemeColor(this, 'card-${series.series_id}')`" class="w-full h-full object-cover group-hover/poster:scale-105 transition-transform duration-700 bg-gray-100 dark:bg-[#2C2C2E]">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                             <i class="fa-solid fa-play text-white/90 text-2xl drop-shadow-lg"></i>
                         </div>
                     </a>
@@ -168,7 +157,7 @@
                                 发现 <span class="text-rose-500 font-bold bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-100 dark:border-rose-900/30" x-text="series.gaps.length"></span> 处断层
                             </div>
                         </div>
-                        <button @click.prevent="ignoreSeries(series)" class="w-7 h-7 rounded-full bg-gray-100/80 dark:bg-black/20 flex items-center justify-center text-gray-400 hover:text-rose-500 transition-colors border border-gray-200/80 dark:border-white/5 backdrop-blur-md shadow-sm shrink-0" title="永久忽略该剧">
+                        <button @click.prevent="ignoreSeries(series)" class="w-7 h-7 rounded-full bg-gray-100/80 dark:bg-black/20 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/20 transition-all border border-gray-200/80 dark:border-white/5 backdrop-blur-md shadow-sm shrink-0" title="永久忽略该剧">
                             <i class="fa-solid fa-eye-slash text-[11px]"></i>
                         </button>
                     </div>
@@ -179,14 +168,14 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-[11px] font-black text-indigo-500 dark:text-indigo-400 tracking-wider">S<span x-text="String(seasonGroup.season_num).padStart(2,'0')"></span></span>
                                     <button @click="openResolverMulti(series, seasonGroup.season_num, seasonGroup.episodes)"
-                                            class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white px-2 py-0.5 rounded border border-indigo-200/50 shadow-sm dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400 transition-colors font-bold">
+                                            class="text-[9px] bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white px-2 py-0.5 rounded border border-indigo-200/50 shadow-sm dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400 transition-colors font-bold active:scale-95">
                                         一键补齐
                                     </button>
                                 </div>
                                 <div class="flex flex-wrap gap-1.5">
                                     <template x-for="ep in seasonGroup.episodes" :key="ep.episode">
                                         <button @click="openResolver(series, ep)" 
-                                                class="px-2 py-1 rounded-md border text-[10px] font-bold transition-all relative overflow-hidden shadow-sm"
+                                                class="px-2 py-1 rounded-md border text-[10px] font-bold transition-all relative overflow-hidden shadow-sm active:scale-95"
                                                 :class="ep.status === 2 ? 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30' : 'bg-white dark:bg-[#2C2C2E] text-rose-600 border-rose-200 hover:bg-rose-500 hover:text-white hover:border-rose-500 dark:text-rose-400 dark:border-rose-500/30 dark:hover:bg-rose-600 dark:hover:text-white'">
                                             <div x-show="ep.status === 2" class="absolute inset-x-0 bottom-0 bg-blue-300 dark:bg-blue-500/50 animate-pulse h-1/2"></div>
                                             <span class="relative z-10">E<span x-text="ep.episode"></span></span>
@@ -213,6 +202,40 @@
         </div>
         <h3 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">媒体库完美无暇</h3>
         <p class="text-[13px] font-medium text-gray-500 dark:text-gray-400 mt-2">雷达未发现任何可修补的断层，强迫症极大满足。</p>
+    </div>
+
+    <div x-show="selectedSeries.length > 0" 
+         x-transition:enter="transition ease-out duration-400 cubic-bezier(0.34, 1.56, 0.64, 1)" 
+         x-transition:enter-start="opacity-0 translate-y-16 scale-90" 
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+         x-transition:leave="transition ease-in duration-200" 
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
+         x-transition:leave-end="opacity-0 translate-y-16 scale-90" 
+         class="fixed z-[90] left-1/2 -translate-x-1/2 bottom-[88px] md:bottom-10 w-[92%] sm:w-auto max-w-2xl pointer-events-none" 
+         x-cloak>
+        
+        <div class="bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.6)] rounded-full px-2 py-2 flex items-center justify-between gap-4 md:gap-8 pointer-events-auto">
+            
+            <div class="flex items-center pl-2 md:pl-4 shrink-0">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-[13px] shadow-inner border border-indigo-200/50 dark:border-indigo-500/30">
+                    <span x-text="selectedSeries.length"></span>
+                </div>
+                <span class="ml-2.5 text-[13px] font-bold text-gray-700 dark:text-gray-200 hidden sm:inline">项已选择</span>
+            </div>
+
+            <div class="flex items-center gap-1.5 pr-1">
+                <button @click="toggleSelectAll()" class="px-3 md:px-4 py-2 rounded-full text-[12px] font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition-colors whitespace-nowrap active:scale-95">
+                    <span x-text="selectedSeries.length === displayedGaps.length ? '取消全选' : '全选本页'"></span>
+                </button>
+                <div class="w-[1px] h-5 bg-gray-200 dark:bg-gray-600 mx-1"></div>
+                <button @click="selectedSeries = []" class="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition-colors shrink-0 active:scale-90" title="清空选择">
+                    <i class="fa-solid fa-xmark text-[14px]"></i>
+                </button>
+                <button @click="batchIgnoreSeries()" class="flex items-center gap-1.5 px-4 md:px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-[12px] md:text-[13px] font-bold shadow-md shadow-rose-500/30 transition-all active:scale-95 whitespace-nowrap ml-1 md:ml-2">
+                    <i class="fa-solid fa-eye-slash"></i> <span class="hidden sm:inline">批量忽略</span><span class="sm:inline hidden md:hidden">忽略</span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <div x-show="configModal.open" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" x-cloak>
@@ -634,7 +657,6 @@ document.addEventListener('alpine:init', () => {
             });
             this.hasScanned = true;
             
-            // 如果刷新时勾选的数据已经不在了，清空勾选
             const currentIds = this.gapData.map(s => s.series_id);
             this.selectedSeries = this.selectedSeries.filter(id => currentIds.includes(id));
         },
