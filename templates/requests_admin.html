@@ -46,10 +46,10 @@
     <div class="apple-card flex flex-col xl:flex-row xl:items-center justify-between gap-5 w-full mb-2 p-5 md:p-6">
         <div class="flex items-center gap-4 pl-1 shrink-0">
             
-            <div x-show="viewMode === 'request'" class="w-12 h-12 rounded-[14px] bg-brand-500 text-white flex items-center justify-center text-xl shadow-md shadow-brand-500/30 shrink-0">
-                <i class="fa-solid fa-popcorn"></i>
+            <div x-show="viewMode === 'request'" class="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-[22px] shadow-lg shadow-blue-500/30 shrink-0">
+                <i class="fa-solid fa-clapperboard"></i>
             </div>
-            <div x-show="viewMode === 'feedback'" class="w-12 h-12 rounded-[14px] bg-red-500 text-white flex items-center justify-center text-xl shadow-md shadow-red-500/30 shrink-0" x-cloak>
+            <div x-show="viewMode === 'feedback'" class="w-12 h-12 rounded-[14px] bg-gradient-to-br from-red-500 to-rose-600 text-white flex items-center justify-center text-[22px] shadow-lg shadow-red-500/30 shrink-0" x-cloak>
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
 
@@ -65,7 +65,7 @@
         <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
             <div class="flex bg-gray-100 dark:bg-[#2C2C2E] p-1 rounded-[14px] shadow-inner border border-transparent dark:border-white/5 w-full sm:w-auto relative">
                 <button @click="switchView('request')" class="flex-1 sm:flex-none px-6 py-2 rounded-[10px] text-[13px] font-bold transition-all z-10" :class="viewMode === 'request' ? 'bg-white dark:bg-[#1C1C1E] shadow-sm text-brand-500' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'">
-                    <i class="fa-solid fa-popcorn mr-1.5"></i> 求片
+                    <i class="fa-solid fa-clapperboard mr-1.5"></i> 求片
                 </button>
                 <button @click="switchView('feedback')" class="flex-1 sm:flex-none px-6 py-2 rounded-[10px] text-[13px] font-bold transition-all z-10" :class="viewMode === 'feedback' ? 'bg-white dark:bg-[#1C1C1E] shadow-sm text-red-500' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'">
                     <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> 报错
