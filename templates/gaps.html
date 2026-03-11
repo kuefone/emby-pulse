@@ -40,7 +40,7 @@
 {% block content %}
 <div x-data="gapManager()" x-init="init()" class="w-full max-w-[1800px] mx-auto py-4 pb-40 px-4 sm:px-6 md:px-8 space-y-4 md:space-y-6" x-cloak>
 
-    <div class="apple-card flex flex-col xl:flex-row items-center justify-between gap-5 w-full mb-2 p-5 md:p-6">
+    <div class="apple-card flex flex-col xl:flex-row items-start xl:items-center justify-between gap-5 w-full mb-2 p-5 md:p-6">
         <div class="flex items-center gap-4 pl-1 shrink-0 w-full xl:w-auto">
             <div class="w-12 h-12 rounded-[14px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30 shrink-0 relative overflow-hidden">
                 <div x-show="isScanning" class="absolute inset-0 radar-sweep"></div>
@@ -54,8 +54,8 @@
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:flex-1">
-            <div class="relative w-full sm:max-w-[280px] xl:max-w-md shrink-0">
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-end gap-3 w-full xl:flex-1">
+            <div class="relative w-full lg:max-w-[280px] xl:max-w-md shrink-0">
                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                     <i class="fa-solid fa-magnifying-glass transition-colors"></i>
                 </div>
@@ -72,8 +72,8 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#2C2C2E] border border-transparent dark:border-white/5 px-3 py-2.5 rounded-[12px] shadow-sm">
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto shrink-0">
+                <div class="flex items-center justify-between gap-2 bg-gray-100 dark:bg-[#2C2C2E] border border-transparent dark:border-white/5 px-3 py-2.5 rounded-[12px] shadow-sm flex-1 sm:flex-none">
                     <span class="text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-robot mr-1"></i>自动模式</span>
                     <label class="relative inline-flex items-center cursor-pointer shrink-0">
                         <input type="checkbox" x-model="autoScan" @change="toggleAutoScan()" class="sr-only peer">
@@ -81,15 +81,17 @@
                     </label>
                 </div>
                 
-                <button @click="openIgnoreModal()" class="w-10 h-10 flex items-center justify-center rounded-[12px] text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-[#2C2C2E] hover:bg-gray-200 dark:hover:bg-[#3A3A3C] transition-all shadow-sm border border-transparent dark:border-white/5 active:scale-95" title="忽略清单">
-                    <i class="fa-solid fa-trash-can-arrow-up"></i>
-                </button>
-                
-                <button @click="openConfigModal()" class="w-10 h-10 flex items-center justify-center rounded-[12px] text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all shadow-sm border border-indigo-200/50 dark:border-indigo-500/20 active:scale-95" title="底层接管配置">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
+                <div class="flex gap-2 shrink-0">
+                    <button @click="openIgnoreModal()" class="w-10 h-10 flex items-center justify-center rounded-[12px] text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-[#2C2C2E] hover:bg-gray-200 dark:hover:bg-[#3A3A3C] transition-all shadow-sm border border-transparent dark:border-white/5 active:scale-95" title="忽略清单">
+                        <i class="fa-solid fa-trash-can-arrow-up"></i>
+                    </button>
+                    
+                    <button @click="openConfigModal()" class="w-10 h-10 flex items-center justify-center rounded-[12px] text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all shadow-sm border border-indigo-200/50 dark:border-indigo-500/20 active:scale-95" title="底层接管配置">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
 
-                <button @click="startScan()" :disabled="isScanning" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-[12px] text-[13px] font-bold transition-all shadow-sm active:scale-95 border border-transparent"
+                <button @click="startScan()" :disabled="isScanning" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-[12px] text-[13px] font-bold transition-all shadow-sm active:scale-95 border border-transparent min-w-[120px]"
                         :class="isScanning ? 'bg-gray-100 text-gray-400 dark:bg-[#2C2C2E] dark:text-gray-500 cursor-not-allowed dark:border-white/5' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/30 shadow-md'">
                     <i x-show="!isScanning" class="fa-solid fa-satellite-dish"></i>
                     <i x-show="isScanning" class="fa-solid fa-circle-notch fa-spin text-gray-400 dark:text-gray-500"></i>
@@ -125,12 +127,12 @@
     <div x-show="!isScanning && filteredGaps.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5" x-transition x-cloak>
         <template x-for="series in displayedGaps" :key="series.series_id">
             
-            <div :id="'card-' + series.series_id" class="relative apple-card !p-4 !rounded-[24px] transition-all duration-500 z-10 group hover:-translate-y-1 hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.6)] overflow-hidden flex flex-row items-center md:items-stretch md:aspect-[235/100] gap-4 border border-gray-100 dark:border-white/5"
+            <div :id="'card-' + series.series_id" class="relative apple-card !p-4 !rounded-[24px] transition-all duration-500 z-10 group hover:-translate-y-1 hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.6)] overflow-hidden flex flex-row items-stretch h-[210px] sm:h-[230px] md:h-[250px] xl:h-[280px] gap-4 border border-gray-100 dark:border-white/5"
                  :class="selectedSeries.includes(series.series_id) ? 'ring-2 ring-indigo-500 bg-indigo-50/20 dark:bg-indigo-900/10' : ''">
                 
                 <div :id="'tint-' + series.series_id" class="absolute inset-0 z-0 opacity-[0.12] dark:opacity-20 pointer-events-none transition-colors duration-1000"></div>
 
-                <div class="shrink-0 relative rounded-[14px] overflow-hidden shadow-md aspect-[2/3] w-28 sm:w-32 md:w-auto md:h-full block group/poster border border-gray-200/50 dark:border-white/10 z-10">
+                <div class="shrink-0 relative rounded-[14px] overflow-hidden shadow-md aspect-[2/3] h-full block group/poster border border-gray-200/50 dark:border-white/10 z-10">
                     
                     <label class="absolute top-2 left-2 z-30 cursor-pointer transition-all duration-400" 
                            :class="selectedSeries.includes(series.series_id) ? 'opacity-100 scale-100' : 'opacity-0 scale-90 group-hover/poster:opacity-100 group-hover/poster:scale-100'">
@@ -148,7 +150,7 @@
                     </a>
                 </div>
 
-                <div class="flex-1 min-w-0 flex flex-col justify-start z-10 py-1 max-h-[260px] md:max-h-none md:h-full overflow-hidden">
+                <div class="flex-1 min-w-0 flex flex-col justify-start z-10 h-full overflow-hidden">
                     
                     <div class="flex justify-between items-start gap-2 mb-3 shrink-0">
                         <div class="min-w-0">

@@ -455,7 +455,6 @@ class NotificationBot:
             self.send_photo("sys_notify", tg_img, msg, reply_markup=keyboard, platform="all", wecom_photo_io=wecom_img)
         except Exception as e: pass
 
-    # 🔥 史诗级重构：登录图文推送 (兼容 TG 与 企微)
     def on_user_login(self, data):
         if not cfg.get("notify_user_login"): return
         try:
@@ -476,34 +475,59 @@ class NotificationBot:
                    f"🕒 <b>时间：</b>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
             avatar_io = self._download_user_image(user_id) if user_id else None
-            # 若 Emby 未设置头像，使用 DiceBear 智能生成炫酷专属头像
             fallback_img = "https://api.dicebear.com/9.x/notionists/png?seed=" + urllib.parse.quote(user_name)
             
             tg_img = avatar_io or fallback_img
-            # 采用 send_photo，企微端会自动转化为带左侧小图的图文 News 卡片
             self.send_photo("sys_notify", tg_img, msg, platform="all", wecom_photo_io=tg_img)
         except Exception as e: 
             logger.error(f"登录通知组装异常: {e}")
 
-    # 🔥 史诗级重构：删除图文推送 (兼容 TG 与 企微)
+    # 🔥 史诗级重构：精准识别删除类型、SxxExx 组装、与父级海报溯源兜底
     def on_item_deleted(self, data):
         if not cfg.get("notify_item_deleted"): return
         try:
             item = data.get("Item") or data
+            
+            raw_type = item.get("Type", "")
             title = item.get("Name") or item.get("Title") or "未知资源"
-            if item.get("SeriesName"): title = f"{item.get('SeriesName')} - {title}"
+            series_name = item.get("SeriesName")
+            
+            season_num = item.get("ParentIndexNumber")
+            ep_num = item.get("IndexNumber")
             
             year = item.get("ProductionYear", "")
             year_str = f" ({year})" if year else ""
             
-            msg = (f"🗑️ <b>系统通知：媒体已删除</b>\n\n"
+            del_type = "媒体"
+            
+            # 精准推导删除内容的层级与结构
+            if raw_type == "Movie":
+                del_type = "电影"
+            elif raw_type == "Series":
+                del_type = "整剧"
+            elif raw_type == "Season":
+                del_type = "整季"
+                # 有些老版本删季的时候把季数放到了 IndexNumber 里
+                s_num = ep_num if ep_num is not None else season_num
+                title = f"{series_name or title} - 第 {s_num} 季" if s_num else f"{series_name or title}"
+            elif raw_type == "Episode" or (series_name and ep_num is not None):
+                del_type = "单集"
+                s_str = str(season_num).zfill(2) if season_num is not None else "01"
+                e_str = str(ep_num).zfill(2) if ep_num is not None else "XX"
+                title = f"{series_name or '未知剧集'} S{s_str}E{e_str} {title}"
+            
+            msg = (f"🗑️ <b>系统告警：{del_type}被删除</b>\n\n"
                    f"🎬 <b>内容：</b>{title}{year_str}\n"
                    f"🕒 <b>时间：</b>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                   f"<i>* 该项目已从媒体库中被永久移除。</i>")
+                   f"<i>* 该项目已从媒体库物理存储中被永久移除。</i>")
             
-            # 删除后大概率抓不到图，做双重容灾获取
+            # 1. 尝试获取原目标图片（对于已删除的通常拿不到）
             primary_io = self._download_emby_image(item.get("Id"), 'Primary') if item.get("Id") else None
             backdrop_io = self._download_emby_image(item.get("Id"), 'Backdrop') if item.get("Id") else None
+            
+            # 2. 如果是单集/季被删，自动去借用“整剧”的海报进行兜底
+            if not primary_io and not backdrop_io and item.get("SeriesId"):
+                primary_io = self._download_emby_image(item.get("SeriesId"), 'Primary')
             
             tg_img = primary_io or backdrop_io or REPORT_COVER_URL
             
@@ -531,7 +555,6 @@ class NotificationBot:
         proxy = cfg.get("proxy_url")
         return {"http": proxy, "https": proxy} if proxy else None
 
-    # 🔥 新增工具：专门提取用户头像
     def _download_user_image(self, user_id):
         key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
         if not key or not host or not user_id: return None
@@ -1138,7 +1161,6 @@ class NotificationBot:
                "/help - 获取本帮助菜单")
         self.send_message(cid, msg.strip(), platform=platform)
 
-
 # ==============================================================================
 # 🎮 终极包装层
 # ==============================================================================
@@ -1164,7 +1186,6 @@ class EmbyPulseOrchestrator:
     def push_playback_event(self, data, action="start"):
         bus.publish("webhook.received", f"playback.{action}", data)
 
-    # 🔥 史诗级修复：增加向下透传的网关，完美接管企微回调和任何外部指令
     def _handle_message(self, text, cid, platform="tg"):
         self.notifier._handle_message(text, cid, platform)
 
