@@ -16,9 +16,6 @@ from app.core.event_bus import bus
 
 logger = logging.getLogger("uvicorn")
 
-# ==============================================================================
-# 🧠 第一层：潜意识核心 (System Daemon)
-# ==============================================================================
 class SystemDaemon:
     def __init__(self):
         self.running = False
@@ -26,19 +23,15 @@ class SystemDaemon:
         self.library_queue = []
         self.library_lock = threading.Lock()
         self.library_thread = None
-        
         self.last_check_min = -1
         self.last_sync_min = -1
-        
         bus.subscribe("webhook.received", self.on_webhook_event)
         
     def start(self):
         if self.running: return
         self.running = True
-        
         self.schedule_thread = threading.Thread(target=self._scheduler_loop, daemon=True)
         self.schedule_thread.start()
-        
         self.library_thread = threading.Thread(target=self._library_notify_loop, daemon=True)
         self.library_thread.start()
         print("🧠 System Daemon Started (Event Subsystem Online)")
@@ -54,15 +47,10 @@ class SystemDaemon:
                     from app.services.calendar_service import calendar_service
                     calendar_service.mark_episode_ready(item.get("SeriesId"), item.get("ParentIndexNumber"), item.get("IndexNumber"))
                     self._clear_gap_record_async(item)
-        
-        elif "playback.start" in event:
-            bus.publish("notify.playback.start", data)
-        elif "playback.stop" in event:
-            bus.publish("notify.playback.stop", data)
-        elif "auth" in event or "login" in event:
-            bus.publish("notify.user.login", data)
-        elif "delete" in event or "remove" in event:
-            bus.publish("notify.item.deleted", data)
+        elif "playback.start" in event: bus.publish("notify.playback.start", data)
+        elif "playback.stop" in event: bus.publish("notify.playback.stop", data)
+        elif "auth" in event or "login" in event: bus.publish("notify.user.login", data)
+        elif "delete" in event or "remove" in event: bus.publish("notify.item.deleted", data)
 
     def _get_admin_id(self):
         key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
@@ -116,11 +104,8 @@ class SystemDaemon:
     def _library_notify_loop(self):
         while self.running:
             try:
-                with self.library_lock:
-                    has_data = len(self.library_queue) > 0
-                if not has_data:
-                    time.sleep(2)
-                    continue
+                with self.library_lock: has_data = len(self.library_queue) > 0
+                if not has_data: time.sleep(2); continue
 
                 idle_time = 0; last_len = 0; max_wait = 0
                 while idle_time < 15 and max_wait < 120:
@@ -128,8 +113,7 @@ class SystemDaemon:
                     idle_time += 3; max_wait += 3
                     with self.library_lock:
                         curr_len = len(self.library_queue)
-                        if curr_len > last_len:
-                            idle_time = 0; last_len = curr_len
+                        if curr_len > last_len: idle_time = 0; last_len = curr_len
                 
                 items_to_process = []
                 with self.library_lock:
@@ -137,22 +121,15 @@ class SystemDaemon:
                     self.library_queue = [] 
                 
                 if items_to_process: self._process_library_group(items_to_process)
-            except Exception as e:
-                time.sleep(5)
+            except Exception as e: time.sleep(5)
 
     def _process_library_group(self, items):
         groups = defaultdict(list)
         for item in items:
             itype = item.get('Type')
-            if itype in ['Episode', 'Season'] and item.get('SeriesId'):
-                sid = str(item.get('SeriesId'))
-                groups[sid].append(item)
-            elif itype == 'Series':
-                sid = str(item.get('Id'))
-                groups[sid].append(item)
-            else:
-                mid = str(item.get('Id'))
-                groups[mid].append(item)
+            if itype in ['Episode', 'Season'] and item.get('SeriesId'): groups[str(item.get('SeriesId'))].append(item)
+            elif itype == 'Series': groups[str(item.get('Id'))].append(item)
+            else: groups[str(item.get('Id'))].append(item)
 
         for group_id, group_items in groups.items():
             try:
@@ -166,14 +143,12 @@ class SystemDaemon:
                         else:
                             episodes_only = [x for x in group_items if x.get('Type') == 'Episode']
                             if episodes_only: self._push_episode_group(group_id, episodes_only)
-                else:
-                    self._push_single_item(group_items[0])
+                else: self._push_single_item(group_items[0])
                 time.sleep(2) 
             except Exception as e: pass
 
     def _check_fresh_episodes(self, series_id):
-        key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
-        admin_id = self._get_admin_id()
+        key = cfg.get("emby_api_key"); host = cfg.get("emby_host"); admin_id = self._get_admin_id()
         if not admin_id: return []
         try:
             url = f"{host}/emby/Users/{admin_id}/Items"
@@ -188,12 +163,10 @@ class SystemDaemon:
                 if not curr_time: 
                     if i == 0: fresh_list.append(item)
                     break
-                if i == 0:
-                    fresh_list.append(item); last_time = curr_time
+                if i == 0: fresh_list.append(item); last_time = curr_time
                 else:
                     delta = abs((last_time - curr_time).total_seconds())
-                    if delta <= 120:  
-                        fresh_list.append(item); last_time = curr_time 
+                    if delta <= 120: fresh_list.append(item); last_time = curr_time 
                     else: break 
             return fresh_list
         except Exception as e: return []
@@ -259,8 +232,7 @@ class SystemDaemon:
         try:
             rows = query_db("SELECT tmdb_id, media_type, season FROM media_requests WHERE status IN (1, 4)")
             if not rows: return
-            host = cfg.get("emby_host"); key = cfg.get("emby_api_key")
-            admin_id = self._get_admin_id()
+            host = cfg.get("emby_host"); key = cfg.get("emby_api_key"); admin_id = self._get_admin_id()
             if not admin_id: return
             for r in rows:
                 tid = r['tmdb_id']; mtype = r['media_type']; sn = r['season']
@@ -290,9 +262,6 @@ class SystemDaemon:
         except: pass
 
 
-# ==============================================================================
-# 📣 第二层：表达层 (Notification Bot)
-# ==============================================================================
 class NotificationBot:
     def __init__(self):
         self.running = False
@@ -312,7 +281,6 @@ class NotificationBot:
         bus.subscribe("notify.user.login", self.on_user_login)
         bus.subscribe("notify.item.deleted", self.on_item_deleted)
         bus.subscribe("notify.daily_report", self.on_daily_report)
-        # 🔥 新增风控警报订阅
         bus.subscribe("notify.risk.alert", self.on_risk_alert)
 
     def start(self):
@@ -328,9 +296,9 @@ class NotificationBot:
 
     def stop(self): self.running = False
 
-    # ---------- 事件订阅入口 ----------
+    # 🔥 核心增强：带操作按钮的风控警报
     def on_risk_alert(self, data):
-        # 接收并发送风控警报消息
+        uid = data.get("user_id", "")
         username = data.get("username", "未知")
         current = data.get("current", 0)
         limit = data.get("limit", 0)
@@ -340,9 +308,22 @@ class NotificationBot:
                f"👤 <b>涉事用户：</b>{username}\n"
                f"📈 <b>当前并发：</b>{current} / 额度 {limit}\n"
                f"📱 <b>违规设备：</b>\n{devices_info}\n\n"
-               f"⚠️ <i>天眼系统已记录，请立即前往后台风控大盘一键拔除网线！</i>")
+               f"⚠️ <i>天眼系统已记录，请立即进行处置！</i>")
         
-        self.send_message("sys_notify", msg, platform="all")
+        # 组装 Inline Keyboard 按钮
+        keyboard = {"inline_keyboard": []}
+        
+        # 按钮1：向 Telegram 发送直接封禁回调 (WeCom 也会将此转为文字，不受影响)
+        if uid:
+            keyboard["inline_keyboard"].append([{"text": "🚫 立即封禁此违规账号", "callback_data": f"risk_ban_{uid}"}])
+            
+        # 按钮2：前往网页后台
+        admin_url = cfg.get("pulse_url") or cfg.get("emby_public_url")
+        if admin_url:
+            risk_url = f"{admin_url.rstrip('/')}/risk"
+            keyboard["inline_keyboard"].append([{"text": "🛡️ 前往风控大盘拔网线", "url": risk_url}])
+            
+        self.send_message("sys_notify", msg, reply_markup=keyboard if keyboard["inline_keyboard"] else None, platform="all")
 
     def on_gap_cleared(self, data):
         if not cfg.get("enable_library_notify"): return
@@ -478,7 +459,6 @@ class NotificationBot:
         try:
             user = data.get("User") or {}
             session = data.get("Session") or {}
-            
             ip = session.get("RemoteEndPoint") or data.get("RemoteEndPoint") or "127.0.0.1"
             loc = self._get_location(ip)
             client = session.get("Client") or data.get("Client") or data.get("AppName") or "未知设备"
@@ -494,24 +474,20 @@ class NotificationBot:
             
             avatar_io = self._download_user_image(user_id) if user_id else None
             fallback_img = "https://api.dicebear.com/9.x/notionists/png?seed=" + urllib.parse.quote(user_name)
-            
             tg_img = avatar_io or fallback_img
             self.send_photo("sys_notify", tg_img, msg, platform="all", wecom_photo_io=tg_img)
-        except Exception as e: 
-            logger.error(f"登录通知组装异常: {e}")
+        except Exception as e: logger.error(f"登录通知组装异常: {e}")
 
     def on_item_deleted(self, data):
         if not cfg.get("notify_item_deleted"): return
         try:
             item = data.get("Item") or data
-            
             raw_type = item.get("Type", "")
             title = item.get("Name") or item.get("Title") or "未知资源"
             series_name = item.get("SeriesName")
             season_num = item.get("ParentIndexNumber")
             ep_num = item.get("IndexNumber")
             year = item.get("ProductionYear", "")
-            
             item_id = str(item.get("Id", ""))
             unique_name = f"{series_name}_{season_num}_{ep_num}_{title}" if series_name else title
             
@@ -546,16 +522,12 @@ class NotificationBot:
             
             primary_io = self._download_emby_image(item.get("Id"), 'Primary') if item.get("Id") else None
             backdrop_io = self._download_emby_image(item.get("Id"), 'Backdrop') if item.get("Id") else None
-            
-            if not primary_io and not backdrop_io and item.get("SeriesId"):
-                primary_io = self._download_emby_image(item.get("SeriesId"), 'Primary')
+            if not primary_io and not backdrop_io and item.get("SeriesId"): primary_io = self._download_emby_image(item.get("SeriesId"), 'Primary')
             
             tmdb_img_url = None
             if not primary_io and not backdrop_io:
                 tmdb_id = item.get("ProviderIds", {}).get("Tmdb")
-                if not tmdb_id and item.get("SeriesProviderIds"):
-                    tmdb_id = item.get("SeriesProviderIds", {}).get("Tmdb")
-                    
+                if not tmdb_id and item.get("SeriesProviderIds"): tmdb_id = item.get("SeriesProviderIds", {}).get("Tmdb")
                 tmdb_key = cfg.get("tmdb_api_key")
                 if tmdb_id and tmdb_key:
                     try:
@@ -565,12 +537,11 @@ class NotificationBot:
                         if tmdb_res.status_code == 200:
                             p_path = tmdb_res.json().get("poster_path")
                             if p_path: tmdb_img_url = f"https://image.tmdb.org/t/p/w500{p_path}"
-                    except Exception as e: pass
+                    except: pass
             
             tg_img = primary_io or backdrop_io or tmdb_img_url or REPORT_COVER_URL
             self.send_photo("sys_notify", tg_img, msg, platform="all", wecom_photo_io=tg_img)
-        except Exception as e: 
-            logger.error(f"删除通知组装异常: {e}")
+        except Exception as e: logger.error(f"删除通知组装异常: {e}")
 
     def on_daily_report(self):
         chat_id = "sys_notify"
@@ -582,10 +553,6 @@ class NotificationBot:
             msg = (f"📅 <b>昨日日报 ({yesterday_str})</b>\n\n😴 昨天服务器静悄悄，大家都去现充了吗？\n\n📊 活跃用户：0 人\n⏳ 播放时长：0 小时")
             self.send_message(chat_id, msg, platform="all")
         else: self._cmd_stats(chat_id, 'yesterday', platform="all")
-
-    def push_now(self, user_id, period, theme):
-        self._cmd_stats("sys_notify", period, platform="all")
-        return True
 
     # ---------- 基础工具与通信通道 ----------
     def _get_proxies(self):
@@ -631,14 +598,6 @@ class NotificationBot:
                 d = res.json()
                 if d.get("country"): loc = f"{d.get('country')} {d.get('province', '')} {d.get('city', '')} {d.get('isp', '')}".strip()
         except: pass
-
-        if not loc or "上饶" in loc:
-            try:
-                res = requests.get(f"https://ip.zxinc.org/api.php?type=json&ip={ip}", headers=headers, timeout=3)
-                if res.status_code == 200:
-                    d = res.json()
-                    if d.get('code') == 0 and d.get('data'): loc = d['data'].get('location', '')
-            except: pass
 
         if not loc or "上饶" in loc:
             try:
@@ -778,7 +737,6 @@ class NotificationBot:
                 try:
                     data = {"chat_id": tg_cid, "caption": caption, "parse_mode": parse_mode}
                     if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
-                    
                     if photo_bytes: 
                         r = requests.post(f"https://api.telegram.org/bot{cfg.get('tg_bot_token')}/sendPhoto", data=data, files={"photo": ("image.jpg", io.BytesIO(photo_bytes), "image/jpeg")}, proxies=self._get_proxies(), timeout=20)
                         if r.status_code != 200: self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
@@ -796,7 +754,7 @@ class NotificationBot:
             if tg_cid:
                 try:
                     data = {"chat_id": tg_cid, "text": text, "parse_mode": parse_mode}
-                    if reply_markup: data["reply_markup"] = reply_markup
+                    if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
                     requests.post(f"https://api.telegram.org/bot{cfg.get('tg_bot_token')}/sendMessage", json=data, proxies=self._get_proxies(), timeout=10)
                 except: pass
 
@@ -828,6 +786,25 @@ class NotificationBot:
         
         try: requests.post(f"https://api.telegram.org/bot{token}/answerCallbackQuery", json={"callback_query_id": cq_id}, proxies=proxies, timeout=5)
         except: pass
+
+        # 🔥 新增：处理 TG 的风控封号指令
+        if data.startswith("risk_ban_"):
+            uid = data.replace("risk_ban_", "")
+            from app.services.risk_service import ban_user, log_risk_action
+            
+            operator = cq.get('from', {}).get('first_name', 'Admin')
+            if ban_user(uid):
+                log_risk_action(uid, "快捷封号", "ban", f"机器快捷执法 (操作人: {operator})")
+                action_text = f"✅ 已成功封禁该违规账号！\n(执行人: {operator})"
+            else:
+                action_text = "❌ 封禁失败，可能 API 权限不足。"
+                
+            msg_obj = cq["message"]
+            orig_text = msg_obj.get("text", "风控警报")
+            new_text = f"{orig_text}\n\n━━━━━━━━━━━━━━\n{action_text}"
+            try: requests.post(f"https://api.telegram.org/bot{token}/editMessageText", json={"chat_id": cid, "message_id": mid, "text": new_text, "reply_markup": {"inline_keyboard": []}}, proxies=proxies, timeout=5)
+            except: pass
+            return
 
         if data.startswith("feed_"):
             parts = data.split("_")
@@ -1185,9 +1162,6 @@ class NotificationBot:
                "/help - 获取本帮助菜单")
         self.send_message(cid, msg.strip(), platform=platform)
 
-# ==============================================================================
-# 🎮 终极包装层
-# ==============================================================================
 class EmbyPulseOrchestrator:
     def __init__(self):
         self.daemon = SystemDaemon()

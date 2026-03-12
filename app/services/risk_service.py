@@ -57,7 +57,7 @@ def log_risk_action(user_id: str, username: str, action: str, reason: str):
         logger.error(f"[风控] 记录日志失败: {e}")
 
 # ==========================================
-# 👁️ 天眼：零延迟实时扫描与智能防抖
+# 👁️ 天眼：零延迟实时扫描
 # ==========================================
 def get_user_concurrent_limit(user_id: str) -> int:
     try:
@@ -70,7 +70,6 @@ def get_user_concurrent_limit(user_id: str) -> int:
     except: pass
     return int(cfg.get("default_max_concurrent", 2))
 
-# 缓存池：只记录【当前正在违规】的设备组合，恢复正常后自动释放！
 _alerted_sessions = set()
 
 def scan_playbacks_and_alert():
@@ -97,14 +96,14 @@ def scan_playbacks_and_alert():
         global _alerted_sessions
         current_alert_fingerprints = set()
         
-        print(f"📡 [天眼雷达] 正在扫网... 发现 {len(active_playbacks)} 名用户正在看视频。")
+        logger.info(f"📡 [天眼雷达] 正在扫网... 发现 {len(active_playbacks)} 名用户正在看视频。")
 
         for uid, user_sessions in active_playbacks.items():
             limit = get_user_concurrent_limit(uid)
             current_count = len(user_sessions)
             username = user_sessions[0].get("UserName", "未知用户")
             
-            print(f"   ▶️ 锁定用户: {username} | 当前并发: {current_count} | 专属限额: {limit}")
+            logger.info(f"   ▶️ 锁定用户: {username} | 当前并发: {current_count} | 专属限额: {limit}")
             
             if current_count > limit:
                 devices_info = []
@@ -120,21 +119,20 @@ def scan_playbacks_and_alert():
                 current_alert_fingerprints.add(fingerprint)
                 
                 if fingerprint not in _alerted_sessions:
-                    # 这是一个全新的越界动作！
                     log_risk_action(uid, username, "warn", f"并发超限: 当前 {current_count} / 限额 {limit}")
                     devices_text = "\n".join([f"  🔸 {d}" for d in devices_info])
-                    print(f"🚨 [风控执行] 发现越界！立即通过总线呼叫机器人发送警报！")
+                    logger.warning(f"🚨 [风控执行] 发现越界！立即通过总线呼叫机器人发送警报！")
                     
                     bus.publish("notify.risk.alert", {
+                        "user_id": uid,          # 🔥 必须传给机器人用于封禁按钮
                         "username": username,
                         "current": current_count,
                         "limit": limit,
                         "devices_info": devices_text
                     })
                 else:
-                    print(f"⚠️ [风控防抖] {username} 的这批设备已经报过警了，正在等待处理...")
+                    logger.info(f"⚠️ [风控防抖] {username} 的这批设备已在处置中，忽略重复报警...")
                     
-        # 🔥 核心修复：更新缓存池，只保留当前还在违规的记录！
         _alerted_sessions.clear()
         _alerted_sessions.update(current_alert_fingerprints)
                     
@@ -142,22 +140,19 @@ def scan_playbacks_and_alert():
         logger.error(f"[风控天眼] 扫描异常: {e}")
 
 def _on_playback_start(data):
-    print("🔔 [事件总线] 捕获到视频播放动作，雷达将在 3 秒后启动...")
+    logger.info("🔔 [事件总线] 捕获到视频播放动作，雷达将在 3 秒后启动...")
     def delay_scan():
-        # 必须让子弹飞3秒！给足时间让 Emby 底层把新设备的 Session 登记到数据库里
         time.sleep(3)
         scan_playbacks_and_alert()
     threading.Thread(target=delay_scan, daemon=True).start()
 
 def _risk_monitor_loop():
-    # 虽然有了事件驱动，但为了防意外（比如别人拔网线没触发 stop 事件），我们保留 60 秒一次的静默兜底巡逻
     while True:
         try: scan_playbacks_and_alert()
         except: pass
         time.sleep(60) 
 
 def start_risk_monitor():
-    # 🔥 订阅事件总线
     bus.subscribe("notify.playback.start", _on_playback_start)
     threading.Thread(target=_risk_monitor_loop, daemon=True, name="RiskMonitorThread").start()
     logger.info("👁️ [风险管控] 零延迟天眼系统已启动 (事件驱动 + 60s兜底)")
