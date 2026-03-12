@@ -16,6 +16,20 @@ from app.core.event_bus import bus
 
 logger = logging.getLogger("uvicorn")
 
+# 🔥 修复 1: 将获取管理员 ID 的方法提取为全局公用函数，解决跨类调用引发的 AttributeError
+def get_admin_id():
+    key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
+    if not key or not host: return None
+    try:
+        res = requests.get(f"{host}/emby/Users?api_key={key}", timeout=5)
+        if res.status_code == 200:
+            users = res.json()
+            for u in users:
+                if u.get("Policy", {}).get("IsAdministrator"): return u['Id']
+            if users: return users[0]['Id']
+    except: pass
+    return None
+
 class SystemDaemon:
     def __init__(self):
         self.running = False
@@ -51,19 +65,6 @@ class SystemDaemon:
         elif "playback.stop" in event: bus.publish("notify.playback.stop", data)
         elif "auth" in event or "login" in event: bus.publish("notify.user.login", data)
         elif "delete" in event or "remove" in event: bus.publish("notify.item.deleted", data)
-
-    def _get_admin_id(self):
-        key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
-        if not key or not host: return None
-        try:
-            res = requests.get(f"{host}/emby/Users?api_key={key}", timeout=5)
-            if res.status_code == 200:
-                users = res.json()
-                for u in users:
-                    if u.get("Policy", {}).get("IsAdministrator"): return u['Id']
-                if users: return users[0]['Id']
-        except: pass
-        return None
 
     def _auto_finish_request(self, tmdb_id):
         if not tmdb_id: return
@@ -148,7 +149,8 @@ class SystemDaemon:
             except Exception as e: pass
 
     def _check_fresh_episodes(self, series_id):
-        key = cfg.get("emby_api_key"); host = cfg.get("emby_host"); admin_id = self._get_admin_id()
+        key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
+        admin_id = get_admin_id()
         if not admin_id: return []
         try:
             url = f"{host}/emby/Users/{admin_id}/Items"
@@ -190,7 +192,9 @@ class SystemDaemon:
                     bus.publish("notify.gap_cleared", {"s_idx": s_idx, "e_idx": e_idx})
         except Exception as e: pass
 
-        key = cfg.get("emby_api_key"); host = cfg.get("emby_host"); admin_id = self._get_admin_id(); series_info = {}
+        key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
+        admin_id = get_admin_id()
+        series_info = {}
         try:
             url = f"{host}/emby/Users/{admin_id}/Items/{series_id}?api_key={key}"
             res = requests.get(url, timeout=10)
@@ -232,7 +236,8 @@ class SystemDaemon:
         try:
             rows = query_db("SELECT tmdb_id, media_type, season FROM media_requests WHERE status IN (1, 4)")
             if not rows: return
-            host = cfg.get("emby_host"); key = cfg.get("emby_api_key"); admin_id = self._get_admin_id()
+            host = cfg.get("emby_host"); key = cfg.get("emby_api_key")
+            admin_id = get_admin_id()
             if not admin_id: return
             for r in rows:
                 tid = r['tmdb_id']; mtype = r['media_type']; sn = r['season']
@@ -617,7 +622,6 @@ class NotificationBot:
         loc = re.sub(r'\s+', ' ', loc).strip() 
         return loc
 
-    # 🔥 修复 2: 彻底解决 IPV6 乱飘与上饶自机循环，换用国内权威无鉴权库
     def _get_location(self, ip):
         if not ip: return "未知"
         is_ipv6 = False
@@ -633,7 +637,6 @@ class NotificationBot:
         loc = ""
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
-        # 🚀 第一层：IPW.cn (国家 IPv6 推进组织开放接口，专门防飘移)
         if not loc:
             try:
                 res = requests.get(f"https://open.ipw.cn/api/ip/location?ip={ip}", headers=headers, timeout=3)
@@ -643,7 +646,6 @@ class NotificationBot:
                         loc = f"{d.get('province', '')} {d.get('city', '')}"
             except: pass
 
-        # 🚀 第二层：ZXInc 纯真 IP 库 API (骨干网数据，应对 5G 极准)
         if not loc:
             try:
                 res = requests.get(f"https://ip.zxinc.org/api.php?type=json&ip={ip}", headers=headers, timeout=3)
@@ -653,7 +655,6 @@ class NotificationBot:
                         loc = d.get('location') 
             except: pass
 
-        # 🚀 兜底层：太平洋网络 (老牌稳健接口)
         if not loc:
             try:
                 res = requests.get(f"https://whois.pconline.com.cn/ipJson.jsp?ip={ip}&json=true", headers=headers, timeout=3)
@@ -707,19 +708,51 @@ class NotificationBot:
                     if "text" in btn and "url" in btn: text += f"🔗 {btn['text']}: {btn['url']}\n"
         return text.strip()
 
+    # 🔥 修复 2: 企微三栏菜单重构，增加详细错误日志拆解黑盒
     def _set_wecom_menu(self):
         token = self._get_wecom_token(); agentid = cfg.get("wecom_agentid")
         proxy_url = cfg.get("wecom_proxy_url", "https://qyapi.weixin.qq.com").rstrip('/')
         if not token or not agentid: return
+        
+        # 精准对标行业标准的三栏交互菜单
         menu_data = {
             "button": [
-                {"type": "click", "name": "📊 数据日报", "key": "/stats"},
-                {"type": "click", "name": "🟢 正在播放", "key": "/now"},
-                {"name": "🎬 媒体库", "sub_button": [{"type": "click", "name": "🆕 最近入库", "key": "/latest"}, {"type": "click", "name": "📜 播放记录", "key": "/recent"}]}
+                {
+                    "name": "📊 数据大盘",
+                    "sub_button": [
+                        {"type": "click", "name": "📈 今日日报", "key": "/stats"},
+                        {"type": "click", "name": "📅 本周周报", "key": "/weekly"},
+                        {"type": "click", "name": "🗓️ 本月月报", "key": "/monthly"}
+                    ]
+                },
+                {
+                    "name": "🎬 媒体大厅",
+                    "sub_button": [
+                        {"type": "click", "name": "🟢 正在播放", "key": "/now"},
+                        {"type": "click", "name": "🆕 最近入库", "key": "/latest"},
+                        {"type": "click", "name": "📜 播放记录", "key": "/recent"}
+                    ]
+                },
+                {
+                    "name": "🛠️ 系统运维",
+                    "sub_button": [
+                        {"type": "click", "name": "🔍 资源搜索", "key": "/search"},
+                        {"type": "click", "name": "📡 系统探针", "key": "/check"},
+                        {"type": "click", "name": "🤖 帮助菜单", "key": "/help"}
+                    ]
+                }
             ]
         }
-        try: requests.post(f"{proxy_url}/cgi-bin/menu/create?access_token={token}&agentid={agentid}", json=menu_data, timeout=5)
-        except: pass
+        
+        try: 
+            res = requests.post(f"{proxy_url}/cgi-bin/menu/create?access_token={token}&agentid={agentid}", json=menu_data, timeout=5)
+            res_data = res.json()
+            if res_data.get("errcode") == 0:
+                logger.info("✅ [企微助手] 底部三栏菜单推送成功！(若手机端未更新，请取消关注重新进入即可)")
+            else:
+                logger.error(f"❌ [企微助手] 菜单推送失败！错误码: {res_data.get('errcode')}, 详情: {res_data.get('errmsg')}")
+        except Exception as e: 
+            logger.error(f"❌ [企微助手] 菜单请求发生网络异常: {e}")
 
     def _send_wecom_message(self, text, inline_keyboard=None, touser="@all"):
         token = self._get_wecom_token(); agentid = cfg.get("wecom_agentid")
@@ -973,13 +1006,11 @@ class NotificationBot:
         elif text.startswith("/check"): self._cmd_check(cid, platform)
         elif text.startswith("/help"): self._cmd_help(cid, platform)
 
-    # 🔥 修复 1: 回归极速的 /Items/Latest 接口，毫秒级响应，告别超时
     def _cmd_latest(self, cid, platform):
         key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
         try:
-            user_id = self._get_admin_id()
+            user_id = get_admin_id()
             if not user_id: return self.send_message(cid, "❌ 错误: 无法获取 Emby 用户身份", platform=platform)
-            # 强制要求返回剧集的季集信息
             fields = "DateCreated,Name,SeriesName,Type,ParentIndexNumber,IndexNumber"
             url = f"{host}/emby/Users/{user_id}/Items/Latest"
             params = {"IncludeItemTypes": "Movie,Episode", "Limit": 8, "Fields": fields, "api_key": key}
@@ -987,7 +1018,6 @@ class NotificationBot:
             res = requests.get(url, params=params, timeout=10)
             if res.status_code != 200: return self.send_message(cid, f"❌ 查询失败", platform=platform)
             
-            # /Latest 接口直接返回 List，不需要 .get("Items")
             items = res.json()
             if not items: return self.send_message(cid, "📭 最近没有新入库的资源", platform=platform)
 
@@ -996,7 +1026,6 @@ class NotificationBot:
                 name = i.get("Name", "未知")
                 item_type = i.get("Type")
                 
-                # 剧集排版：精准到 SxxExx
                 if item_type == "Episode" and i.get("SeriesName"):
                     s_idx = str(i.get("ParentIndexNumber", 0)).zfill(2) if i.get("ParentIndexNumber") is not None else "01"
                     e_idx = str(i.get("IndexNumber", 0)).zfill(2) if i.get("IndexNumber") is not None else "XX"
@@ -1043,7 +1072,7 @@ class NotificationBot:
         keyword = parts[1].strip()
         key = cfg.get("emby_api_key"); host = cfg.get("emby_host")
         try:
-            user_id = self._get_admin_id()
+            user_id = get_admin_id()
             if not user_id: return self.send_message(chat_id, "❌ 错误: 无法获取 Emby 用户身份", platform=platform)
 
             fields = "ProductionYear,Type,Id" 
