@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from app.core.config import cfg, REPORT_COVER_URL
-from app.core.database import DB_PATH, query_db
+from app.core.database import DB_PATH, query_db, add_sys_notification
 from app.schemas.models import MediaRequestSubmitModel as BaseSubmitModel
 from app.services.bot_service import bot
 
@@ -386,6 +386,16 @@ def submit_media_request(data: MediaRequestSubmitModel, request: Request):
     ]}
     
     bot.send_photo("sys_notify", data.poster_path or REPORT_COVER_URL, bot_msg, reply_markup=keyboard, platform="all")
+# 👇 在下面新增这几行：写入全局通知中心
+    try:
+        add_sys_notification(
+            notify_type="request",
+            title=f"🎬 新求片: {uname}",
+            message=f"{data.title} ({data.year})",
+            action_url="/requests_admin"
+        )
+    except Exception as e:
+        print(f"写入求片通知失败: {e}")
     return {"status": "success", "message": f"成功提交 {len(results)} 项求片请求"}
 
 @router.get("/api/requests/my")
@@ -553,6 +563,17 @@ def submit_feedback(data: FeedbackSubmitModel, request: Request):
     img_url = actual_poster or REPORT_COVER_URL
     bot.send_photo("sys_notify", img_url, msg, reply_markup=keyboard, platform="all")
     
+# 👇 在下面新增这几行：写入全局通知中心
+    try:
+        add_sys_notification(
+            notify_type="system",
+            title=f"⚠️ 资源报错: {uname}",
+            message=f"{data.item_name} - {data.issue_type}",
+            action_url="/requests_admin"
+        )
+    except Exception as e:
+        print(f"写入报错通知失败: {e}")
+
     return {"status": "success", "message": "反馈已提交，感谢您的协助！"}
 
 @router.get("/api/requests/feedback/my")

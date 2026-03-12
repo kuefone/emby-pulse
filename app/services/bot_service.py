@@ -10,7 +10,7 @@ import re
 import ipaddress
 from collections import defaultdict
 from app.core.config import cfg, REPORT_COVER_URL, FALLBACK_IMAGE_URL
-from app.core.database import query_db, get_base_filter
+from app.core.database import query_db, get_base_filter, add_sys_notification
 from app.services.report_service import report_gen, HAS_PIL
 from app.core.event_bus import bus
 
@@ -324,6 +324,17 @@ class NotificationBot:
             keyboard["inline_keyboard"].append([{"text": "🛡️ 前往风控大盘拔网线", "url": risk_url}])
             
         self.send_message("sys_notify", msg, reply_markup=keyboard if keyboard["inline_keyboard"] else None, platform="all")
+
+# 👇 在下面新增这几行：写入全局通知中心
+        try:
+            add_sys_notification(
+                notify_type="risk",
+                title=f"🚨 并发越界: {username}",
+                message=f"当前并发 {current} / 额度 {limit}，请立即处理！",
+                action_url="/risk"
+            )
+        except Exception as e:
+            logger.error(f"写入风控通知失败: {e}")
 
     def on_gap_cleared(self, data):
         if not cfg.get("enable_library_notify"): return
