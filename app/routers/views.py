@@ -168,7 +168,13 @@ async def gaps_page(request: Request):
 @router.get("/risk", response_class=HTMLResponse)
 async def risk_control_page(request: Request):
     """风险管控大盘页面"""
-    return templates.TemplateResponse("risk.html", {"request": request, "title": "风险管控中心"})
+    # 🔥 必须补上 version 和 active_page，否则前端无法渲染版本和高亮
+    return templates.TemplateResponse("risk.html", {
+        "request": request, 
+        "title": "风险管控中心",
+        "active_page": "risk",  # 确保侧边栏亮起
+        "version": APP_VERSION  # 确保版本号显示 (假设你定义的变量名是 APP_VERSION)
+    })
 
 @router.get("/api/wallpaper")
 async def get_wallpaper():
