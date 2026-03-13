@@ -196,3 +196,12 @@ async def get_wallpaper():
         except: pass
     item = random.choice(fallback_wallpapers)
     return {"status": "success", "url": item["url"], "title": item["title"]}
+
+@router.get("/dedupe", response_class=HTMLResponse)
+async def dedupe_page(request: Request):
+    if not check_login(request): return RedirectResponse("/login")
+    return templates.TemplateResponse("dedupe.html", {
+        "request": request, 
+        "active_page": "dedupe", 
+        "version": APP_VERSION  # 🔥 保持与项目全局版本号完全一致
+    })
