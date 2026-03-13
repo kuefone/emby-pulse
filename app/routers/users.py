@@ -15,12 +15,12 @@ router = APIRouter()
 # 🔥 自动无损升级数据库，确保有 remark 字段
 try:
     query_db("ALTER TABLE users_meta ADD COLUMN remark TEXT DEFAULT ''")
-    logging.getLogger("uvicorn").info("✅ 数据库升级：已成功添加用户备注(remark)字段")
+    logging.getLogger("uvicorn").info("✅ 数据库无损升级：已成功添加用户备注(remark)字段")
 except Exception:
     pass
 
 # ==========================================
-# 🔥 重新定义数据接收模型，脱离外部模型的束缚，彻底解决 422 报错
+# 🔥 重新定义全部数据接收模型 (脱离外部模型，防止 422 和 AttributeError 报错)
 # ==========================================
 class UserUpdateModelEx(BaseModel):
     user_id: str
@@ -67,24 +67,26 @@ class BatchActionModelLocal(BaseModel):
     copy_policy: Optional[bool] = True
     copy_parental: Optional[bool] = True
 
-class InviteBatchModel(BaseModel):
+class InviteBatchModelLocal(BaseModel):
     codes: List[str]
     action: str
 
 # ==========================================
-# 🔥 全量策略快照克隆器
+# 🔥 核心引擎：全量策略快照克隆器
 # ==========================================
-DANGEROUS_POLICY_KEYS = {'IsAdministrator', 'IsDisabled', 'IsHidden', 'LoginAttemptsBeforeLockout'}
+# 修复2: 移除了 'IsHidden' (隐藏用户)，允许它作为杂项策略被正常克隆！
+DANGEROUS_POLICY_KEYS = {'IsAdministrator', 'IsDisabled', 'LoginAttemptsBeforeLockout'}
 LIBRARY_POLICY_KEYS = {'EnableAllFolders', 'EnabledFolders', 'ExcludedSubFolders', 'BlockedMediaFolders', 'BlockedChannels', 'EnableAllChannels', 'EnabledChannels'}
 PARENTAL_POLICY_KEYS = {'MaxParentalRating', 'BlockUnratedItems', 'BlockedTags', 'AllowedTags'}
 
 def clone_policy(target_policy: dict, src_policy: dict, copy_lib: bool, copy_pol: bool, copy_par: bool):
+    """深拷贝策略对象，支持分类映射。无需枚举，兼容未来所有 Emby 新权限字段！"""
     for k, v in src_policy.items():
         if k in DANGEROUS_POLICY_KEYS:
             continue
         is_lib = k in LIBRARY_POLICY_KEYS
         is_par = k in PARENTAL_POLICY_KEYS
-        is_pol = not is_lib and not is_par
+        is_pol = not is_lib and not is_par  # 未知的新字段全部归入基础策略
         
         if (copy_lib and is_lib) or (copy_par and is_par) or (copy_pol and is_pol):
             target_policy[k] = v
@@ -236,7 +238,7 @@ def api_get_invites(request: Request):
     except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.post("/api/manage/invites/batch")
-def api_manage_invites_batch(data: InviteBatchModel, request: Request):
+def api_manage_invites_batch(data: InviteBatchModelLocal, request: Request):
     if not request.session.get("user"): return {"status": "error"}
     try:
         if data.action == "delete":
@@ -266,12 +268,14 @@ def api_manage_user_update(data: UserUpdateModelEx, request: Request):
         if p_res.status_code == 200:
             p = p_res.json().get('Policy', {})
             
+            # 🔥 如果前端执行了“获取预设”，优先使用全量克隆覆盖一次底层属性
             if data.apply_template_id:
                 src_res = media_api.get(f"/Users/{data.apply_template_id}", timeout=5)
                 if src_res.status_code == 200:
                     src_policy = src_res.json().get('Policy', {})
                     p = clone_policy(p, src_policy, data.copy_library, data.copy_policy, data.copy_parental)
 
+            # 再用前端手动修改的显性字段进行覆盖
             if data.is_disabled is not None:
                 p['IsDisabled'] = data.is_disabled
                 if not data.is_disabled: p['LoginAttemptsBeforeLockout'] = -1
@@ -286,7 +290,7 @@ def api_manage_user_update(data: UserUpdateModelEx, request: Request):
                 if data.max_parental_rating == -1: p.pop('MaxParentalRating', None)
                 else: p['MaxParentalRating'] = data.max_parental_rating
             
-            for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
+            # 🔥 修复3: 移除了所有 p.pop() 清理代码，确保已克隆的 BlockedTags 等属性不会被破坏删除！
             media_api.post(f"/Users/{data.user_id}/Policy", json=p)
             
         return {"status": "success", "message": "用户信息已更新"}
@@ -304,10 +308,12 @@ def api_manage_user_new(data: NewUserModelEx, request: Request):
         
         p = media_api.get(f"/Users/{new_id}").json().get('Policy', {})
         
+        # 🔥 全量克隆继承
         if data.template_user_id:
             src = media_api.get(f"/Users/{data.template_user_id}").json().get('Policy', {})
             p = clone_policy(p, src, data.copy_library, data.copy_policy, data.copy_parental)
         else:
+            # 清理默认脏属性
             for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels']: p.pop(k, None)
             
         media_api.post(f"/Users/{new_id}/Policy", json=p)
@@ -354,7 +360,6 @@ def api_manage_users_batch(data: BatchActionModelLocal, request: Request):
                     p = p_res.json().get('Policy', {})
                     p['IsDisabled'] = (data.action == "disable")
                     if data.action == "enable": p['LoginAttemptsBeforeLockout'] = -1
-                    for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
                     media_api.post(f"/Users/{uid}/Policy", json=p)
             elif data.action == "renew":
                 new_date = None
@@ -379,14 +384,16 @@ def api_manage_users_batch(data: BatchActionModelLocal, request: Request):
                 if p_res.status_code == 200:
                     p = p_res.json().get('Policy', {})
                     
+                    # 🔥 核心：执行全量克隆覆盖，不会丢失包括 IsHidden 在内的任何权限！
                     p = clone_policy(p, src_policy, data.copy_library, data.copy_policy, data.copy_parental)
                     
+                    # 其他本地专属属性(VIP,并发)独立同步
                     if data.copy_policy:
                         exist = query_db("SELECT 1 FROM users_meta WHERE user_id = ?", (uid,), one=True)
                         if exist: query_db("UPDATE users_meta SET max_concurrent = ?, is_vip = ? WHERE user_id = ?", (src_max_concurrent, src_is_vip, uid))
                         else: query_db("INSERT INTO users_meta (user_id, max_concurrent, is_vip, created_at) VALUES (?, ?, ?, ?)", (uid, src_max_concurrent, src_is_vip, datetime.datetime.now().isoformat()))
 
-                    for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
+                    # 🔥 修复3: 这里也去掉了 p.pop() 破坏代码
                     media_api.post(f"/Users/{uid}/Policy", json=p)
 
         return {"status": "success", "message": f"成功操作了 {len(data.user_ids)} 个用户"}
