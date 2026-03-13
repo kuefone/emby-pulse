@@ -49,6 +49,6 @@ async def save_mutes(req: Request):
             
         conn.commit()
         conn.close()
-        return {"success": True, "msg": "静音规则保存成功！新规即刻生效。"}
+        return {"success": True, "msg": "降噪规则保存成功！新规即刻生效。"}
     except Exception as e:
         return {"success": False, "msg": str(e)}

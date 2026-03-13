@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.routers import dedupe
+from app.routers import notify_rules
 
 # 🔥 修复在这里：完整的引入语句
 from app.services.risk_service import start_risk_monitor
@@ -152,6 +153,7 @@ app.include_router(gaps.router)
 app.include_router(risk.router)  # 🔥 挂载风控 API
 app.include_router(notifications.router)  # 🔥 挂载全局通知 API
 app.include_router(dedupe.router)
+app.include_router(notify_rules.router)
 
 if __name__ == "__main__":
     import uvicorn
