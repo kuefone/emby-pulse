@@ -1238,6 +1238,7 @@ function closeBatchTemplateModal() {
     document.getElementById('batch-template-modal').classList.add('hidden'); 
 }
 
+// 🔥 核心修复：先获取数量，再清空列表
 async function submitBatchTemplate() {
     if (selectedUsers.size === 0) return; 
     const tid = document.getElementById('batch-template-select').value; 
@@ -1266,15 +1267,18 @@ async function submitBatchTemplate() {
         });
         const json = await res.json(); 
         if (json.status === 'success') { 
+            // 🔥 解决弹窗显示 0 的Bug：先把数量存下来，再去清空 Set 集合
+            const processedCount = selectedUsers.size; 
             closeBatchTemplateModal(); 
             selectedUsers.clear(); 
             loadUsers(); 
-            alert(`成功套用给 ${Array.from(selectedUsers).length} 个用户！`); 
+            alert(`✅ 成功套用给 ${processedCount} 个用户！`); 
         } else {
-            alert('失败');
+            alert('失败: ' + json.message);
         }
-    } catch(e) {} 
-    finally { 
+    } catch(e) {
+        alert('网络异常');
+    } finally { 
         btn.disabled = false; 
         btn.innerHTML = '执行套用'; 
     }
