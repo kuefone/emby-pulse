@@ -185,14 +185,14 @@
             </label>
 
             <div class="p-4 bg-brand-50/50 dark:bg-brand-500/5 rounded-xl border border-brand-100 dark:border-brand-500/10">
-                <label class="block text-xs font-bold text-brand-600 dark:text-brand-400 mb-2 uppercase tracking-wide">权限同步模板 (可选)</label>
+                <label class="block text-xs font-bold text-brand-600 dark:text-brand-400 mb-2 uppercase tracking-wide">权限同步模板 (包含所有策略)</label>
                 <select id="new-template" onchange="toggleNewTemplateOpts()" class="w-full px-3 py-2.5 rounded-xl border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#2C2C2E] focus:ring-2 focus:ring-brand-500 outline-none appearance-none cursor-pointer text-[13px] mb-3 shadow-sm"></select>
                 <div id="new-template-opts" class="flex flex-wrap gap-x-4 gap-y-3 px-1 hidden">
                     <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer">
                         <input type="checkbox" id="new-opt-lib" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 媒体库权限
                     </label>
                     <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer">
-                        <input type="checkbox" id="new-opt-pol" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 下载/转码策略
+                        <input type="checkbox" id="new-opt-pol" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 各项底层策略
                     </label>
                     <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer">
                         <input type="checkbox" id="new-opt-par" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 年龄分级
@@ -274,16 +274,16 @@
             <div id="edit-tab-library" class="hidden space-y-5">
                 <div class="bg-brand-50/50 dark:bg-brand-500/5 p-5 rounded-xl border border-brand-100 dark:border-brand-500/10">
                     <div class="flex items-center justify-between mb-3">
-                        <label class="block text-[13px] font-bold text-brand-600 dark:text-brand-400">镜像其他用户权限</label>
+                        <label class="block text-[13px] font-bold text-brand-600 dark:text-brand-400">一键镜像全量策略</label>
                         <i class="fa-solid fa-wand-magic-sparkles text-brand-400"></i>
                     </div>
                     <div class="flex gap-2 mb-4">
                         <select id="edit-template-select" class="flex-1 px-3 py-2 rounded-xl border border-gray-200/80 dark:border-white/10 bg-white dark:bg-[#2C2C2E] focus:ring-2 focus:ring-brand-500 outline-none text-[13px] cursor-pointer shadow-sm"></select>
-                        <button onclick="applyEditTemplate()" id="apply-template-btn" class="px-4 py-2 bg-gray-800 dark:bg-gray-200 hover:bg-gray-900 dark:hover:bg-white text-white dark:text-black rounded-xl text-[13px] font-bold transition shadow-md active:scale-95 whitespace-nowrap">一键套用</button>
+                        <button onclick="applyEditTemplate()" id="apply-template-btn" class="px-4 py-2 bg-gray-800 dark:bg-gray-200 hover:bg-gray-900 dark:hover:bg-white text-white dark:text-black rounded-xl text-[13px] font-bold transition shadow-md active:scale-95 whitespace-nowrap">获取预设</button>
                     </div>
                     <div class="flex flex-wrap gap-x-4 gap-y-2 px-1">
                         <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer"><input type="checkbox" id="apply-opt-lib" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 媒体库</label>
-                        <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer"><input type="checkbox" id="apply-opt-pol" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 下载/转码</label>
+                        <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer"><input type="checkbox" id="apply-opt-pol" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 杂项策略</label>
                         <label class="flex items-center gap-1.5 text-[11px] font-bold text-brand-600 dark:text-brand-400 cursor-pointer"><input type="checkbox" id="apply-opt-par" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"> 年龄分级</label>
                     </div>
                 </div>
@@ -364,10 +364,87 @@
     </div>
 </div>
 
-<div id="invite-manage-modal" class="fixed inset-0 z-[100] hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4 py-6"><div class="bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-100 dark:border-white/5"><div class="p-6 pb-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center shrink-0"><h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-link text-brand-500"></i> 系统邀请码管理</h3><button onclick="closeInviteManageModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="p-0 overflow-y-auto overflow-x-auto mac-scrollbar flex-1 relative bg-gray-50/30 dark:bg-black/10"><table class="w-full text-left text-[13px] text-gray-600 dark:text-gray-300 min-w-[600px]"><thead class="bg-gray-50 dark:bg-black/20 text-gray-500 dark:text-gray-400 font-bold sticky top-0 shadow-sm z-10 text-[11px] uppercase tracking-wider"><tr><th class="px-5 py-3 w-12 text-center whitespace-nowrap"><input type="checkbox" onchange="toggleSelectAllInvites(this)" class="w-4 h-4 rounded text-brand-500 cursor-pointer"></th><th class="px-4 py-3 whitespace-nowrap">邀请码链接</th><th class="px-4 py-3 whitespace-nowrap">初始时长</th><th class="px-4 py-3 whitespace-nowrap">使用状态</th><th class="px-4 py-3 whitespace-nowrap">生成时间</th></tr></thead><tbody class="divide-y divide-gray-50 dark:divide-white/5" id="invite-list-tbody"></tbody></table></div><div class="p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-black/20 shrink-0 flex justify-between items-center rounded-b-2xl"><button onclick="batchDeleteInvites()" id="btn-batch-del-invite" disabled class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-[13px] font-bold shadow-sm transition opacity-50 cursor-not-allowed"><i class="fa-solid fa-trash mr-1"></i>批量删除</button><button onclick="closeInviteManageModal()" class="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-xl text-[13px] font-bold transition">返回关闭</button></div></div></div>
-<div id="batch-renew-modal" class="fixed inset-0 z-[100] hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4"><div class="bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-gray-100 dark:border-white/5"><h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4"><i class="fa-solid fa-calendar-plus text-brand-500 mr-2"></i>批量续期</h3><p class="text-[13px] text-gray-500 mb-4">将为选中的 <span id="renew-count-text" class="font-bold text-brand-500"></span> 个用户修改到期时间。</p><div class="grid grid-cols-3 gap-2 mb-4"><button onclick="submitBatchRenew('+30')" class="py-2.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl text-[13px] font-bold hover:bg-brand-100 transition border border-transparent hover:border-brand-200 dark:hover:border-brand-500/30">+ 30 天</button><button onclick="submitBatchRenew('+90')" class="py-2.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl text-[13px] font-bold hover:bg-brand-100 transition border border-transparent hover:border-brand-200 dark:hover:border-brand-500/30">+ 90 天</button><button onclick="submitBatchRenew('+365')" class="py-2.5 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl text-[13px] font-bold hover:bg-brand-100 transition border border-transparent hover:border-brand-200 dark:hover:border-brand-500/30">+ 1 年</button></div><div class="relative flex py-2 items-center"><div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div><span class="flex-shrink-0 mx-4 text-gray-400 text-xs">或指定绝对日期</span><div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div></div><input type="date" id="batch-date-picker" class="w-full px-4 py-3 mt-2 mb-6 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 focus:ring-2 focus:ring-brand-500 outline-none text-[13px]"><div class="flex justify-end gap-3"><button onclick="closeBatchRenewModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3A3A3C] rounded-xl text-[13px] font-bold transition">取消</button><button onclick="submitBatchRenew('date')" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-[13px] font-bold shadow-md transition">确认指定</button></div></div></div>
-<div id="invite-modal" class="fixed inset-0 z-[100] hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4 py-6"><div class="bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-white/5 max-h-[90vh] overflow-y-auto mac-scrollbar"><h3 class="text-xl font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2"><i class="fa-solid fa-link text-emerald-500"></i>生成邀请码</h3><div id="invite-form-step" class="space-y-5"><div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">账号有效期</label><div class="grid grid-cols-4 gap-2 mb-3"><button onclick="selectDuration(1)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">1 天</button><button onclick="selectDuration(7)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">7 天</button><button onclick="selectDuration(30)" class="dur-btn px-2 py-2.5 border border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl text-xs shadow-sm transition-all">30 天</button><button onclick="selectDuration(90)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">90 天</button><button onclick="selectDuration(180)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">180 天</button><button onclick="selectDuration(365)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">365 天</button><button onclick="selectDuration(-1)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 col-span-2 transition-all font-medium">永久</button></div><div class="relative w-full mt-2"><input type="number" id="custom-duration" placeholder="或自定义天数..." oninput="setCustomDuration()" min="1" class="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 outline-none text-[13px] focus:ring-2 focus:ring-emerald-500 transition-all shadow-sm"><span class="absolute right-4 top-3 text-[11px] font-bold text-gray-400">天</span></div></div><div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">生成数量 (1-50)</label><input type="number" id="invite-count" value="1" min="1" max="50" class="w-full px-4 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 outline-none text-[13px] focus:ring-2 focus:ring-emerald-500 shadow-sm"></div><div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">模板继承 (默认全权限)</label><select id="invite-template" class="w-full px-4 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 outline-none text-[13px] focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer"></select></div><div class="flex justify-end gap-3 mt-8"><button onclick="closeInviteModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3A3A3C] rounded-xl font-bold text-[13px] transition-colors">取消</button><button onclick="generateInvite(event)" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 transition text-white rounded-xl font-bold text-[13px] shadow-md active:scale-95">生成链接</button></div></div><div id="invite-result-step" class="hidden space-y-4"><div id="invite-links-container" class="space-y-3 max-h-72 overflow-y-auto mac-scrollbar p-2 bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200/80 dark:border-white/5"></div><button onclick="copyAllInvites()" class="w-full py-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl mt-2 transition hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-[13px]">复制全部</button><button onclick="closeInviteModal()" class="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition hover:bg-gray-300 dark:hover:bg-gray-600 text-[13px]">完成</button></div></div></div>
-<div id="batch-template-modal" class="fixed inset-0 z-[100] hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4 py-6"><div class="bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-gray-100 dark:border-white/5 max-h-[90vh] overflow-y-auto mac-scrollbar"><h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-purple-500"></i> 批量套用模板</h3><p class="text-[13px] text-gray-500 mb-5">将模板的策略直接覆盖到已选的 <span id="batch-template-count" class="font-bold text-purple-500"></span> 个用户上。</p><div class="space-y-5"><div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">选择模板来源</label><select id="batch-template-select" class="w-full px-4 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 focus:ring-2 focus:ring-purple-500 outline-none appearance-none cursor-pointer text-[13px] shadow-sm"></select></div><div class="p-4 bg-purple-50/50 dark:bg-purple-500/5 rounded-xl border border-purple-100 dark:border-purple-500/10"><label class="block text-[11px] font-bold text-purple-600 dark:text-purple-400 mb-3 uppercase tracking-wide">请勾选需要克隆的权限</label><div class="flex flex-col gap-y-3 px-1"><label class="flex items-center gap-2 text-[13px] font-bold text-purple-700 dark:text-purple-300 cursor-pointer"><input type="checkbox" id="batch-opt-lib" checked class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"> 媒体库访问 <span class="text-[11px] text-gray-400 font-normal ml-auto">同步可见库</span></label><label class="flex items-center gap-2 text-[13px] font-bold text-purple-700 dark:text-purple-300 cursor-pointer"><input type="checkbox" id="batch-opt-pol" checked class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"> 下载与转码 <span class="text-[11px] text-gray-400 font-normal ml-auto">防炸服必备</span></label><label class="flex items-center gap-2 text-[13px] font-bold text-purple-700 dark:text-purple-300 cursor-pointer"><input type="checkbox" id="batch-opt-par" checked class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"> 家长控制 <span class="text-[11px] text-gray-400 font-normal ml-auto">同步年龄限制</span></label></div></div></div><div class="flex justify-end gap-3 mt-8"><button onclick="closeBatchTemplateModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3A3A3C] rounded-xl text-[13px] font-bold transition">取消</button><button onclick="submitBatchTemplate()" id="batch-template-btn" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[13px] font-bold shadow-md transition active:scale-95">执行套用</button></div></div></div>
+<div id="invite-modal" class="fixed inset-0 z-[100] hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4 py-6">
+    <div class="bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-white/5 max-h-[90vh] overflow-y-auto mac-scrollbar">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2"><i class="fa-solid fa-link text-emerald-500"></i>生成邀请码</h3>
+        <div id="invite-form-step" class="space-y-5">
+            <div>
+                <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">账号有效期</label>
+                <div class="grid grid-cols-4 gap-2 mb-3">
+                    <button onclick="selectDuration(1)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">1 天</button>
+                    <button onclick="selectDuration(7)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">7 天</button>
+                    <button onclick="selectDuration(30)" class="dur-btn px-2 py-2.5 border border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl text-xs shadow-sm transition-all">30 天</button>
+                    <button onclick="selectDuration(90)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">90 天</button>
+                    <button onclick="selectDuration(180)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">180 天</button>
+                    <button onclick="selectDuration(365)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all font-medium">365 天</button>
+                    <button onclick="selectDuration(-1)" class="dur-btn px-2 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-500/10 col-span-2 transition-all font-medium">永久</button>
+                </div>
+                <div class="relative w-full mt-2">
+                    <input type="number" id="custom-duration" placeholder="或自定义天数..." oninput="setCustomDuration()" min="1" class="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 outline-none text-[13px] focus:ring-2 focus:ring-emerald-500 transition-all shadow-sm">
+                    <span class="absolute right-4 top-3 text-[11px] font-bold text-gray-400">天</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">生成数量 (1-50)</label>
+                <input type="number" id="invite-count" value="1" min="1" max="50" class="w-full px-4 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 outline-none text-[13px] focus:ring-2 focus:ring-emerald-500 shadow-sm">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">权限继承源 (全量克隆)</label>
+                <select id="invite-template" class="w-full px-4 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 outline-none text-[13px] focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer"></select>
+            </div>
+            <div class="flex justify-end gap-3 mt-8">
+                <button onclick="closeInviteModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3A3A3C] rounded-xl font-bold text-[13px] transition-colors">取消</button>
+                <button onclick="generateInvite(event)" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 transition text-white rounded-xl font-bold text-[13px] shadow-md active:scale-95">生成链接</button>
+            </div>
+        </div>
+        <div id="invite-result-step" class="hidden space-y-4">
+            <div id="invite-links-container" class="space-y-3 max-h-72 overflow-y-auto mac-scrollbar p-2 bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200/80 dark:border-white/5"></div>
+            <button onclick="copyAllInvites()" class="w-full py-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl mt-2 transition hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-[13px]">复制全部</button>
+            <button onclick="closeInviteModal()" class="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition hover:bg-gray-300 dark:hover:bg-gray-600 text-[13px]">完成</button>
+        </div>
+    </div>
+</div>
+
+<div id="batch-template-modal" class="fixed inset-0 z-[100] hidden items-center justify-center h-screen w-screen bg-black/50 backdrop-blur-sm px-4 py-6">
+    <div class="bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-gray-100 dark:border-white/5 max-h-[90vh] overflow-y-auto mac-scrollbar">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles text-purple-500"></i> 批量全量克隆模板
+        </h3>
+        <p class="text-[13px] text-gray-500 mb-5">将指定用户的全部策略，瞬间同步到已选的 <span id="batch-template-count" class="font-bold text-purple-500"></span> 个账号。</p>
+        
+        <div class="space-y-5">
+            <div>
+                <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">选择模板来源</label>
+                <select id="batch-template-select" class="w-full px-4 py-3 rounded-xl border border-gray-200/80 dark:border-white/10 bg-gray-50 dark:bg-black/20 focus:ring-2 focus:ring-purple-500 outline-none appearance-none cursor-pointer text-[13px] shadow-sm"></select>
+            </div>
+            
+            <div class="p-4 bg-purple-50/50 dark:bg-purple-500/5 rounded-xl border border-purple-100 dark:border-purple-500/10">
+                <label class="block text-[11px] font-bold text-purple-600 dark:text-purple-400 mb-3 uppercase tracking-wide">请勾选需要克隆的模块</label>
+                <div class="flex flex-col gap-y-3 px-1">
+                    <label class="flex items-center gap-2 text-[13px] font-bold text-purple-700 dark:text-purple-300 cursor-pointer">
+                        <input type="checkbox" id="batch-opt-lib" checked class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"> 
+                        媒体库访问 <span class="text-[11px] text-gray-400 font-normal ml-auto">同步可见库</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-[13px] font-bold text-purple-700 dark:text-purple-300 cursor-pointer">
+                        <input type="checkbox" id="batch-opt-pol" checked class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"> 
+                        全部底层策略 <span class="text-[11px] text-gray-400 font-normal ml-auto">转码/投屏等所有设置</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-[13px] font-bold text-purple-700 dark:text-purple-300 cursor-pointer">
+                        <input type="checkbox" id="batch-opt-par" checked class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"> 
+                        家长控制 <span class="text-[11px] text-gray-400 font-normal ml-auto">同步年龄与标签</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8">
+            <button onclick="closeBatchTemplateModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3A3A3C] rounded-xl text-[13px] font-bold transition">取消</button>
+            <button onclick="submitBatchTemplate()" id="batch-template-btn" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[13px] font-bold shadow-md transition active:scale-95">
+                执行套用
+            </button>
+        </div>
+    </div>
+</div>
 
 <script>
 let users = [];
@@ -380,6 +457,9 @@ let selectedUsers = new Set();
 let currentFilter = 'all';
 let invitesList = [];
 let selectedInvites = new Set();
+
+// 🔥 新增：用于记录单体编辑时，用户选择了哪个模板
+let currentApplyTemplate = null;
 
 document.addEventListener('DOMContentLoaded', function() { 
     loadLibraries(); 
@@ -408,9 +488,7 @@ async function loadInvites() {
             invitesList = json.data; 
             renderInvites(); 
         } 
-    } catch(err) {
-        console.error("Failed to load invites", err);
-    }
+    } catch(err) {}
 }
 
 function renderInvites() {
@@ -426,7 +504,6 @@ function renderInvites() {
         const isChecked = selectedInvites.has(inv.code) ? 'checked' : '';
         const isUsed = inv.used_count > 0 || inv.used_by || inv.is_used || inv.used_at;
         
-        // 🔥 修复：将使用者信息拼接到状态徽章中
         let statusBadge = '';
         if (isUsed) {
             const userText = inv.used_by ? `<span class="text-[11px] font-bold text-gray-400 ml-1.5 truncate max-w-[100px] inline-block align-bottom"><i class="fa-solid fa-user-check text-[10px] mr-0.5"></i>${inv.used_by}</span>` : '';
@@ -501,9 +578,7 @@ async function batchDeleteInvites() {
         } else {
             alert("删除失败");
         }
-    } catch(e) {
-        console.error(e);
-    }
+    } catch(e) {}
 }
 
 async function loadLibraries() { 
@@ -588,7 +663,6 @@ function renderUsers() {
         else badge = '<span class="px-2 py-1 rounded bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400 text-[11px] font-bold">活跃</span>';
 
         const isChecked = selectedUsers.has(u.Id) ? 'checked' : '';
-        
         const vipBadge = u.IsVIP ? '<span class="text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400 px-1.5 py-0.5 rounded ml-1"><i class="fa-solid fa-crown mr-0.5"></i>VIP</span>' : '';
         const remarkVal = u.remark || u.Remark || "";
         const remarkHtml = remarkVal ? `<span class="text-[12px] font-normal text-gray-400 dark:text-gray-500 ml-1.5 truncate max-w-[120px] inline-block align-bottom" title="${remarkVal}">(${remarkVal})</span>` : '';
@@ -809,9 +883,7 @@ async function generateInvite(e) {
             document.getElementById('invite-form-step').classList.add('hidden'); 
             document.getElementById('invite-result-step').classList.remove('hidden');
         }
-    } catch (e) {
-        console.error(e);
-    } finally { 
+    } catch (e) {} finally { 
         submitBtn.disabled = false; 
         submitBtn.textContent = "生成链接"; 
     }
@@ -841,6 +913,9 @@ async function openEditUserModal(uid) {
     if (!user) return; 
     switchEditTab('basic');
     
+    // 🔥 清理全量克隆记忆状态
+    currentApplyTemplate = null;
+
     document.getElementById('edit-userid').value = uid; 
     document.getElementById('edit-username').value = user.Name; 
     document.getElementById('edit-disabled').value = String(user.IsDisabled); 
@@ -935,7 +1010,16 @@ async function applyEditTemplate() {
             if (document.getElementById('apply-opt-par').checked) { 
                 document.getElementById('edit-max-parental-rating').value = (tData.MaxParentalRating !== null && tData.MaxParentalRating !== undefined) ? tData.MaxParentalRating : "-1"; 
             }
-            alert("✅ 已同步！请保存");
+            
+            // 🔥 记录前端套用状态，供提交时进行全量深拷贝
+            currentApplyTemplate = {
+                id: tid,
+                lib: document.getElementById('apply-opt-lib').checked,
+                pol: document.getElementById('apply-opt-pol').checked,
+                par: document.getElementById('apply-opt-par').checked
+            };
+            
+            alert("✅ 已获得模板参数！请点击底部保存生效");
         }
     } catch(err) {}
 }
@@ -979,7 +1063,13 @@ async function submitEditUser() {
             max_parental_rating: parseInt(document.getElementById('edit-max-parental-rating').value),
             max_concurrent: document.getElementById('edit-max-concurrent').value ? parseInt(document.getElementById('edit-max-concurrent').value) : null,
             is_vip: document.getElementById('edit-is-vip').checked,
-            remark: document.getElementById('edit-remark').value.trim()
+            remark: document.getElementById('edit-remark').value.trim(),
+            
+            // 🔥 提交全量克隆标记给后端
+            apply_template_id: currentApplyTemplate ? currentApplyTemplate.id : null,
+            copy_library: currentApplyTemplate ? currentApplyTemplate.lib : true,
+            copy_policy: currentApplyTemplate ? currentApplyTemplate.pol : true,
+            copy_parental: currentApplyTemplate ? currentApplyTemplate.par : true
         };
         
         const res = await fetch('/api/manage/user/update', { 

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request, Response, UploadFile, File, Form
 from pydantic import BaseModel
-from typing import Optional, List
-# 仅保留无需修改的 Model
+from typing import Optional
 from app.schemas.models import InviteGenModel, BatchActionModel
 from app.core.config import cfg
 from app.core.database import query_db
@@ -14,19 +13,12 @@ import logging
 
 router = APIRouter()
 
-# ==========================================
-# 🔥 核心修复 1: 自动无损升级数据库，确保有 remark 字段
-# ==========================================
 try:
     query_db("ALTER TABLE users_meta ADD COLUMN remark TEXT DEFAULT ''")
     logging.getLogger("uvicorn").info("✅ 数据库无损升级：已成功添加用户备注(remark)字段")
 except Exception:
-    # 如果字段已存在，会抛出异常，这里直接忽略即可
     pass
 
-# ==========================================
-# 🔥 核心修复 2: 重新定义数据接收模型，防止 422 验证报错拦截
-# ==========================================
 class UserUpdateModelEx(BaseModel):
     user_id: str
     is_disabled: bool = False
@@ -41,7 +33,12 @@ class UserUpdateModelEx(BaseModel):
     max_parental_rating: Optional[int] = None
     max_concurrent: Optional[int] = None
     is_vip: bool = False
-    remark: Optional[str] = ""  # 接收前端传来的备注
+    remark: Optional[str] = ""
+    # 🔥 新增全量克隆标记，用于单体编辑时的深度套用
+    apply_template_id: Optional[str] = None
+    copy_library: bool = True
+    copy_policy: bool = True
+    copy_parental: bool = True
 
 class NewUserModelEx(BaseModel):
     name: str
@@ -53,11 +50,31 @@ class NewUserModelEx(BaseModel):
     copy_parental: bool = True
     max_concurrent: Optional[int] = None
     is_vip: bool = False
-    remark: Optional[str] = ""  # 接收前端传来的备注
+    remark: Optional[str] = ""
 
 class InviteBatchModel(BaseModel):
     codes: list[str]
     action: str
+
+# ==========================================
+# 🔥 核心引擎：全量策略快照克隆器
+# ==========================================
+DANGEROUS_POLICY_KEYS = {'IsAdministrator', 'IsDisabled', 'IsHidden', 'LoginAttemptsBeforeLockout'}
+LIBRARY_POLICY_KEYS = {'EnableAllFolders', 'EnabledFolders', 'ExcludedSubFolders', 'BlockedMediaFolders', 'BlockedChannels', 'EnableAllChannels', 'EnabledChannels'}
+PARENTAL_POLICY_KEYS = {'MaxParentalRating', 'BlockUnratedItems', 'BlockedTags', 'AllowedTags'}
+
+def clone_policy(target_policy: dict, src_policy: dict, copy_lib: bool, copy_pol: bool, copy_par: bool):
+    """深拷贝策略对象，支持分类映射。无需枚举，兼容未来所有 Emby 新权限字段！"""
+    for k, v in src_policy.items():
+        if k in DANGEROUS_POLICY_KEYS:
+            continue
+        is_lib = k in LIBRARY_POLICY_KEYS
+        is_par = k in PARENTAL_POLICY_KEYS
+        is_pol = not is_lib and not is_par  # 未知的新字段全部归入基础策略
+        
+        if (copy_lib and is_lib) or (copy_par and is_par) or (copy_pol and is_pol):
+            target_policy[k] = v
+    return target_policy
 
 def check_expired_users():
     try:
@@ -122,7 +139,7 @@ def api_manage_users(request: Request):
                 "MaxParentalRating": policy.get('MaxParentalRating'),
                 "MaxConcurrent": meta.get('max_concurrent'),
                 "IsVIP": bool(meta.get('is_vip', 0)),
-                "Remark": meta.get('remark', '')  # 🔥 核心修改：下发备注供前端列表展示
+                "Remark": meta.get('remark', '') 
             })
         return {"status": "success", "data": final_list, "emby_url": public_host}
     except Exception as e: return {"status": "error", "message": str(e)}
@@ -147,7 +164,7 @@ def api_get_single_user(user_id: str, request: Request):
                     "MaxParentalRating": policy.get('MaxParentalRating'),
                     "MaxConcurrent": meta_row['max_concurrent'] if meta_row else None,
                     "IsVIP": bool(meta_row['is_vip']) if meta_row and meta_row['is_vip'] else False,
-                    "Remark": meta_row['remark'] if meta_row and 'remark' in meta_row.keys() else "" # 🔥 下发给编辑弹窗
+                    "Remark": meta_row['remark'] if meta_row and 'remark' in meta_row.keys() else "" 
                 }
             }
         return {"status": "error"}
@@ -214,14 +231,14 @@ def api_manage_invites_batch(data: InviteBatchModel, request: Request):
     except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.post("/api/manage/user/update")
-def api_manage_user_update(data: UserUpdateModelEx, request: Request): # 🔥 替换为新的数据模型
+def api_manage_user_update(data: UserUpdateModelEx, request: Request):
     if not request.session.get("user"): return {"status": "error"}
     try:
         exist = query_db("SELECT * FROM users_meta WHERE user_id = ?", (data.user_id,), one=True)
         v_exp = data.expire_date if data.expire_date else None
         v_max = data.max_concurrent
         v_vip = 1 if data.is_vip else 0
-        v_remark = data.remark if data.remark else "" # 🔥 提取备注
+        v_remark = data.remark if data.remark else ""
         
         if exist: 
             query_db("UPDATE users_meta SET expire_date = ?, max_concurrent = ?, is_vip = ?, remark = ? WHERE user_id = ?", (v_exp, v_max, v_vip, v_remark, data.user_id))
@@ -234,6 +251,15 @@ def api_manage_user_update(data: UserUpdateModelEx, request: Request): # 🔥 �
         p_res = media_api.get(f"/Users/{data.user_id}")
         if p_res.status_code == 200:
             p = p_res.json().get('Policy', {})
+            
+            # 🔥 如果前端执行了“一键套用”，优先使用全量克隆覆盖一次底层属性
+            if data.apply_template_id:
+                src_res = media_api.get(f"/Users/{data.apply_template_id}", timeout=5)
+                if src_res.status_code == 200:
+                    src_policy = src_res.json().get('Policy', {})
+                    p = clone_policy(p, src_policy, data.copy_library, data.copy_policy, data.copy_parental)
+
+            # 紧接着，再用前端手动提交的明确字段覆盖回来 (保证以用户在界面的勾选为最高准则)
             if data.is_disabled is not None:
                 p['IsDisabled'] = data.is_disabled
                 if not data.is_disabled: p['LoginAttemptsBeforeLockout'] = -1
@@ -247,6 +273,7 @@ def api_manage_user_update(data: UserUpdateModelEx, request: Request): # 🔥 �
             if data.max_parental_rating is not None:
                 if data.max_parental_rating == -1: p.pop('MaxParentalRating', None)
                 else: p['MaxParentalRating'] = data.max_parental_rating
+            
             for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
             media_api.post(f"/Users/{data.user_id}/Policy", json=p)
             
@@ -254,7 +281,7 @@ def api_manage_user_update(data: UserUpdateModelEx, request: Request): # 🔥 �
     except Exception as e: return {"status": "error", "message": str(e)}
 
 @router.post("/api/manage/user/new")
-def api_manage_user_new(data: NewUserModelEx, request: Request): # 🔥 替换为新的数据模型
+def api_manage_user_new(data: NewUserModelEx, request: Request):
     if not request.session.get("user"): return {"status": "error"}
     try:
         res = media_api.post("/Users/New", json={"Name": data.name})
@@ -264,26 +291,17 @@ def api_manage_user_new(data: NewUserModelEx, request: Request): # 🔥 替换�
         if data.password: media_api.post(f"/Users/{new_id}/Password", json={"Id": new_id, "NewPw": data.password})
         
         p = media_api.get(f"/Users/{new_id}").json().get('Policy', {})
+        
+        # 🔥 全量克隆继承
         if data.template_user_id:
             src = media_api.get(f"/Users/{data.template_user_id}").json().get('Policy', {})
-            if data.copy_library:
-                p['EnableAllFolders'] = src.get('EnableAllFolders', True)
-                p['EnabledFolders'] = src.get('EnabledFolders', [])
-                p['ExcludedSubFolders'] = src.get('ExcludedSubFolders', [])
-            if data.copy_policy:
-                p['EnableContentDownloading'] = src.get('EnableContentDownloading', True)
-                p['EnableSyncTranscoding'] = src.get('EnableSyncTranscoding', True)
-                p['EnableVideoPlaybackTranscoding'] = src.get('EnableVideoPlaybackTranscoding', True)
-                p['EnablePlaybackRemuxing'] = src.get('EnablePlaybackRemuxing', True)
-                p['EnableAudioPlaybackTranscoding'] = src.get('EnableAudioPlaybackTranscoding', True)
-            if data.copy_parental:
-                if 'MaxParentalRating' in src: p['MaxParentalRating'] = src['MaxParentalRating']
-                else: p.pop('MaxParentalRating', None)
+            p = clone_policy(p, src, data.copy_library, data.copy_policy, data.copy_parental)
+        else:
+            # 没有模板时清理默认的脏属性
+            for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels']: p.pop(k, None)
             
-        for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels']: p.pop(k, None)
         media_api.post(f"/Users/{new_id}/Policy", json=p)
         
-        # 🔥 保存初始 VIP、并发数据和备注
         v_exp = data.expire_date if data.expire_date else None
         v_max = data.max_concurrent
         v_vip = 1 if data.is_vip else 0
@@ -350,24 +368,16 @@ def api_manage_users_batch(data: BatchActionModel, request: Request):
                 p_res = media_api.get(f"/Users/{uid}", timeout=5)
                 if p_res.status_code == 200:
                     p = p_res.json().get('Policy', {})
-                    if data.copy_library:
-                        p['EnableAllFolders'] = src_policy.get('EnableAllFolders', True)
-                        p['EnabledFolders'] = src_policy.get('EnabledFolders', [])
-                        p['ExcludedSubFolders'] = src_policy.get('ExcludedSubFolders', [])
+                    
+                    # 🔥 核心：执行全量克隆覆盖
+                    p = clone_policy(p, src_policy, data.copy_library, data.copy_policy, data.copy_parental)
+                    
+                    # 其他本地专属属性(VIP,并发)独立同步
                     if data.copy_policy:
-                        p['EnableContentDownloading'] = src_policy.get('EnableContentDownloading', True)
-                        p['EnableSyncTranscoding'] = src_policy.get('EnableSyncTranscoding', True)
-                        p['EnableVideoPlaybackTranscoding'] = src_policy.get('EnableVideoPlaybackTranscoding', True)
-                        p['EnablePlaybackRemuxing'] = src_policy.get('EnablePlaybackRemuxing', True)
-                        p['EnableAudioPlaybackTranscoding'] = src_policy.get('EnableAudioPlaybackTranscoding', True)
-                        
                         exist = query_db("SELECT 1 FROM users_meta WHERE user_id = ?", (uid,), one=True)
                         if exist: query_db("UPDATE users_meta SET max_concurrent = ?, is_vip = ? WHERE user_id = ?", (src_max_concurrent, src_is_vip, uid))
                         else: query_db("INSERT INTO users_meta (user_id, max_concurrent, is_vip, created_at) VALUES (?, ?, ?, ?)", (uid, src_max_concurrent, src_is_vip, datetime.datetime.now().isoformat()))
 
-                    if data.copy_parental:
-                        if 'MaxParentalRating' in src_policy: p['MaxParentalRating'] = src_policy['MaxParentalRating']
-                        else: p.pop('MaxParentalRating', None)
                     for k in ['BlockedMediaFolders','BlockedChannels','EnableAllChannels','EnabledChannels','BlockedTags','AllowedTags']: p.pop(k, None)
                     media_api.post(f"/Users/{uid}/Policy", json=p)
 
