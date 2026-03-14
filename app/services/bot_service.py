@@ -496,6 +496,8 @@ class NotificationBot:
             target_id = item.get("Id")
             raw_type = item.get("Type", "")
             
+            series_id = item.get("SeriesId") or session.get("NowPlayingItem", {}).get("SeriesId")
+            
             detail_res = {}
             if target_id and user_id:
                 try:
@@ -516,12 +518,12 @@ class NotificationBot:
             if run_ticks <= 0:
                 run_ticks = int(detail_res.get("RunTimeTicks") or 0)
 
-            # 🔥 核心提纯与穿透逻辑：获取用户视角的简介和评分
             overview_raw = detail_res.get("Overview") or item.get("Overview") or ""
             rating_raw = detail_res.get("CommunityRating") or item.get("CommunityRating")
 
-            # 如果是单集，且上面的步骤依旧拿到了全是空格的无效简介，或者没有评分，则强制向剧集本体求援！
-            series_id = detail_res.get("SeriesId") or item.get("SeriesId")
+            if not series_id:
+                series_id = detail_res.get("SeriesId") or detail_res.get("ParentId")
+
             if raw_type == "Episode" and series_id:
                 if not str(overview_raw).strip() or not rating_raw:
                     try:
@@ -532,7 +534,6 @@ class NotificationBot:
                             rating_raw = series_res.get("CommunityRating")
                     except: pass
 
-            # 🔥 强力剥离原网页带来的幽灵换行符、Tab和首尾空格
             overview = re.sub(r'<[^>]+>', '', str(overview_raw)).strip()
             if not overview:
                 overview = "暂无简介..."
@@ -745,13 +746,15 @@ class NotificationBot:
             return ip
         except: return ip
 
+    # 🔥 恢复你原本的纯净国内地名提取逻辑
     def _clean_location(self, loc):
         if not loc: return ""
-        # 🔥 优化：仅剔除运营商和国家，保留省市等后缀，看起来更连贯
-        loc = re.sub(r'(中国|移动|联通|电信|铁通|教育网|广电|通信|数据中心|IDC)', '', loc)
+        loc = re.sub(r'(中国|省|市|自治区|自治州|特别行政区|移动|联通|电信|铁通|教育网|广电|通信|数据中心|IDC)', ' ', loc)
+        loc = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\s]', ' ', loc)
         loc = re.sub(r'\s+', ' ', loc).strip() 
         return loc
 
+    # 🔥 彻底抛弃海外节点，恢复原版纯净三大国内顶级接口，确保不漂移
     def _get_location(self, ip):
         if not ip: return "未知"
         is_ipv6 = False
@@ -765,22 +768,7 @@ class NotificationBot:
         if cache_key in self.ip_cache: return self.ip_cache[cache_key]
 
         loc = ""
-        headers = {"User-Agent": "Mozilla/5.0"}
-
-        # 🔥 引入全球最稳定、支持 IPv6 最好的 IP-API 接口作为首选
-        if not loc:
-            try:
-                res = requests.get(f"http://ip-api.com/json/{ip}?lang=zh-CN", timeout=3)
-                if res.status_code == 200:
-                    d = res.json()
-                    if d.get("status") == "success":
-                        region = d.get("regionName", "")
-                        city = d.get("city", "")
-                        if city and city in region:
-                            loc = region
-                        else:
-                            loc = f"{region} {city}"
-            except: pass
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
         if not loc:
             try:
@@ -789,6 +777,24 @@ class NotificationBot:
                     d = res.json().get('data', {})
                     if d.get('province') or d.get('city'):
                         loc = f"{d.get('province', '')} {d.get('city', '')}"
+            except: pass
+
+        if not loc:
+            try:
+                res = requests.get(f"https://ip.zxinc.org/api.php?type=json&ip={ip}", headers=headers, timeout=3)
+                if res.status_code == 200:
+                    d = res.json().get('data', {})
+                    if d.get('location'):
+                        loc = d.get('location') 
+            except: pass
+
+        if not loc:
+            try:
+                res = requests.get(f"https://whois.pconline.com.cn/ipJson.jsp?ip={ip}&json=true", headers=headers, timeout=3)
+                if res.status_code == 200:
+                    d = res.json()
+                    if d.get('pro') or d.get('city'):
+                        loc = f"{d.get('pro', '')} {d.get('city', '')}"
             except: pass
 
         loc = self._clean_location(loc)
