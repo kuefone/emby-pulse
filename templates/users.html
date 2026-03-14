@@ -62,10 +62,14 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <div onclick="setFilter('all')" class="apple-card p-5 !rounded-2xl cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 group">
             <div class="text-gray-500 dark:text-gray-400 text-[11px] font-bold mb-1.5 uppercase tracking-widest"><i class="fa-solid fa-users mr-1"></i>总用户数</div>
             <div class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white font-mono" id="stat-total">0</div>
+        </div>
+        <div onclick="setFilter('vip')" class="apple-card p-5 !rounded-2xl cursor-pointer hover:border-purple-300 dark:hover:border-purple-500 group">
+            <div class="text-purple-500 text-[11px] font-bold mb-1.5 uppercase tracking-widest"><i class="fa-solid fa-crown mr-1"></i>VIP 会员</div>
+            <div class="text-2xl md:text-3xl font-black text-purple-600 dark:text-purple-400 font-mono" id="stat-vip">0</div>
         </div>
         <div onclick="setFilter('active')" class="apple-card p-5 !rounded-2xl cursor-pointer hover:border-green-300 dark:hover:border-green-500 group">
             <div class="text-green-500 text-[11px] font-bold mb-1.5 uppercase tracking-widest"><i class="fa-solid fa-circle-check mr-1"></i>活跃正常</div>
@@ -86,7 +90,8 @@
             <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
             <input type="text" id="search-input" name="search_prevent_autofill" autocomplete="off" oninput="renderUsers()" placeholder="搜索用户名或备注..." class="w-full bg-white dark:bg-[#1C1C1E] border border-gray-200/80 dark:border-white/10 rounded-xl pl-11 pr-4 py-3 focus:ring-2 focus:ring-brand-500 outline-none text-[13px] font-medium dark:text-white transition-all shadow-sm">
         </div>
-        <select id="sort-select" onchange="renderUsers()" class="bg-white dark:bg-[#1C1C1E] border border-gray-200/80 dark:border-white/10 rounded-xl px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer shadow-sm">
+        <select id="sort-select" onchange="renderUsers()" class="bg-white dark:bg-[#1C1C1E] border border-gray-200/80 dark:border-white/10 rounded-xl px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer shadow-sm min-w-[220px]">
+            <option value="default">排序: 智能推荐 (管理员>VIP>备注)</option>
             <option value="name">排序: 按名称 A-Z</option>
             <option value="login">排序: 最近登录时间</option>
             <option value="expire_asc">排序: 到期时间 (先到期优先)</option>
@@ -102,6 +107,7 @@
                             <input type="checkbox" id="selectAll-desktop" onchange="toggleSelectAll(this)" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 cursor-pointer">
                         </th>
                         <th class="px-2 py-4">用户信息</th>
+                        <th class="px-6 py-4">并发限制</th>
                         <th class="px-6 py-4">账号状态</th>
                         <th class="px-6 py-4">有效期至</th>
                         <th class="px-6 py-4">最后登录</th>
@@ -647,7 +653,13 @@ async function loadUsers() {
                 else u.StatusCat = 'normal';
                 u.DiffDays = diffDays;
             });
-            renderUsers();
+            // 确保页面加载时应用默认下拉框排序
+            const sortSelect = document.getElementById('sort-select');
+            if (sortSelect && sortSelect.value === 'default') {
+                renderUsers();
+            } else {
+                renderUsers();
+            }
         }
     } catch (err) {}
 }
@@ -666,6 +678,7 @@ function renderUsers() {
     const sortOpt = document.getElementById('sort-select').value;
     
     document.getElementById('stat-total').innerText = users.length;
+    document.getElementById('stat-vip').innerText = users.filter(u => u.IsVIP).length;
     document.getElementById('stat-active').innerText = users.filter(u => u.StatusCat === 'normal' || u.StatusCat === 'expiring').length;
     document.getElementById('stat-expiring').innerText = users.filter(u => u.StatusCat === 'expiring').length;
     document.getElementById('stat-error').innerText = users.filter(u => u.StatusCat === 'disabled' || u.StatusCat === 'expired').length;
@@ -676,15 +689,31 @@ function renderUsers() {
         const matchRemark = remarkVal.toLowerCase().includes(searchQ);
 
         if (searchQ && !(matchName || matchRemark)) return false;
+        // 🔥 加入 VIP 维度的筛选拦截
+        if (currentFilter === 'vip' && !u.IsVIP) return false;
         if (currentFilter === 'active' && !(u.StatusCat === 'normal' || u.StatusCat === 'expiring')) return false;
         if (currentFilter === 'expiring' && u.StatusCat !== 'expiring') return false;
         if (currentFilter === 'error' && !(u.StatusCat === 'disabled' || u.StatusCat === 'expired')) return false;
         return true;
     });
 
-    if (sortOpt === 'name') filtered.sort((a,b) => a.Name.localeCompare(b.Name));
-    else if (sortOpt === 'login') filtered.sort((a,b) => new Date(b.LastLoginDate||0) - new Date(a.LastLoginDate||0));
-    else if (sortOpt === 'expire_asc') filtered.sort((a,b) => new Date(a.ExpireDate||'2099-12-31') - new Date(b.ExpireDate||'2099-12-31'));
+    // 🔥 核心排序算法增强
+    if (sortOpt === 'default') {
+        filtered.sort((a, b) => {
+            if (a.IsAdmin !== b.IsAdmin) return a.IsAdmin ? -1 : 1;
+            if (a.IsVIP !== b.IsVIP) return a.IsVIP ? -1 : 1;
+            const aHasRemark = (a.remark || a.Remark) ? 1 : 0;
+            const bHasRemark = (b.remark || b.Remark) ? 1 : 0;
+            if (aHasRemark !== bHasRemark) return bHasRemark - aHasRemark;
+            return a.Name.localeCompare(b.Name);
+        });
+    } else if (sortOpt === 'name') {
+        filtered.sort((a,b) => a.Name.localeCompare(b.Name));
+    } else if (sortOpt === 'login') {
+        filtered.sort((a,b) => new Date(b.LastLoginDate||0) - new Date(a.LastLoginDate||0));
+    } else if (sortOpt === 'expire_asc') {
+        filtered.sort((a,b) => new Date(a.ExpireDate||'2099-12-31') - new Date(b.ExpireDate||'2099-12-31'));
+    }
 
     let desktopHtml = ""; 
     let mobileHtml = "";
@@ -706,6 +735,20 @@ function renderUsers() {
         const remarkVal = u.remark || u.Remark || "";
         const remarkHtml = remarkVal ? `<span class="text-[12px] font-normal text-gray-400 dark:text-gray-500 ml-1.5 truncate max-w-[120px] inline-block align-bottom" title="${remarkVal}">(${remarkVal})</span>` : '';
 
+        // 🔥 新增并发计算逻辑
+        let concurrentText = "";
+        let concurrentTextMob = "";
+        if (u.IsVIP) {
+            concurrentText = '<span class="text-purple-500 font-bold"><i class="fa-solid fa-infinity text-[10px] mr-1"></i> 无限</span>';
+            concurrentTextMob = '<span class="text-purple-500 font-bold">无限</span>';
+        } else if (u.MaxConcurrent !== null && u.MaxConcurrent !== undefined && u.MaxConcurrent !== "") {
+            concurrentText = `<span class="text-brand-500 font-bold">${u.MaxConcurrent} 台</span>`;
+            concurrentTextMob = `<span class="text-brand-500 font-bold">${u.MaxConcurrent}台</span>`;
+        } else {
+            concurrentText = '<span class="text-gray-400 font-medium">未配置</span>';
+            concurrentTextMob = '<span class="text-gray-400 font-medium">未配置</span>';
+        }
+
         desktopHtml += `
             <tr class="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all border-b border-gray-50 dark:border-white/5">
                 <td class="px-5 py-4 text-center whitespace-nowrap">
@@ -720,6 +763,7 @@ function renderUsers() {
                         </div>
                     </div>
                 </td>
+                <td class="px-6 py-4 text-[12px] whitespace-nowrap">${concurrentText}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${badge}</td>
                 <td class="px-6 py-4 text-[12px] font-mono font-medium text-gray-500 whitespace-nowrap">${u.ExpireDate || '永久有效'}</td>
                 <td class="px-6 py-4 text-[12px] text-gray-500 whitespace-nowrap">${u.LastLoginDate ? new Date(u.LastLoginDate).toLocaleDateString() : '从未'}</td>
@@ -738,7 +782,11 @@ function renderUsers() {
                             ${avatarTag}
                             <div>
                                 <div class="font-bold text-gray-900 dark:text-white text-[15px] flex items-center max-w-full overflow-hidden">${u.Name} ${vipBadge} ${remarkHtml}</div>
-                                <div class="text-[10px] text-gray-400 uppercase font-mono mt-0.5">到期: ${u.ExpireDate||'永久'}</div>
+                                <div class="text-[10px] text-gray-400 uppercase font-mono mt-0.5 flex gap-2">
+                                    <span>到期: ${u.ExpireDate||'永久'}</span>
+                                    <span class="text-gray-300 dark:text-gray-600">|</span>
+                                    <span>并发: ${concurrentTextMob}</span>
+                                </div>
                             </div>
                         </div>
                         ${badge}
@@ -751,7 +799,7 @@ function renderUsers() {
             </div>`;
     });
     
-    desktopBody.innerHTML = desktopHtml || '<tr><td colspan="6" class="text-center py-8 text-gray-400 text-[13px]">无符合条件的用户</td></tr>';
+    desktopBody.innerHTML = desktopHtml || '<tr><td colspan="7" class="text-center py-8 text-gray-400 text-[13px]">无符合条件的用户</td></tr>';
     mobileBody.innerHTML = mobileHtml || '<div class="text-center py-8 text-gray-400 text-[13px]">无符合条件的用户</div>';
     
     const allBoxD = document.getElementById('selectAll-desktop'); 
@@ -1238,7 +1286,6 @@ function closeBatchTemplateModal() {
     document.getElementById('batch-template-modal').classList.add('hidden'); 
 }
 
-// 🔥 核心修复：先获取数量，再清空列表
 async function submitBatchTemplate() {
     if (selectedUsers.size === 0) return; 
     const tid = document.getElementById('batch-template-select').value; 
@@ -1267,7 +1314,6 @@ async function submitBatchTemplate() {
         });
         const json = await res.json(); 
         if (json.status === 'success') { 
-            // 🔥 解决弹窗显示 0 的Bug：先把数量存下来，再去清空 Set 集合
             const processedCount = selectedUsers.size; 
             closeBatchTemplateModal(); 
             selectedUsers.clear(); 
