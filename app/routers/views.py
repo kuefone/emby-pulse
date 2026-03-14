@@ -59,8 +59,15 @@ def get_common_vars(request: Request, active_page: str, extra_vars: dict = None)
 @router.get("/apple-touch-icon.png")
 @router.get("/apple-touch-icon-precomposed.png")
 async def get_apple_touch_icon():
-    icon_path = os.path.join("static", "img", "logo-app.png")
-    if os.path.exists(icon_path): return FileResponse(icon_path)
+    # 🔥 优先尝试读取新图标，如果没有才读取旧图标
+    icon_path_new = os.path.join("static", "img", "logo-app-2.png")
+    icon_path_old = os.path.join("static", "img", "logo-app.png")
+    
+    if os.path.exists(icon_path_new): 
+        return FileResponse(icon_path_new)
+    elif os.path.exists(icon_path_old): 
+        return FileResponse(icon_path_old)
+        
     return RedirectResponse("/static/img/logo-light.png")
 
 @router.get("/favicon.ico")
@@ -91,7 +98,11 @@ async def get_request_manifest():
         "display": "standalone",
         "background_color": "#f8fafc",
         "theme_color": "#4f46e5",
-        "icons": [{"src": "/static/img/logo-app.png", "sizes": "192x192", "type": "image/png"}, {"src": "/static/img/logo-app.png", "sizes": "512x512", "type": "image/png"}]
+        # 🔥 重点修改：这里改为你的 logo-app-2.png
+        "icons": [
+            {"src": "/static/img/logo-app-2.png", "sizes": "192x192", "type": "image/png"}, 
+            {"src": "/static/img/logo-app-2.png", "sizes": "512x512", "type": "image/png"}
+        ]
     })
 
 @router.get("/sw.js")

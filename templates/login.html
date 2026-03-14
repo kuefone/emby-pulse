@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - EmbyPulse</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EmbyPulse">
+    <meta name="theme-color" content="#4f46e5">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -31,7 +38,6 @@
         }
         .bg-poster.loaded { opacity: 1; transform: scale(1); }
 
-        /* 🔥 动态遮罩：亮色完全透明原图，暗色自动加深黑色背景 */
         .bg-dimmer {
             position: fixed; inset: 0; z-index: -1;
             background-color: transparent;
@@ -42,7 +48,6 @@
             background-color: rgba(0, 0, 0, 0.6);
         }
 
-        /* 极致的毛玻璃卡片 */
         .apple-glass {
             background: rgba(255, 255, 255, 0.65);
             backdrop-filter: blur(30px) saturate(180%);
@@ -57,11 +62,9 @@
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* 登录失败震动特效 */
         .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
 
-        /* 修复浏览器自动填充导致的背景色变白 */
         input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active {
             transition: background-color 5000s ease-in-out 0s;
             -webkit-text-fill-color: #111 !important;
@@ -128,7 +131,14 @@
     </div>
 
     <script>
-        // 主题初始化逻辑：默认亮色模式
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+
+    <script>
         function initTheme() {
             const icon = document.getElementById('theme-icon');
             if (localStorage.theme === 'dark') {
@@ -140,7 +150,6 @@
             }
         }
 
-        // 手动切换主题
         function toggleTheme() {
             const html = document.documentElement;
             const icon = document.getElementById('theme-icon');
@@ -157,7 +166,6 @@
 
         initTheme();
 
-        // 获取并渲染 TMDB 高清背景
         async function loadBackground() {
             try {
                 const res = await fetch('/api/wallpaper');
@@ -169,7 +177,7 @@
                     img.onload = () => {
                         const el = document.getElementById('bg-img');
                         el.style.backgroundImage = `url('${json.url}')`;
-                        el.classList.add('loaded'); // 触发缩放渐显动画
+                        el.classList.add('loaded'); 
                         if(json.title) document.getElementById('bg-source').innerText = "Wallpaper by " + json.title;
                     };
                 }
@@ -177,7 +185,6 @@
         }
         loadBackground();
 
-        // 处理登录逻辑
         async function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('submit-btn');
