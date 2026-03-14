@@ -900,7 +900,6 @@ class NotificationBot:
             res = requests.post(f"{proxy_url}/cgi-bin/message/send?access_token={token}", json={"touser": touser, "msgtype": "news", "agentid": int(agentid), "news": {"articles": [{"title": title, "description": desc, "url": jump_url, "picurl": pic_url}]}}, timeout=10)
             if res.status_code != 200 or res.json().get("errcode", 0) != 0: self._send_wecom_message(html_text, inline_keyboard, touser)
         except: self._send_wecom_message(html_text, inline_keyboard, touser)
-
     def send_photo(self, chat_id, photo_io, caption, parse_mode="HTML", reply_markup=None, platform="all", wecom_photo_io=None):
         photo_bytes = None
         if isinstance(photo_io, str):
@@ -923,8 +922,11 @@ class NotificationBot:
             threading.Thread(target=self._send_wecom_photo, args=(wecom_photo_bytes, caption, reply_markup, chat_id if platform == "wecom" else cfg.get("wecom_touser", "@all"))).start()
 
         if platform in ["all", "tg"] and cfg.get("tg_bot_token"):
-            tg_cid = chat_id if platform == "tg" else cfg.get("tg_chat_id")
-            if tg_cid:
+            # 🔥 升级：切分多个 TG Chat ID 遍历发送，并自动替换中文逗号
+            raw_cids = str(cfg.get("tg_chat_id", ""))
+            tg_cids = [chat_id] if platform == "tg" else [c.strip() for c in raw_cids.replace('，', ',').split(',') if c.strip()]
+            
+            for tg_cid in tg_cids:
                 try:
                     data = {"chat_id": tg_cid, "caption": caption, "parse_mode": parse_mode}
                     if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
@@ -935,14 +937,16 @@ class NotificationBot:
                         self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
                 except: 
                     self.send_message(tg_cid, caption, parse_mode, reply_markup, platform="tg")
-
     def send_message(self, chat_id, text, parse_mode="HTML", reply_markup=None, platform="all"):
         if platform in ["all", "wecom"] and cfg.get("wecom_corpid"):
             threading.Thread(target=self._send_wecom_message, args=(text, reply_markup, chat_id if platform == "wecom" else cfg.get("wecom_touser", "@all"))).start()
 
         if platform in ["all", "tg"] and cfg.get("tg_bot_token"):
-            tg_cid = chat_id if platform == "tg" else cfg.get("tg_chat_id")
-            if tg_cid:
+            # 🔥 升级：切分多个 TG Chat ID 遍历发送
+            raw_cids = str(cfg.get("tg_chat_id", ""))
+            tg_cids = [chat_id] if platform == "tg" else [c.strip() for c in raw_cids.replace('，', ',').split(',') if c.strip()]
+            
+            for tg_cid in tg_cids:
                 try:
                     data = {"chat_id": tg_cid, "text": text, "parse_mode": parse_mode}
                     if reply_markup: data["reply_markup"] = json.dumps(reply_markup)
@@ -950,21 +954,28 @@ class NotificationBot:
                 except: pass
 
     def _polling_loop(self):
-        token = cfg.get("tg_bot_token"); admin_id = str(cfg.get("tg_chat_id"))
+        token = cfg.get("tg_bot_token")
+        
         while self.running:
+            # 🔥 移入循环内部读取，这样热修改配置文件后，轮询权限也会实时更新
+            raw_cids = str(cfg.get("tg_chat_id", ""))
+            admin_ids = [c.strip() for c in raw_cids.replace('，', ',').split(',') if c.strip()]
+            
             try:
                 res = requests.get(f"https://api.telegram.org/bot{token}/getUpdates", params={"offset": self.offset, "timeout": 30}, proxies=self._get_proxies(), timeout=35)
                 if res.status_code == 200:
                     for u in res.json().get("result", []):
                         self.offset = u["update_id"] + 1
                         if "message" in u:
-                            cid = str(u["message"]["chat"]["id"]); 
-                            if admin_id and cid != admin_id: continue
+                            cid = str(u["message"]["chat"]["id"]) 
+                            # 🔥 权限判定升级：只要在数组内的 ID，全都有权控制机器人
+                            if admin_ids and cid not in admin_ids: continue
                             self._handle_message(u["message"].get("text", ""), cid, platform="tg")
                         elif "callback_query" in u:
                             cq = u["callback_query"]
                             cid = str(cq["message"]["chat"]["id"])
-                            if admin_id and cid != admin_id: continue
+                            # 🔥 控制按钮回调的权限判定升级
+                            if admin_ids and cid not in admin_ids: continue
                             threading.Thread(target=self._handle_callback, args=(cq,)).start()
                 else: time.sleep(5)
             except: time.sleep(5)
