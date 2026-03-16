@@ -6,12 +6,12 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from app.core.config import cfg, templates
-from app.core.database import DB_PATH, query_db
+from app.core.database import DB_PATH, query_db, add_sys_notification
 from app.core.media_adapter import media_api
+from app.services.bot_service import bot
 
 router = APIRouter()
 
-# --- 🚀 数据库基建 ---
 def ensure_points_schema():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -69,7 +69,7 @@ async def save_points_config(request: Request):
         if isinstance(v, (dict, list)): v = json.dumps(v, ensure_ascii=False)
         c.execute("INSERT OR REPLACE INTO point_config (key, value) VALUES (?, ?)", (k, str(v)))
     conn.commit(); conn.close()
-    return {"status": "success", "message": "积分经济学参数已更新"}
+    return {"status": "success", "message": "积分配置已更新"}
 
 @router.get("/api/points/users")
 def get_users_points(request: Request):
@@ -109,8 +109,7 @@ def get_point_logs(request: Request, user_id: str = None):
     try:
         conn = sqlite3.connect(DB_PATH); c = conn.cursor()
         if user_id: c.execute("SELECT * FROM point_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 100", (user_id,))
-        else: c.execute("SELECT * FROM point_logs ORDER BY created_at DESC LIMIT 100")
-        
+        else: c.execute("SELECT * FROM point_logs ORDER BY created_at DESC LIMIT 200") # 优化：空 user_id 获取全站流水
         cols = [desc[0] for desc in c.description]
         logs = [dict(zip(cols, row)) for row in c.fetchall()]
         conn.close()
@@ -130,14 +129,26 @@ def get_user_points_info(request: Request):
         points = row[0] if row else 0
         has_checked_in = bool(c.execute("SELECT 1 FROM point_logs WHERE user_id = ? AND action = '每日签到' AND date(created_at, 'localtime') = date('now', 'localtime')", (user['Id'],)).fetchone())
         config = {r[0]: r[1] for r in c.execute("SELECT key, value FROM point_config").fetchall()}
-        
         try: store_items = json.loads(config.get('store_items', '[]'))
         except: store_items = []
         config['store_items'] = store_items
-
         conn.close()
         return {"status": "success", "data": {"points": points, "has_checked_in": has_checked_in, "config": config}}
     except Exception as e: return {"status": "error", "message": str(e)}
+
+# 🔥 新增：用户自己的流水查账 API
+@router.get("/api/user/points/logs")
+def get_my_point_logs(request: Request):
+    user = request.session.get("req_user")
+    if not user: return {"status": "error"}
+    try:
+        conn = sqlite3.connect(DB_PATH); c = conn.cursor()
+        c.execute("SELECT action, amount, balance, created_at FROM point_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", (user['Id'],))
+        cols = [desc[0] for desc in c.description]
+        logs = [dict(zip(cols, row)) for row in c.fetchall()]
+        conn.close()
+        return {"status": "success", "data": logs}
+    except Exception as e: return {"status": "error"}
 
 @router.post("/api/user/points/checkin")
 def user_checkin(request: Request):
@@ -147,15 +158,12 @@ def user_checkin(request: Request):
         conn = sqlite3.connect(DB_PATH); c = conn.cursor()
         if c.execute("SELECT 1 FROM point_logs WHERE user_id = ? AND action = '每日签到' AND date(created_at, 'localtime') = date('now', 'localtime')", (user['Id'],)).fetchone():
             conn.close(); return {"status": "error", "message": "今天已经签到过了，明天再来吧！"}
-
         config = {r[0]: int(r[1]) for r in c.execute("SELECT key, value FROM point_config WHERE key IN ('checkin_min', 'checkin_max')").fetchall()}
         reward = random.randint(config.get('checkin_min', 10), config.get('checkin_max', 30))
-
         row = c.execute("SELECT points FROM users_meta WHERE user_id = ?", (user['Id'],)).fetchone()
         new_points = (row[0] or 0) + reward if row else reward
         if row: c.execute("UPDATE users_meta SET points = ? WHERE user_id = ?", (new_points, user['Id']))
         else: c.execute("INSERT INTO users_meta (user_id, points) VALUES (?, ?)", (user['Id'], new_points))
-
         c.execute("INSERT INTO point_logs (user_id, username, action, amount, balance) VALUES (?, ?, ?, ?, ?)", (user['Id'], user['Name'], "每日签到", reward, new_points))
         conn.commit(); conn.close()
         return {"status": "success", "message": f"签到成功！抽中 {reward} 积分", "reward": reward, "balance": new_points}
@@ -192,6 +200,7 @@ def user_redeem(data: RedeemModel, request: Request):
         new_points = current_points - cost
         c.execute("UPDATE users_meta SET points = ? WHERE user_id = ?", (new_points, user['Id']))
 
+        new_exp_str = ""
         if target_item.get("type") == "renew":
             days = int(target_item.get("val", 30))
             today = datetime.date.today()
@@ -206,9 +215,27 @@ def user_redeem(data: RedeemModel, request: Request):
             action_desc = f"商城兑换: {target_item.get('name')} (至 {new_exp_str})"
             try: requests.post(f"{cfg.get('emby_host')}/emby/Users/{user['Id']}/Policy?api_key={cfg.get('emby_api_key')}", json={"IsDisabled": False}, timeout=3)
             except: pass
-        else: action_desc = f"商城兑换: {target_item.get('name')}"
+        else: 
+            action_desc = f"商城兑换: {target_item.get('name')}"
 
         c.execute("INSERT INTO point_logs (user_id, username, action, amount, balance) VALUES (?, ?, ?, ?, ?)", (user['Id'], user['Name'], action_desc, -cost, new_points))
         conn.commit(); conn.close()
-        return {"status": "success", "message": f"兑换成功！{target_item.get('name')}已生效或已记录。"}
+
+        # 🔥 发送机器人提醒给管理员和通知中心
+        try:
+            msg = f"🎁 <b>积分商城兑换提醒</b>\n\n👤 <b>用户</b>: {user['Name']}\n🛒 <b>商品</b>: {target_item.get('name')}\n💰 <b>花费</b>: {cost} 积分\n"
+            if target_item.get("type") == "renew":
+                msg += f"⏳ <b>结果</b>: 账号已自动续期至 {new_exp_str}"
+            else:
+                msg += f"⚠️ <b>结果</b>: 此商品需人工发货，请尽快联系用户！"
+            
+            bot.send_message("sys_notify", msg, platform="all")
+            add_sys_notification("points", f"商城订单: {target_item.get('name')}", f"用户 {user['Name']} 兑换了该商品", "/points")
+        except: pass
+
+        # 🔥 给用户的差异化反馈提示
+        if target_item.get("type") == "manual":
+            return {"status": "success", "message": f"兑换成功！已提醒管理员，请凭账号名主动联系服主领取奖励！"}
+        return {"status": "success", "message": f"兑换成功！{target_item.get('name')}已生效。"}
+        
     except Exception as e: return {"status": "error", "message": str(e)}
