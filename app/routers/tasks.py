@@ -5,7 +5,6 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from app.core.config import cfg
 from app.core.database import DB_PATH, query_db, add_sys_notification
-# 🔥 引入核心适配器和机器人
 from app.core.media_adapter import media_api
 from app.services.bot_service import bot
 
@@ -98,57 +97,59 @@ COMMON_TASK_DICT = {
 }
 
 # ==========================================
-# 🔥 新增：无感后台守护进程 (任务状态变更推送)
+# 🔥 优化：100% 精准的后台守护进程 (依靠时间戳追踪)
 # ==========================================
-_running_tasks = {}
+_task_last_end_times = {}
+_poller_initialized = False
 
 def fetch_emby_tasks():
     try: return media_api.get("/ScheduledTasks", timeout=5).json()
     except: return None
 
 async def poll_emby_tasks():
-    global _running_tasks
+    global _task_last_end_times, _poller_initialized
     while True:
         try:
             tasks = await asyncio.to_thread(fetch_emby_tasks)
             if tasks:
-                current_running = {}
                 custom_trans_rows = query_db("SELECT original_name, translated_name FROM task_translations")
                 custom_dict = {r['original_name']: r['translated_name'] for r in custom_trans_rows} if custom_trans_rows else {}
 
                 for t in tasks:
                     tid = t.get('Id')
                     orig_name = t.get('Name', '')
-                    state = t.get('State')
-                    
                     display_name = custom_dict.get(orig_name, COMMON_TASK_DICT.get(orig_name, orig_name))
                     
-                    if state == "Running":
-                        current_running[tid] = display_name
-                    else:
-                        # 发现任务刚刚跑完
-                        if tid in _running_tasks:
-                            last_result = t.get("LastExecutionResult", {})
-                            status = last_result.get("Status", "Unknown")
+                    last_result = t.get("LastExecutionResult")
+                    if last_result:
+                        end_time = last_result.get("EndTimeUtc")
+                        status = last_result.get("Status", "Unknown")
+                        
+                        # 如果初始化过且存在结束时间，开始比对
+                        if _poller_initialized and end_time:
+                            prev_end = _task_last_end_times.get(tid)
+                            # 如果时间戳变了，说明刚刚必然跑完了一次！
+                            if prev_end and end_time != prev_end:
+                                if status == "Completed":
+                                    try: add_sys_notification("system", f"任务完成: {display_name}", f"Emby 后台作业正常执行完毕", "/tasks")
+                                    except: pass
+                                    try: bot.send_message("sys_notify", f"✅ <b>任务执行完成</b>\n\n📌 <b>任务</b>: {display_name}\n⏱️ <b>状态</b>: 成功", platform="all")
+                                    except: pass
+                                elif status == "Failed":
+                                    try: add_sys_notification("system", f"任务失败: {display_name}", f"Emby 后台作业执行异常，请检查", "/tasks")
+                                    except: pass
+                                    try: bot.send_message("sys_notify", f"❌ <b>任务执行失败</b>\n\n📌 <b>任务</b>: {display_name}\n⚠️ <b>警告</b>: 运行异常，请前往后台检查 Emby 日志", platform="all")
+                                    except: pass
+                        
+                        if end_time:
+                            _task_last_end_times[tid] = end_time
                             
-                            if status == "Completed":
-                                try: add_sys_notification("system", f"任务完成: {display_name}", f"Emby 后台作业正常执行完毕", "/tasks")
-                                except: pass
-                                try: bot.send_message("sys_notify", f"✅ <b>任务执行完成</b>\n\n📌 <b>任务</b>: {display_name}\n⏱️ <b>状态</b>: 成功", platform="all")
-                                except: pass
-                            elif status == "Failed":
-                                try: add_sys_notification("system", f"任务失败: {display_name}", f"Emby 后台作业执行异常，请检查", "/tasks")
-                                except: pass
-                                try: bot.send_message("sys_notify", f"❌ <b>任务执行失败</b>\n\n📌 <b>任务</b>: {display_name}\n⚠️ <b>警告</b>: 运行异常，请前往后台检查 Emby 日志", platform="all")
-                                except: pass
-                
-                _running_tasks = current_running
+                _poller_initialized = True
         except Exception as e: pass
-        await asyncio.sleep(10) # 每10秒巡逻一次
+        await asyncio.sleep(5)  # 缩短至 5 秒轮询，UI显示更丝滑
 
 @router.on_event("startup")
 async def start_task_poller():
-    # 挂载守护进程
     asyncio.create_task(poll_emby_tasks())
 
 
@@ -183,7 +184,6 @@ async def translate_task(data: TranslationModel, request: Request):
     if not orig: return {"status": "error", "message": "原名不能为空"}
     
     try:
-        # 如果填写了翻译，就存入或更新；如果留空，就删除该自定义翻译，恢复默认
         if trans:
             query_db("INSERT OR REPLACE INTO task_translations (original_name, translated_name) VALUES (?, ?)", (orig, trans))
         else:
