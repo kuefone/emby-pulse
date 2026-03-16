@@ -89,7 +89,8 @@ def api_dashboard(user_id: Optional[str] = None):
     try:
         where, params = get_base_filter(user_id)
         plays = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where}", params)[0]['c']
-        users = query_db(f"SELECT COUNT(DISTINCT UserId) as c FROM PlaybackActivity {where} AND DateCreated > date('now', '-30 days')", params)[0]['c']
+        # 🔥 时区修复
+        users = query_db(f"SELECT COUNT(DISTINCT UserId) as c FROM PlaybackActivity {where} AND DateCreated > date('now', 'localtime', '-30 days')", params)[0]['c']
         dur = query_db(f"SELECT SUM(PlayDuration) as c FROM PlaybackActivity {where}", params)[0]['c'] or 0
         base = {"total_plays": plays, "active_users": users, "total_duration": dur}
         lib = {"movie": 0, "series": 0, "episode": 0}
@@ -288,12 +289,13 @@ def api_user_details(user_id: Optional[str] = None):
 def api_chart_stats(user_id: Optional[str] = None, dimension: str = 'day'):
     try:
         where, params = get_base_filter(user_id)
+        # 🔥 时区修复
         if dimension == 'week': 
-            sql = f"SELECT strftime('%Y-%W', substr(replace(DateCreated, 'T', ' '), 1, 19)) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-120 days') GROUP BY Label ORDER BY Label"
+            sql = f"SELECT strftime('%Y-%W', substr(replace(DateCreated, 'T', ' '), 1, 19)) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', 'localtime', '-120 days') GROUP BY Label ORDER BY Label"
         elif dimension == 'month': 
-            sql = f"SELECT substr(replace(DateCreated, 'T', ' '), 1, 7) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-365 days') GROUP BY Label ORDER BY Label"
+            sql = f"SELECT substr(replace(DateCreated, 'T', ' '), 1, 7) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', 'localtime', '-365 days') GROUP BY Label ORDER BY Label"
         else: 
-            sql = f"SELECT substr(replace(DateCreated, 'T', ' '), 1, 10) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', '-30 days') GROUP BY Label ORDER BY Label"
+            sql = f"SELECT substr(replace(DateCreated, 'T', ' '), 1, 10) as Label, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} AND DateCreated > date('now', 'localtime', '-30 days') GROUP BY Label ORDER BY Label"
             
         results = query_db(sql, params)
         data = {}
@@ -307,8 +309,9 @@ def api_poster_data(user_id: Optional[str] = None, period: str = 'all'):
     try:
         where_base, params = get_base_filter(user_id)
         date_filter = ""
-        if period == 'week': date_filter = " AND DateCreated > date('now', '-7 days')"
-        elif period == 'month': date_filter = " AND DateCreated > date('now', '-30 days')"
+        # 🔥 时区修复
+        if period == 'week': date_filter = " AND DateCreated > date('now', 'localtime', '-7 days')"
+        elif period == 'month': date_filter = " AND DateCreated > date('now', 'localtime', '-30 days')"
             
         server_res = query_db(f"SELECT COUNT(*) as Plays FROM PlaybackActivity {get_base_filter('all')[0]} {date_filter}", get_base_filter('all')[1])
         server_plays = server_res[0]['Plays'] if server_res else 0
@@ -392,10 +395,11 @@ def api_top_users_list(period: str = 'all'):
     try:
         where_base, params = get_base_filter('all')
         date_filter = ""
-        if period == 'day': date_filter = " AND DateCreated >= date('now', 'start of day')"
-        elif period == 'week': date_filter = " AND DateCreated >= date('now', '-7 days')"
-        elif period == 'month': date_filter = " AND DateCreated >= date('now', 'start of month')"
-        elif period == 'year': date_filter = " AND DateCreated >= date('now', 'start of year')"
+        # 🔥 时区修复
+        if period == 'day': date_filter = " AND DateCreated >= date('now', 'localtime', 'start of day')"
+        elif period == 'week': date_filter = " AND DateCreated >= date('now', 'localtime', '-7 days')"
+        elif period == 'month': date_filter = " AND DateCreated >= date('now', 'localtime', 'start of month')"
+        elif period == 'year': date_filter = " AND DateCreated >= date('now', 'localtime', 'start of year')"
             
         sql = f"SELECT UserId, COUNT(*) as Plays, SUM(PlayDuration) as TotalTime FROM PlaybackActivity {where_base} {date_filter} GROUP BY UserId ORDER BY TotalTime DESC LIMIT 10"
         res = query_db(sql, params)
@@ -484,7 +488,8 @@ def api_badges(user_id: Optional[str] = None):
 def api_monthly_stats(user_id: Optional[str] = None):
     try:
         where_base, params = get_base_filter(user_id)
-        where = where_base + " AND DateCreated > date('now', '-12 months')"
+        # 🔥 时区修复
+        where = where_base + " AND DateCreated > date('now', 'localtime', '-12 months')"
         sql = f"SELECT substr(replace(DateCreated, 'T', ' '), 1, 7) as Month, SUM(PlayDuration) as Duration FROM PlaybackActivity {where} GROUP BY Month ORDER BY Month"
         results = query_db(sql, params); data = {}
         if results: 

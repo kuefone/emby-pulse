@@ -703,7 +703,8 @@ class NotificationBot:
 
     def on_daily_report(self):
         chat_id = "sys_notify"
-        where = "WHERE DateCreated >= date('now', '-1 day', 'start of day') AND DateCreated < date('now', 'start of day')"
+        # 🔥 时区修复：强制增加 'localtime'，与本地北京时间保持严格对齐
+        where = "WHERE DateCreated >= date('now', 'localtime', '-1 day', 'start of day') AND DateCreated < date('now', 'localtime', 'start of day')"
         res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where}")
         count = res[0]['c'] if res else 0
         if count == 0:
@@ -888,10 +889,15 @@ class NotificationBot:
         proxy_url = cfg.get("wecom_proxy_url", "https://qyapi.weixin.qq.com").rstrip('/')
         if not token or not agentid: return
         try:
-            requests.post(f"{proxy_url}/cgi-bin/message/send?access_token={token}", json={"touser": touser, "msgtype": "text", "agentid": int(agentid), "text": {"content": self._html_to_wecom_text(text, inline_keyboard)}}, timeout=10)
+            content = self._html_to_wecom_text(text, inline_keyboard)
+            if len(content.encode('utf-8')) > 2048:
+                suffix = "\n\n[字数超限已被截断...]"
+                max_bytes = 2048 - len(suffix.encode('utf-8')) - 5
+                content = content.encode('utf-8')[:max_bytes].decode('utf-8', 'ignore') + suffix
+                
+            requests.post(f"{proxy_url}/cgi-bin/message/send?access_token={token}", json={"touser": touser, "msgtype": "text", "agentid": int(agentid), "text": {"content": content}}, timeout=10)
         except: pass
 
-    # 🔥 核心修复：企微卡片上传失败时的完美回退方案，优先确保横版 Backdrop 显示
     def _send_wecom_photo(self, photo_bytes, html_text, inline_keyboard=None, touser="@all"):
         token = self._get_wecom_token(); agentid = cfg.get("wecom_agentid")
         proxy_url = cfg.get("wecom_proxy_url", "https://qyapi.weixin.qq.com").rstrip('/')
@@ -910,9 +916,16 @@ class NotificationBot:
         try:
             plain_text = re.sub(r'<[^>]+>', '', html_text).strip()
             lines = [line.strip() for line in plain_text.split('\n')]
-            title = lines[0][:35] + "..." if lines and len(lines[0].encode('utf-8')) > 120 else (lines[0] if lines else "EmbyPulse 通知")
+            
+            title = lines[0] if lines else "EmbyPulse 通知"
+            if len(title.encode('utf-8')) > 128:
+                title = title.encode('utf-8')[:120].decode('utf-8', 'ignore') + "..."
+
             desc = re.sub(r'\n{3,}', '\n\n', '\n'.join(lines[1:]).strip()) if len(lines) > 1 else ""
-            if len(desc.encode('utf-8')) > 500: desc = desc[:150] + "..."
+            if len(desc.encode('utf-8')) > 512:
+                suffix = "...\n[字数超限，点击卡片阅读完整详情]"
+                max_bytes = 512 - len(suffix.encode('utf-8')) - 5
+                desc = desc.encode('utf-8')[:max_bytes].decode('utf-8', 'ignore') + suffix
 
             jump_url = cfg.get_main_public_url() or cfg.get("emby_host") or "https://emby.media"
             if inline_keyboard and "inline_keyboard" in inline_keyboard:
@@ -922,7 +935,6 @@ class NotificationBot:
                 links = re.findall(r"href=['\"](.*?)['\"]", html_text)
                 if links: jump_url = links[0]
 
-            # 🔥 当上传企微服务器失败时，系统执行兜底外链，主动探测并强制要求使用横版背景图
             item_id_match = re.search(r'id=([a-zA-Z0-9]+)', jump_url)
             if item_id_match and pic_url == REPORT_COVER_URL:
                 item_id = item_id_match.group(1)
@@ -932,11 +944,9 @@ class NotificationBot:
                 
                 img_type = "Primary"
                 try:
-                    # 极速发起内网 HEAD 请求，探测横版图存不存在
                     if requests.head(f"{local_emby}/emby/Items/{item_id}/Images/Backdrop?api_key={api_key}", timeout=2).status_code == 200:
                         img_type = "Backdrop"
                 except: pass
-                
                 pic_url = f"{base_emby}/emby/Items/{item_id}/Images/{img_type}?maxWidth=800&api_key={api_key}"
 
             pulse_url = cfg.get("pulse_url")
@@ -1308,11 +1318,14 @@ class NotificationBot:
         where, params = get_base_filter('all') 
         titles = {'day': '今日日报', 'yesterday': '昨日日报', 'week': '本周周报', 'month': '本月月报', 'year': '年度报告'}
         title_cn = titles.get(period, '数据报表')
-        if period == 'week': where += " AND DateCreated > date('now', '-7 days')"
-        elif period == 'month': where += " AND DateCreated > date('now', 'start of month')"
-        elif period == 'year': where += " AND DateCreated > date('now', 'start of year')"
-        elif period == 'yesterday': where += " AND DateCreated >= date('now', '-1 day', 'start of day') AND DateCreated < date('now', 'start of day')"
-        else: where += " AND DateCreated > date('now', 'start of day')"
+        
+        # 🔥 时区修复：强制增加 'localtime' 统一划界
+        if period == 'week': where += " AND DateCreated > date('now', 'localtime', '-7 days')"
+        elif period == 'month': where += " AND DateCreated > date('now', 'localtime', 'start of month')"
+        elif period == 'year': where += " AND DateCreated > date('now', 'localtime', 'start of year')"
+        elif period == 'yesterday': where += " AND DateCreated >= date('now', 'localtime', '-1 day', 'start of day') AND DateCreated < date('now', 'localtime', 'start of day')"
+        else: where += " AND DateCreated > date('now', 'localtime', 'start of day')"
+        
         try:
             plays_res = query_db(f"SELECT COUNT(*) as c FROM PlaybackActivity {where}", params)
             if not plays_res: raise Exception("DB Error")
