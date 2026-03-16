@@ -63,10 +63,13 @@
                     <i class="fa-solid fa-chevron-down text-[10px] ml-0.5 transition-transform duration-300" id="running-tasks-icon"></i>
                 </button>
 
-                <div id="running-tasks-panel" class="absolute right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 mt-3 w-72 md:w-80 bg-white/90 dark:bg-[#1C1C1E]/90 backdrop-blur-2xl rounded-[24px] shadow-[0_16px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.6)] border border-white/60 dark:border-white/10 hidden flex-col z-[100] transform origin-top-right md:origin-top transition-all duration-200 scale-95 opacity-0">
+                <div id="running-tasks-panel" class="fixed top-20 right-4 left-4 md:left-auto md:right-8 w-auto md:w-80 bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-3xl rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-gray-200/50 dark:border-white/10 hidden flex-col z-[200] transform origin-top-right transition-all duration-300 scale-95 opacity-0">
                     <div class="px-5 py-4 border-b border-gray-100/50 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-black/10 rounded-t-[24px]">
                         <h3 class="text-[13px] font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><i class="fa-solid fa-gear fa-spin text-blue-500"></i> 当前执行中</h3>
-                        <span class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 px-2 py-0.5 rounded-md font-mono font-bold border border-blue-200 dark:border-blue-800/50" id="panel-count-badge">0</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 px-2 py-0.5 rounded-md font-mono font-bold border border-blue-200 dark:border-blue-800/50" id="panel-count-badge">0</span>
+                            <button onclick="closeRunningDropdown()" class="md:hidden w-6 h-6 rounded-full bg-gray-200/50 dark:bg-white/10 text-gray-500 hover:text-rose-500 flex justify-center items-center transition-colors"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                        </div>
                     </div>
                     <div class="max-h-[50vh] overflow-y-auto mac-scrollbar p-3 space-y-2" id="running-tasks-list">
                         </div>
@@ -92,13 +95,6 @@
     let pollInterval = null;
     let isDropdownOpen = false;
 
-    document.addEventListener('click', (e) => {
-        const container = document.getElementById('running-tasks-dropdown-container');
-        if (isDropdownOpen && container && !container.contains(e.target)) {
-            closeRunningDropdown();
-        }
-    });
-
     function toggleRunningDropdown() { isDropdownOpen ? closeRunningDropdown() : openRunningDropdown(); }
 
     function openRunningDropdown() {
@@ -120,7 +116,7 @@
         panel.classList.remove('scale-100', 'opacity-100');
         panel.classList.add('scale-95', 'opacity-0');
         icon.classList.remove('-rotate-180');
-        setTimeout(() => { if(!isDropdownOpen) panel.classList.add('hidden'); }, 200);
+        setTimeout(() => { if(!isDropdownOpen) panel.classList.add('hidden'); }, 300);
     }
 
     async function init() { 
@@ -254,7 +250,6 @@
                     }
                 }
 
-                // 🔥 核心修复：添加 overflow-hidden 防止底部进度条突破圆角
                 const cardBaseClass = "relative bg-white dark:bg-[#1C1C1E] rounded-[20px] overflow-hidden p-5 flex flex-col justify-between min-h-[130px] group transition-all duration-300";
                 const borderClass = isRunning 
                     ? 'border border-blue-500 shadow-[0_8px_30px_rgba(59,130,246,0.15)] dark:shadow-[0_8px_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-500 scale-[1.02] z-10' 

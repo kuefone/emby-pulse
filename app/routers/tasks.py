@@ -1,11 +1,13 @@
 import sqlite3
 import requests
+import asyncio
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from app.core.config import cfg
-from app.core.database import DB_PATH, query_db
-# 🔥 引入核心适配器
+from app.core.database import DB_PATH, query_db, add_sys_notification
+# 🔥 引入核心适配器和机器人
 from app.core.media_adapter import media_api
+from app.services.bot_service import bot
 
 router = APIRouter()
 
@@ -96,6 +98,61 @@ COMMON_TASK_DICT = {
 }
 
 # ==========================================
+# 🔥 新增：无感后台守护进程 (任务状态变更推送)
+# ==========================================
+_running_tasks = {}
+
+def fetch_emby_tasks():
+    try: return media_api.get("/ScheduledTasks", timeout=5).json()
+    except: return None
+
+async def poll_emby_tasks():
+    global _running_tasks
+    while True:
+        try:
+            tasks = await asyncio.to_thread(fetch_emby_tasks)
+            if tasks:
+                current_running = {}
+                custom_trans_rows = query_db("SELECT original_name, translated_name FROM task_translations")
+                custom_dict = {r['original_name']: r['translated_name'] for r in custom_trans_rows} if custom_trans_rows else {}
+
+                for t in tasks:
+                    tid = t.get('Id')
+                    orig_name = t.get('Name', '')
+                    state = t.get('State')
+                    
+                    display_name = custom_dict.get(orig_name, COMMON_TASK_DICT.get(orig_name, orig_name))
+                    
+                    if state == "Running":
+                        current_running[tid] = display_name
+                    else:
+                        # 发现任务刚刚跑完
+                        if tid in _running_tasks:
+                            last_result = t.get("LastExecutionResult", {})
+                            status = last_result.get("Status", "Unknown")
+                            
+                            if status == "Completed":
+                                try: add_sys_notification("system", f"任务完成: {display_name}", f"Emby 后台作业正常执行完毕", "/tasks")
+                                except: pass
+                                try: bot.send_message("sys_notify", f"✅ <b>任务执行完成</b>\n\n📌 <b>任务</b>: {display_name}\n⏱️ <b>状态</b>: 成功", platform="all")
+                                except: pass
+                            elif status == "Failed":
+                                try: add_sys_notification("system", f"任务失败: {display_name}", f"Emby 后台作业执行异常，请检查", "/tasks")
+                                except: pass
+                                try: bot.send_message("sys_notify", f"❌ <b>任务执行失败</b>\n\n📌 <b>任务</b>: {display_name}\n⚠️ <b>警告</b>: 运行异常，请前往后台检查 Emby 日志", platform="all")
+                                except: pass
+                
+                _running_tasks = current_running
+        except Exception as e: pass
+        await asyncio.sleep(10) # 每10秒巡逻一次
+
+@router.on_event("startup")
+async def start_task_poller():
+    # 挂载守护进程
+    asyncio.create_task(poll_emby_tasks())
+
+
+# ==========================================
 # 2. 初始化自定义别名表
 # ==========================================
 def ensure_task_translation_schema():
@@ -143,7 +200,6 @@ async def get_tasks(request: Request):
     if not request.session.get("user"): return {"status": "error"}
     
     try:
-        # 🚀 替换为 media_api
         res = media_api.get("/ScheduledTasks", timeout=5)
         tasks = res.json()
         
@@ -181,7 +237,6 @@ async def get_tasks(request: Request):
 async def start_task(task_id: str, request: Request):
     if not request.session.get("user"): return {"status": "error"}
     try:
-        # 🚀 替换为 media_api
         media_api.post(f"/ScheduledTasks/Running/{task_id}", timeout=5)
         return {"status": "success"}
     except Exception as e:
@@ -191,7 +246,6 @@ async def start_task(task_id: str, request: Request):
 async def stop_task(task_id: str, request: Request):
     if not request.session.get("user"): return {"status": "error"}
     try:
-        # 🚀 替换为 media_api
         media_api.delete(f"/ScheduledTasks/Running/{task_id}", timeout=5)
         return {"status": "success"}
     except Exception as e:
