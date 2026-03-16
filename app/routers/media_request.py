@@ -8,6 +8,8 @@ from typing import Optional, List
 
 from app.core.config import cfg, REPORT_COVER_URL
 from app.core.database import DB_PATH, query_db, add_sys_notification
+# 🔥 补回丢失的这一行：引入基础数据模型
+from app.schemas.models import MediaRequestSubmitModel as BaseSubmitModel
 from app.services.bot_service import bot
 
 router = APIRouter()
@@ -247,7 +249,6 @@ def get_hub_data(request: Request):
             for k, v in sorted_genres:
                 genres_data.append({"name": k, "count": v, "pct": round(v / total_items * 100)})
     except Exception as e: 
-        print(f"获取枢纽数据失败: {e}")
         pass
         
     return {"status": "success", "data": {"top_rated": top_rated, "genres": genres_data}}
@@ -330,7 +331,6 @@ def check_local_status(media_type: str, tmdb_id: int):
     exists = check_emby_exists(tmdb_id, media_type)
     return {"status": "success", "exists": exists}
 
-# 🔥 核心修复：安全解析并同步写入 request_users 表，确保列表显示正常
 @router.post("/api/requests/submit")
 async def submit_media_request(request: Request):
     user = request.session.get("req_user")
@@ -383,11 +383,9 @@ async def submit_media_request(request: Request):
             c.execute("INSERT INTO point_logs (user_id, username, action, amount, balance) VALUES (?, ?, ?, ?, ?)",
                       (uid, uname, f"提交求片心愿: {title}", -req_cost, new_points))
 
-        # 🔥 写入总表
         c.execute("INSERT OR IGNORE INTO media_requests (tmdb_id, media_type, title, year, poster_path, status, season) VALUES (?, ?, ?, ?, ?, 0, ?)",
                   (tmdb_id, media_type, title, year, poster_path, season))
                   
-        # 🔥 核心修复：写入用户关联表！只有写入这里，用户在“我的心愿”才能看到
         c.execute("INSERT OR IGNORE INTO request_users (tmdb_id, user_id, username, season) VALUES (?, ?, ?, ?)",
                   (tmdb_id, uid, uname, season))
         
@@ -584,7 +582,7 @@ def submit_feedback(data: FeedbackSubmitModel, request: Request):
             action_url="/requests_admin?tab=feedback"
         )
     except Exception as e:
-        print(f"写入报错通知失败: {e}")
+        pass
     
     return {"status": "success", "message": "反馈已提交，感谢您的协助！"}
 
