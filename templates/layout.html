@@ -793,5 +793,44 @@
         }
 
     </script>
+
+<script>
+        // 拿取刚才 views.py 智能处理后传来的干净安全地址
+        const secureEmbyUrl = "{{ emby_url | default('') }}";
+        const secureServerId = "{{ server_id | default('') }}";
+
+        // 🔥 终极防线：全局拦截所有不规范的 Emby 跳转链接
+        document.addEventListener('click', function(e) {
+            let target = e.target.closest('a');
+            if (target && target.href) {
+                let rawHref = target.getAttribute('href') || target.href;
+                
+                // 判断：只要是你点击了任何要跳往 Emby 详情页的链接
+                if (rawHref.includes('/web/index.html#!/item?id=')) {
+                    e.preventDefault(); // 🛑 阻止原本崩溃的错误跳转！
+                    
+                    // 像外科手术一样提取出电影/剧集的真实 ID
+                    let idMatch = rawHref.match(/id=([a-zA-Z0-9_-]+)/);
+                    let serverIdMatch = rawHref.match(/serverId=([a-zA-Z0-9_-]+)/);
+                    
+                    if (idMatch) {
+                        let id = idMatch[1];
+                        let sId = serverIdMatch ? serverIdMatch[1] : secureServerId;
+                        let jumpUrl = "";
+                        
+                        // 重新用干净卫生的地址组装最终的直达链接
+                        if (secureEmbyUrl && secureEmbyUrl.startsWith("http")) {
+                            jumpUrl = `${secureEmbyUrl}/web/index.html#!/item?id=${id}&serverId=${sId}`;
+                        } else {
+                            // 极端兜底：如果啥都没拿到，直接拼当前 IP 和默认的 8096 端口
+                            jumpUrl = `http://${window.location.hostname}:8096/web/index.html#!/item?id=${id}&serverId=${sId}`;
+                        }
+                        
+                        window.open(jumpUrl, '_blank');
+                    }
+                }
+            }
+        }, true); // 设置为 true 表示在捕获阶段最高优先级拦截
+    </script>
 </body>
 </html>

@@ -21,37 +21,69 @@ def check_login(request: Request):
     return False
 
 def get_common_vars(request: Request, active_page: str, extra_vars: dict = None):
-    raw_url = cfg.get("emby_public_url") or cfg.get("emby_public_host") or cfg.get("emby_host") or ""
-    emby_url = raw_url
+    # 1. 拿到底层最可靠的内网地址
+    internal_url = (cfg.get("emby_host") or "").strip().rstrip('/')
+    
+    # 2. 解析你配置的复杂公网地址
+    raw_url = cfg.get("emby_public_url") or cfg.get("emby_public_host") or internal_url
+    external_url = raw_url.strip()
     try:
-        routes = json.loads(raw_url)
+        # 尽力解析你的 JSON 数组配置
+        fixed_json = external_url.replace("'", '"')
+        routes = json.loads(fixed_json)
         if isinstance(routes, list) and len(routes) > 0:
-            emby_url = routes[0].get("url", "")
+            external_url = routes[0].get("url", "")
             for r in routes:
                 if r.get("is_main"): 
-                    emby_url = r.get("url", "")
+                    external_url = r.get("url", "")
                     break
     except Exception:
         pass
         
-    emby_url = emby_url.strip().rstrip('/')
+    external_url = external_url.strip().rstrip('/')
+    
+    # 💥 防止乱码：如果你后台写了“涉及多个入口...”这种中文，它就不是合法网址，强制回退兜底！
+    if not external_url.startswith("http"):
+        external_url = internal_url
+        
+    # 3. 🔥 核心：内/外网智能路由判断
+    client_host = request.headers.get("host", "").split(":")[0]
+    # 判断客户端 IP 是否属于局域网或本地
+    is_internal = client_host.startswith(("192.168.", "10.", "127.", "172.", "localhost"))
+    
+    # 内网访问分配内网地址，外网访问分配外网干净地址
+    emby_url = internal_url if is_internal else external_url
     
     server_id = ""
     try:
-        sys_res = requests.get(f"{cfg.get('emby_host')}/emby/System/Info?api_key={cfg.get('emby_api_key')}", timeout=2)
+        sys_res = requests.get(f"{internal_url}/emby/System/Info?api_key={cfg.get('emby_api_key')}", timeout=2)
         if sys_res.status_code == 200: 
             raw_id = sys_res.json().get("Id", "")
-            # 🔥 核心防线：强制剥离所有换行、回车及首尾空白字符
             if raw_id:
                 server_id = str(raw_id).replace('\r', '').replace('\n', '').strip()
     except: pass
+
+    # ================= 🔥 保留：查询 Pro 状态 =================
+    is_pro = False
+    try:
+        import sqlite3
+        from app.core.config import DB_PATH
+        conn = sqlite3.connect(DB_PATH)
+        status_row = conn.execute("SELECT status FROM sys_license LIMIT 1").fetchone()
+        conn.close()
+        if status_row and status_row[0] == 'pro':
+            is_pro = True
+    except Exception as e:
+        pass
+    # =========================================================
 
     vars_dict = {
         "request": request,
         "version": APP_VERSION,
         "active_page": active_page,
-        "emby_url": emby_url,
-        "server_id": server_id
+        "emby_url": emby_url,  # 👈 现在这里传出去的绝对是 100% 干净、适应当前网络的网址
+        "server_id": server_id,
+        "is_pro": is_pro
     }
     if extra_vars: vars_dict.update(extra_vars)
     return vars_dict
