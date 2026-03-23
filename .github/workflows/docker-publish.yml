@@ -1,12 +1,19 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Docker image version prefix
+        required: false
+        default: "1.2.0"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/emby-stats
+      VERSION: ${{ github.event.inputs.version || '1.2.0' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -29,12 +36,10 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          # 🔥 修改 1：打上 latest 和自动递增版本号的双标签
           tags: |
-            zeyu8023/emby-stats:latest
-            zeyu8023/emby-stats:1.2.0.${{ github.run_number }}
-          # 🔥 修改 2：将版本号作为参数传进 Dockerfile
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.VERSION }}.${{ github.run_number }}
           build-args: |
-            APP_VERSION=1.2.0.${{ github.run_number }}
+            APP_VERSION=${{ env.VERSION }}.${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
